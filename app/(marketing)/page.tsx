@@ -160,82 +160,85 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="container mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-            Everything you need for modern valet parking management
-          </p>
-        </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            {
-              icon: Camera,
-              title: "AI License Plate Recognition",
-              description: "Instant vehicle identification with 99.5% accuracy using computer vision",
-              color: "blue"
-            },
-            {
-              icon: Zap,
-              title: "Fast Check-in/Check-out",
-              description: "Reduce average processing time from 3 minutes to 20 seconds",
-              color: "cyan"
-            },
-            {
-              icon: Shield,
-              title: "Secure & Reliable",
-              description: "Real-time tracking with digital verification and audit logs",
-              color: "green"
-            },
-            {
-              icon: Smartphone,
-              title: "Mobile Dashboard",
-              description: "Track vehicles and manage operations from any device",
-              color: "purple"
-            },
-            {
-              icon: BarChart3,
-              title: "Analytics & Reports",
-              description: "Detailed insights on parking patterns and revenue",
-              color: "orange"
-            },
-            {
-              icon: Users,
-              title: "Multi-Tenant SaaS",
-              description: "Perfect for malls, airports, hotels, and event venues",
-              color: "pink"
-            }
-          ].map((feature, i) => (
-            <Card 
-              key={i} 
-              className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 cursor-pointer border-2 hover:border-blue-300 relative overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              
-              <CardContent className="p-6 relative z-10">
-                <div className="h-14 w-14 rounded-xl bg-blue-100 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 group-hover:bg-blue-600">
-                  <feature.icon className="h-7 w-7 text-blue-600 group-hover:text-white transition-colors duration-300" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2 group-hover:text-blue-600 transition-colors duration-300">
-                  {feature.title}
-                </h3>
-                <p className="text-slate-600 group-hover:text-slate-700 transition-colors duration-300">
-                  {feature.description}
-                </p>
-                
-                <div className="mt-4 flex items-center text-blue-600 font-medium text-sm opacity-0 group-hover:opacity-100 transform translate-x-0 group-hover:translate-x-2 transition-all duration-300">
-                  Learn more
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                </div>
-              </CardContent>
-              
-              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400 to-cyan-400 opacity-0 group-hover:opacity-10 rounded-bl-full transition-opacity duration-300" />
-            </Card>
-          ))}
-        </div>
-      </section>
 
+      {/* Features Section */}
+<section id="features" className="container mx-auto px-4 py-20">
+  <div className="text-center mb-16">
+    <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
+    <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+      Everything you need for modern valet parking management
+    </p>
+  </div>
+  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+    {[
+      {
+        icon: Camera,
+        title: "AI License Plate Recognition",
+        description: "Instant vehicle identification with 99.5% accuracy using computer vision",
+        color: "blue"
+      },
+      {
+        icon: Zap,
+        title: "Fast Check-in/Check-out",
+        description: "Reduce average processing time from 3 minutes to 20 seconds",
+        color: "cyan"
+      },
+      {
+        icon: Shield,
+        title: "Secure & Reliable",
+        description: "Real-time tracking with digital verification and audit logs",
+        color: "green"
+      },
+      {
+        icon: Smartphone,
+        title: "Mobile Dashboard",
+        description: "Track vehicles and manage operations from any device",
+        color: "purple"
+      },
+      {
+        icon: BarChart3,
+        title: "Analytics & Reports",
+        description: "Detailed insights on parking patterns and revenue",
+        color: "orange"
+      },
+      {
+        icon: Users,
+        title: "Multi-Tenant SaaS",
+        description: "Perfect for malls, airports, hotels, and event venues",
+        color: "pink"
+      }
+    ].map((feature, i) => (
+      <Card 
+        key={i} 
+        className="group hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 cursor-pointer border-2 hover:border-blue-300 relative overflow-hidden"
+      >
+        {/* Animated background gradient on hover */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        
+        <CardContent className="p-6 relative z-10">
+          <div className="h-14 w-14 rounded-xl bg-blue-100 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 group-hover:bg-blue-600">
+            <feature.icon className="h-7 w-7 text-blue-600 group-hover:text-white transition-colors duration-300" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2 group-hover:text-blue-600 transition-colors duration-300">
+            {feature.title}
+          </h3>
+          <p className="text-slate-600 group-hover:text-slate-700 transition-colors duration-300">
+            {feature.description}
+          </p>
+          
+          {/* Animated arrow that appears on hover */}
+          <div className="mt-4 flex items-center text-blue-600 font-medium text-sm opacity-0 group-hover:opacity-100 transform translate-x-0 group-hover:translate-x-2 transition-all duration-300">
+            Learn more
+            <ArrowRight className="ml-1 h-4 w-4" />
+          </div>
+        </CardContent>
+        
+        {/* Animated corner accent */}
+        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400 to-cyan-400 opacity-0 group-hover:opacity-10 rounded-bl-full transition-opacity duration-300" />
+      </Card>
+    ))}
+  </div>
+</section>
       {/* How It Works */}
       <section id="how-it-works" className="bg-slate-50 py-20">
         <div className="container mx-auto px-4">
