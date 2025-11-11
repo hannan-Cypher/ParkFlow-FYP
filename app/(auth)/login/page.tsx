@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Mail, Lock, AlertCircle, Car, Eye, EyeOff } from 'lucide-react'
 
-export default function Login() {
-  const router = useRouter()
+export default function LoginPage() {
+  const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -15,6 +14,10 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -38,13 +41,17 @@ export default function Login() {
         return
       }
 
-      // Redirect to dashboard
-      router.push('/dashboard')
-      router.refresh()
+      // Successfully logged in
+      window.location.href = '/dashboard'
     } catch (err) {
       setError('An unexpected error occurred')
       setLoading(false)
     }
+  }
+
+  // Don't render until mounted to avoid hydration errors
+  if (!mounted) {
+    return null
   }
 
   return (
@@ -64,15 +71,13 @@ export default function Login() {
             >
               <Car className="w-12 h-12 text-primary-500" />
             </motion.div>
-            <span className="text-3xl font-display font-bold text-dark-900">
-              AI Valet
-            </span>
+            <span className="text-3xl font-display font-bold text-dark-900">ParkFlow</span>
           </Link>
           <h2 className="mt-6 text-3xl font-display font-bold text-dark-900">
             Welcome back
           </h2>
           <p className="mt-2 text-sm text-dark-600">
-            Sign in to access your valet parking account
+            Sign in to your account to continue
           </p>
         </div>
 
@@ -83,20 +88,19 @@ export default function Login() {
           transition={{ delay: 0.2 }}
           className="bg-white rounded-2xl shadow-xl p-8"
         >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Message */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3"
-              >
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                <p className="text-sm text-red-700">{error}</p>
-              </motion.div>
-            )}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{error}</p>
+            </motion.div>
+          )}
 
-            {/* Email Field */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email Input */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-dark-700 mb-2">
                 Email address
@@ -109,16 +113,17 @@ export default function Login() {
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
-            {/* Password Field */}
+            {/* Password Input */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-dark-700 mb-2">
                 Password
@@ -131,10 +136,11 @@ export default function Login() {
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
                 <button
@@ -194,7 +200,7 @@ export default function Login() {
             {/* Sign Up Link */}
             <div className="text-center pt-4">
               <p className="text-sm text-dark-600">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link href="/signup" className="font-medium text-primary-500 hover:text-primary-600">
                   Sign up
                 </Link>

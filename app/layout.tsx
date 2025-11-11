@@ -1,11 +1,12 @@
+import type { Metadata } from 'next'
 import './globals.css'
-import Navbar from '../components/Navbar'
-import Footer from '../components/Footer'
-import { headers } from 'next/headers'
+import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'AI-Powered Valet Parking | Frictionless Management System',
   description: 'Experience the future of valet parking with AI-powered license plate recognition, smart slot allocation, and real-time monitoring.',
+  keywords: 'valet parking, AI parking, smart parking, automated valet, parking management',
 }
 
 export default function RootLayout({
@@ -13,18 +14,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const headersList = headers()
-  const path = headersList.get('x-invoke-path') || ''
-  const isDashboard = path.startsWith('/dashboard')
-
   return (
     <html lang="en" className="scroll-smooth">
       <body>
-        {!isDashboard && <Navbar />}
-        <main className={!isDashboard ? "min-h-screen" : ""}>
+        <Navbar />
+        <main className="min-h-screen">
           {children}
         </main>
-        {!isDashboard && <Footer />}
+        <Footer />
       </body>
     </html>
   )

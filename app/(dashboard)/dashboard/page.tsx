@@ -56,7 +56,7 @@ export default function CustomerDashboardPage() {
       {/* Header */}
       <motion.header variants={item} className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">Customer Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">Welcome back, John!</p>
+        <p className="mt-1 text-sm text-slate-500">Welcome back</p>
       </motion.header>
 
       {/* Current Parking / Quick Actions */}
@@ -102,7 +102,7 @@ export default function CustomerDashboardPage() {
 
               <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
                 <StatBox label="Current Duration" value="2h 15m" align="right" />
-                <StatBox label="Estimated Cost" value="$14.50" align="right" />
+                <StatBox label="Estimated Cost" value="Rs.145" align="right" />
               </div>
             </div>
           </motion.div>
@@ -319,12 +319,12 @@ function StatBox({ label, value, align = "left" }: { label: string; value: strin
 
 // --- Mock Data ---
 const HISTORY = [
-  { place: "Mall Plaza", date: "Dec 15, 2024", price: "$15", duration: "2h 30m" },
-  { place: "Airport", date: "Dec 10, 2024", price: "$12", duration: "1h 45m" },
-  { place: "Hotel Grand", date: "Dec 5, 2024", price: "$18", duration: "3h 15m" },
+  { place: "Mall Plaza", date: "Sep 15, 2025", price: "Rs.150", duration: "2h 30m" },
+  { place: "Airport", date: "Sep 10, 2025", price: "Rs.120", duration: "1h 45m" },
+  { place: "Hotel Grand", date: "Sep 5, 2025", price: "Rs.180", duration: "3h 15m" },
 ];
 
 const SERVICES = [
-  { icon: Sparkles, title: "Express Cleaning", desc: "Quick exterior wash and interior vacuum", price: "$25" },
-  { icon: Wand2, title: "Premium Detail", desc: "Complete interior & exterior detailing", price: "$75" },
+  { icon: Sparkles, title: "Express Cleaning", desc: "Quick exterior wash and interior vacuum", price: "Rs.250" },
+  { icon: Wand2, title: "Premium Detail", desc: "Complete interior & exterior detailing", price: "Rs.750" },
 ];

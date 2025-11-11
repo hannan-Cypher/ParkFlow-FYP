@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    container_name: valet_parking_db
+    environment:
+      POSTGRES_USER: Owner
+      POSTGRES_PASSWORD: 1512147296110@Hm
+      POSTGRES_DB: valet_parking
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d
+
+volumes:
+  postgres_data: {}

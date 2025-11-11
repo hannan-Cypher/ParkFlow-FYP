@@ -76,7 +76,8 @@ export default function Signup() {
 
       if (!response.ok) {
         // Show detailed error message from the server
-        const errorMessage = data.error || (data.message ? `Error: ${data.message}` : 'Signup failed')
+        const errorMessage = data.error || (data.message ? 
+          `Error: ${data.message}` : 'Signup failed')
         if (data.detail) {
           setError(`${errorMessage}\nDetails: ${data.detail}`)
         } else if (data.code) {
@@ -88,9 +89,8 @@ export default function Signup() {
         return
       }
 
-      // Redirect to dashboard
-      router.push('/dashboard')
-      router.refresh()
+      // FIXED: Use window.location for more reliable navigation
+      window.location.href = '/dashboard'
     } catch (err: any) {
       // Show detailed error information if available
       const errorMessage = err.message || 'An unexpected error occurred'
@@ -130,15 +130,13 @@ export default function Signup() {
             >
               <Car className="w-12 h-12 text-primary-500" />
             </motion.div>
-            <span className="text-3xl font-display font-bold text-dark-900">
-              AI Valet
-            </span>
+            <span className="text-3xl font-display font-bold text-dark-900">AI Valet</span>
           </Link>
           <h2 className="mt-6 text-3xl font-display font-bold text-dark-900">
             Create your account
           </h2>
           <p className="mt-2 text-sm text-dark-600">
-            Join us and experience frictionless parking
+            Start managing your valet service today
           </p>
         </div>
 
@@ -149,20 +147,19 @@ export default function Signup() {
           transition={{ delay: 0.2 }}
           className="bg-white rounded-2xl shadow-xl p-8"
         >
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Error Message */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3"
-              >
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-red-700 whitespace-pre-wrap">{error}</div>
-              </motion.div>
-            )}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700 whitespace-pre-line">{error}</p>
+            </motion.div>
+          )}
 
-            {/* Full Name Field */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Full Name */}
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-dark-700 mb-2">
                 Full Name
@@ -178,13 +175,13 @@ export default function Signup() {
                   required
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  placeholder="John Doe"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Hannan Mohsin"
                 />
               </div>
             </div>
 
-            {/* Email Field */}
+            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-dark-700 mb-2">
                 Email address
@@ -197,19 +194,20 @@ export default function Signup() {
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="you@example.com"
                 />
               </div>
             </div>
 
-            {/* Phone Field */}
+            {/* Phone */}
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-dark-700 mb-2">
-                Phone Number (Optional)
+                Phone Number
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -219,22 +217,17 @@ export default function Signup() {
                   id="phone"
                   name="phone"
                   type="tel"
+                  autoComplete="tel"
+                  required
                   value={formData.phone}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Only allow numbers, spaces, and characters: + - ( )
-                    if (!value || /^[+\d\s()-]*$/.test(value)) {
-                      setFormData({ ...formData, phone: value });
-                    }
-                  }}
-                  maxLength={20}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  placeholder="+1 (555) 123-4567"
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="+92 330 0000000"
                 />
               </div>
             </div>
 
-            {/* Password Field */}
+            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-dark-700 mb-2">
                 Password
@@ -247,10 +240,11 @@ export default function Signup() {
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   required
                   value={formData.password}
                   onChange={(e) => handlePasswordChange(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
                 <button
@@ -268,24 +262,52 @@ export default function Signup() {
 
               {/* Password Strength Indicators */}
               {formData.password && (
-                <div className="mt-2 space-y-1">
-                  <PasswordRequirement met={passwordStrength.hasLength}>
-                    At least 8 characters
-                  </PasswordRequirement>
-                  <PasswordRequirement met={passwordStrength.hasUpper}>
-                    One uppercase letter
-                  </PasswordRequirement>
-                  <PasswordRequirement met={passwordStrength.hasLower}>
-                    One lowercase letter
-                  </PasswordRequirement>
-                  <PasswordRequirement met={passwordStrength.hasNumber}>
-                    One number
-                  </PasswordRequirement>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center space-x-2 text-xs">
+                    {passwordStrength.hasLength ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                    )}
+                    <span className={passwordStrength.hasLength ? 'text-green-600' : 'text-dark-500'}>
+                      At least 8 characters
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-xs">
+                    {passwordStrength.hasUpper ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                    )}
+                    <span className={passwordStrength.hasUpper ? 'text-green-600' : 'text-dark-500'}>
+                      One uppercase letter
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-xs">
+                    {passwordStrength.hasLower ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                    )}
+                    <span className={passwordStrength.hasLower ? 'text-green-600' : 'text-dark-500'}>
+                      One lowercase letter
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-xs">
+                    {passwordStrength.hasNumber ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                    )}
+                    <span className={passwordStrength.hasNumber ? 'text-green-600' : 'text-dark-500'}>
+                      One number
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Confirm Password Field */}
+            {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-dark-700 mb-2">
                 Confirm Password
@@ -298,10 +320,11 @@ export default function Signup() {
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   required
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
                 <button
@@ -318,32 +341,11 @@ export default function Signup() {
               </div>
             </div>
 
-            {/* Terms and Conditions */}
-            <div className="flex items-start">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                required
-                className="h-4 w-4 text-primary-500 focus:ring-primary-500 border-gray-300 rounded mt-1"
-              />
-              <label htmlFor="terms" className="ml-2 block text-sm text-dark-700">
-                I agree to the{' '}
-                <Link href="/terms" className="text-primary-500 hover:text-primary-600 font-medium">
-                  Terms and Conditions
-                </Link>
-                {' '}and{' '}
-                <Link href="/privacy" className="text-primary-500 hover:text-primary-600 font-medium">
-                  Privacy Policy
-                </Link>
-              </label>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed mt-6"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -362,6 +364,7 @@ export default function Signup() {
             <div className="text-center pt-4">
               <p className="text-sm text-dark-600">
                 Already have an account?{' '}
+                {/* FIXED: Changed link to /login for consistency */}
                 <Link href="/login" className="font-medium text-primary-500 hover:text-primary-600">
                   Sign in
                 </Link>
@@ -377,20 +380,6 @@ export default function Signup() {
           </Link>
         </p>
       </motion.div>
-    </div>
-  )
-}
-
-// Helper component for password requirements
-function PasswordRequirement({ met, children }: { met: boolean; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center space-x-2 text-xs">
-      {met ? (
-        <CheckCircle className="w-4 h-4 text-green-500" />
-      ) : (
-        <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
-      )}
-      <span className={met ? 'text-green-700' : 'text-dark-600'}>{children}</span>
     </div>
   )
 }
