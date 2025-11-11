@@ -54,11 +54,7 @@ export default function Navbar() {
             <span className={`text-2xl font-display font-bold ${
               scrolled ? 'text-dark-900' : 'text-white'
             }`}>
-<<<<<<< HEAD
               ParkFlow
-=======
-              AI Valet
->>>>>>> 6b5e7bce68524b4e16f73ed583a90133dc6c3c3b
             </span>
           </Link>
 

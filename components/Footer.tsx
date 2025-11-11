@@ -52,19 +52,11 @@ export default function Footer() {
             <div className="space-y-3">
               <div className="flex items-center space-x-3 text-gray-400">
                 <Phone className="w-5 h-5 text-primary-500" />
-<<<<<<< HEAD
                 <span>+92 330 2031112</span>
               </div>
               <div className="flex items-center space-x-3 text-gray-400">
                 <Mail className="w-5 h-5 text-primary-500" />
                 <span>info@parkflow.com</span>
-=======
-                <span>(555) 123-4567</span>
-              </div>
-              <div className="flex items-center space-x-3 text-gray-400">
-                <Mail className="w-5 h-5 text-primary-500" />
-                <span>info@ParkFlow.com</span>
->>>>>>> 6b5e7bce68524b4e16f73ed583a90133dc6c3c3b
               </div>
               <div className="flex items-center space-x-3 text-gray-400">
                 <MapPin className="w-5 h-5 text-primary-500" />
@@ -150,11 +142,7 @@ export default function Footer() {
         >
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-gray-400 text-sm">
-<<<<<<< HEAD
               © 2025 ParkFlow. All rights reserved.
-=======
-              © {new Date().getFullYear()} AI Valet Parking. All rights reserved.
->>>>>>> 6b5e7bce68524b4e16f73ed583a90133dc6c3c3b
             </p>
             
             <div className="flex space-x-4">
