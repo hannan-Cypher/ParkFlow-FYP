@@ -114,11 +114,11 @@ export default function CTA() {
               >
                 <div className="flex items-center space-x-2">
                   <Mail className="w-5 h-5" />
-                  <span>info@aivalet.com</span>
+                  <span>info@parkflow.com</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Phone className="w-5 h-5" />
-                  <span>(555) 123-4567</span>
+                  <span>(+92) 330 1234567</span>
                 </div>
               </motion.div>
             </div>
