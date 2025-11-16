@@ -11,7 +11,9 @@ services:
     ports:
       - "5433:5432"
     volumes:
+      # Named volume for persistent data storage
       - postgres_data:/var/lib/postgresql/data
+      # Init script only runs on first initialization
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - parkflow-network
@@ -20,6 +22,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   app:
     build:
@@ -32,7 +35,7 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://Owner:1512147296110@Hm@postgres:5432/valet_parking
       - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=your-secret-key-change-this-in-production
+      - NEXTAUTH_SECRET=5acf3fc3e06df4cc47d04f75bf61356c5bdc05411dacd3ec013ed7678514941026dee93f8b6bf66d2e9bae52d503f0e888da39baee592b2b1ac8d9a88e01d110
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,4 +48,6 @@ networks:
     driver: bridge
 
 volumes:
+  # Named volume declaration - this ensures data persists
   postgres_data:
+    driver: local

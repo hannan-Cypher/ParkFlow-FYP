@@ -6,7 +6,7 @@ const pool = new Pool({
   user: 'Owner',
   password: '1512147296110@Hm',
   host: 'localhost',
-  port: 5433,
+  port: 5432,
   database: 'valet_parking'
 });
 

@@ -49,3 +49,4 @@ README.md
 next.config.js
 next.config.mjs
 next.config.ts
+backup_before_fix.sql
