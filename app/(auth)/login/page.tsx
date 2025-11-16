@@ -41,8 +41,17 @@ export default function LoginPage() {
         return
       }
 
-      // Successfully logged in
-      window.location.href = '/dashboard'
+      // Check actual role from database and redirect accordingly
+      const userRole = data.user?.role
+      
+      // Admin users go to admin dashboard
+      if (userRole === 'admin') {
+        window.location.href = '/admin'
+      } 
+      // Everyone else (including customer or no role) goes to customer dashboard
+      else {
+        window.location.href = '/dashboard'
+      }
     } catch (err) {
       setError('An unexpected error occurred')
       setLoading(false)

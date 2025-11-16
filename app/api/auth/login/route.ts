@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     // Find user
     const result = await pool.query(
-      'SELECT id, email, password, full_name, phone FROM users WHERE email = $1',
+      'SELECT id, email, password, full_name, phone, role FROM users WHERE email = $1',
       [email.toLowerCase()]
     );
 
@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
           email: user.email,
           fullName: user.full_name,
           phone: user.phone,
+          role: user.role, // Use actual role from database, no default
         },
       },
       { status: 200 }
