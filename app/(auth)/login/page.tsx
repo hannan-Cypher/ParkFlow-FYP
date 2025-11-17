@@ -41,16 +41,17 @@ export default function LoginPage() {
         return
       }
 
-      // Check actual role from database and redirect accordingly
+      // User redirection based on role
       const userRole = data.user?.role
       
-      // Admin users go to admin dashboard
       if (userRole === 'admin') {
         window.location.href = '/admin'
       } 
-      // Everyone else (including customer or no role) goes to customer dashboard
+      else if (userRole === 'valet_staff') {
+        window.location.href = '/staff'
+      } 
       else {
-        window.location.href = '/dashboard'
+        window.location.href = '/customer'
       }
     } catch (err) {
       setError('An unexpected error occurred')
