@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import ClientLayout from '@/components/ClientLayout'
+import ClientLayout from '@/components/admin/ClientLayout'
 
 export const metadata: Metadata = {
   title: 'AI-Powered Valet Parking | Frictionless Management System',

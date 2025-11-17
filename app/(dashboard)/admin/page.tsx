@@ -4,10 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, User } from 'lucide-react'
-import OverviewTab from '@/components/OverviewTab'
-import AnalyticsTab from '@/components/AnalyticsTab'
-import StaffTab from '@/components/StaffTab'
-import SettingsTab from '@/components/SettingsTab'
+import OverviewTab from '@/components/admin/OverviewTab'
+import AnalyticsTab from '@/components/admin/AnalyticsTab'
+import StaffTab from '@/components/admin/StaffTab'
+import SettingsTab from '@/components/admin/SettingsTab'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
