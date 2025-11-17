@@ -31,15 +31,15 @@ export default function SettingsTab() {
       title: 'AI Recognition System',
       description: 'License plate detection accuracy',
       status: '99.8% Active',
-      statusColor: 'bg-teal-500',
-      color: 'from-blue-500 to-cyan-500',
+      statusColor: 'bg-emerald-500',
+      color: 'from-blue-500 to-sky-500',
     },
     {
       icon: Camera,
       title: 'CCTV Integration',
       description: 'Live monitoring and recording',
       status: 'Connected',
-      statusColor: 'bg-teal-500',
+      statusColor: 'bg-emerald-500',
       color: 'from-purple-500 to-pink-500',
     },
     {
@@ -47,8 +47,8 @@ export default function SettingsTab() {
       title: 'Payment Gateway',
       description: 'Secure transaction processing',
       status: 'Active',
-      statusColor: 'bg-teal-500',
-      color: 'from-green-500 to-teal-500',
+      statusColor: 'bg-emerald-500',
+      color: 'from-green-500 to-emerald-500',
     },
   ]
 
@@ -61,9 +61,9 @@ export default function SettingsTab() {
       <motion.div
         variants={itemVariants}
         whileHover={{ y: -5 }}
-        className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+        className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200"
       >
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">System Settings</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-6">System Settings</h2>
 
         <div className="space-y-4">
           {systemSettings.map((setting, index) => (
@@ -73,7 +73,7 @@ export default function SettingsTab() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 + 0.3 }}
               whileHover={{ x: 5, scale: 1.01 }}
-              className="flex items-center justify-between p-6 rounded-xl hover:bg-gray-50 transition-all cursor-pointer border border-gray-100"
+              className="flex items-center justify-between p-6 rounded-xl hover:bg-slate-50 transition-all cursor-pointer border border-slate-200"
             >
               {/* Left Side - Icon and Info */}
               <div className="flex items-center space-x-4">
@@ -85,8 +85,8 @@ export default function SettingsTab() {
                   <setting.icon className="w-7 h-7 text-white" />
                 </motion.div>
                 <div>
-                  <p className="font-bold text-gray-900 text-lg">{setting.title}</p>
-                  <p className="text-sm text-gray-500">{setting.description}</p>
+                  <p className="font-bold text-slate-900 text-lg">{setting.title}</p>
+                  <p className="text-sm text-slate-500">{setting.description}</p>
                 </div>
               </div>
 

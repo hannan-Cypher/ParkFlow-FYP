@@ -29,16 +29,16 @@ export default function AnalyticsTab() {
     {
       icon: DollarSign,
       label: 'Total Revenue',
-      value: '$12,450',
+      value: 'Rs 12,450',
       change: '+12.5%',
-      color: 'from-blue-500 to-cyan-500',
+      color: 'from-blue-500 to-sky-500',
     },
     {
       icon: Car,
       label: 'Active Vehicles',
       value: '24',
       change: '+3',
-      color: 'from-teal-500 to-green-500',
+      color: 'from-emerald-500 to-green-500',
     },
     {
       icon: Users,
@@ -52,7 +52,7 @@ export default function AnalyticsTab() {
       label: 'Avg. Duration',
       value: '2.3h',
       change: '-5%',
-      color: 'from-orange-500 to-red-500',
+      color: 'from-orange-500 to-amber-500',
     },
   ]
 
@@ -87,7 +87,7 @@ export default function AnalyticsTab() {
             key={index}
             variants={itemVariants}
             whileHover={{ y: -5, scale: 1.02 }}
-            className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 relative overflow-hidden"
+            className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 relative overflow-hidden"
           >
             {/* Background Gradient */}
             <div className={`absolute inset-0 bg-gradient-to-br ${metric.color} opacity-5`} />
@@ -106,13 +106,13 @@ export default function AnalyticsTab() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: index * 0.1 + 0.3 }}
-                  className="text-sm font-semibold px-3 py-1 bg-teal-100 text-teal-700 rounded-full"
+                  className="text-sm font-semibold px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full"
                 >
                   {metric.change}
                 </motion.span>
               </div>
-              <p className="text-gray-600 text-sm mb-1">{metric.label}</p>
-              <p className="text-3xl font-bold text-gray-900">{metric.value}</p>
+              <p className="text-slate-600 text-sm mb-1">{metric.label}</p>
+              <p className="text-3xl font-bold text-slate-900">{metric.value}</p>
             </div>
           </motion.div>
         ))}
@@ -124,9 +124,9 @@ export default function AnalyticsTab() {
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+          className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200"
         >
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Peak Hours Analysis</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">Peak Hours Analysis</h2>
 
           <div className="space-y-6">
             {peakHours.map((hour, index) => (
@@ -137,15 +137,15 @@ export default function AnalyticsTab() {
                 transition={{ delay: index * 0.1 + 0.3 }}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-gray-700 font-medium">{hour.time}</span>
-                  <span className="text-gray-600">{hour.vehicles} vehicles</span>
+                  <span className="text-slate-700 font-medium">{hour.time}</span>
+                  <span className="text-slate-600">{hour.vehicles} vehicles</span>
                 </div>
-                <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div className="relative h-3 bg-slate-200 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${hour.percentage}%` }}
                     transition={{ delay: index * 0.1 + 0.5, duration: 0.8, ease: 'easeOut' }}
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-sky-600 to-blue-600 rounded-full"
                   />
                 </div>
               </motion.div>
@@ -157,9 +157,9 @@ export default function AnalyticsTab() {
         <motion.div
           variants={itemVariants}
           whileHover={{ y: -5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+          className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200"
         >
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Customer Satisfaction</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-6">Customer Satisfaction</h2>
 
           {/* Overall Rating */}
           <div className="text-center mb-6">
@@ -167,7 +167,7 @@ export default function AnalyticsTab() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.3, type: 'spring' }}
-              className="text-6xl font-bold text-teal-500 mb-2"
+              className="text-6xl font-bold text-sky-600 mb-2"
             >
               4.8
             </motion.div>
@@ -179,11 +179,11 @@ export default function AnalyticsTab() {
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ delay: star * 0.1 + 0.3 }}
                 >
-                  <Star className="w-6 h-6 text-teal-500 fill-current" />
+                  <Star className="w-6 h-6 text-sky-600 fill-current" />
                 </motion.div>
               ))}
             </div>
-            <p className="text-gray-600">Based on 1,234 reviews</p>
+            <p className="text-slate-600">Based on 1,234 reviews</p>
           </div>
 
           {/* Rating Breakdown */}
@@ -197,18 +197,18 @@ export default function AnalyticsTab() {
                 className="flex items-center space-x-3"
               >
                 <div className="flex items-center space-x-1 w-12">
-                  <span className="text-sm font-medium text-gray-700">{rating.stars}</span>
-                  <Star className="w-3 h-3 text-gray-400" />
+                  <span className="text-sm font-medium text-slate-700">{rating.stars}</span>
+                  <Star className="w-3 h-3 text-slate-400" />
                 </div>
-                <div className="flex-1 relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="flex-1 relative h-2 bg-slate-200 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${rating.percentage}%` }}
                     transition={{ delay: index * 0.1 + 0.7, duration: 0.6, ease: 'easeOut' }}
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"
+                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-sky-600 to-blue-600 rounded-full"
                   />
                 </div>
-                <span className="text-sm text-gray-600 w-12 text-right">{rating.percentage}%</span>
+                <span className="text-sm text-slate-600 w-12 text-right">{rating.percentage}%</span>
               </motion.div>
             ))}
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Car,
@@ -13,6 +14,8 @@ import {
   TrendingUp,
   Package,
   Zap,
+  LogOut,
+  User,
 } from "lucide-react";
 
 // Animation presets matching customer dashboard
@@ -36,10 +39,30 @@ const tabs = ["Active Vehicles", "Tasks", "Performance"] as const;
 type TabKey = typeof tabs[number];
 
 export default function StaffDashboardPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = React.useState<TabKey>("Active Vehicles");
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
 
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
   if (!mounted) {
     return <main className="mx-auto max-w-6xl px-4 pb-24 pt-10" />;
   }
@@ -51,10 +74,29 @@ export default function StaffDashboardPage() {
       initial="hidden"
       animate="show"
     >
-      {/* Header */}
-      <motion.header variants={item} className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Staff Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-500">Welcome back, Valet Attendant</p>
+      {/* Header with User Info and Logout */}
+      <motion.header variants={item} className="mb-6 flex items-center justify-between">
+        <div>
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg shadow-sm border border-slate-200">
+              <User className="w-4 h-4 text-slate-600" />
+              <span className="text-sm font-medium text-slate-700">Valet Staff</span>
+            </div>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">Staff Dashboard</h1>
+          <p className="mt-1 text-sm text-slate-500">Welcome back, Valet Attendant</p>
+        </div>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="flex items-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-sm font-medium">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+        </motion.button>
       </motion.header>
 
       {/* Real-time Stats */}

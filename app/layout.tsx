@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
+import ClientLayout from '@/components/ClientLayout'
 
 export const metadata: Metadata = {
   title: 'AI-Powered Valet Parking | Frictionless Management System',
@@ -17,11 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body>
-        <Navbar />
-        <main className="min-h-screen">
+        <ClientLayout>
           {children}
-        </main>
-        <Footer />
+        </ClientLayout>
       </body>
     </html>
   )

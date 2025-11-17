@@ -31,7 +31,7 @@ export default function StaffTab() {
       id: 'VLT-001',
       status: 'On Duty',
       tasks: 32,
-      color: 'from-blue-500 to-cyan-500',
+      color: 'from-blue-500 to-sky-500',
     },
     {
       initials: 'ED',
@@ -39,7 +39,7 @@ export default function StaffTab() {
       id: 'VLT-002',
       status: 'On Duty',
       tasks: 28,
-      color: 'from-teal-500 to-green-500',
+      color: 'from-emerald-500 to-green-500',
     },
     {
       initials: 'MB',
@@ -55,20 +55,20 @@ export default function StaffTab() {
       id: 'VLT-004',
       status: 'Off Duty',
       tasks: 0,
-      color: 'from-orange-500 to-red-500',
+      color: 'from-orange-500 to-amber-500',
     },
   ]
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'On Duty':
-        return 'bg-teal-500'
+        return 'bg-emerald-500'
       case 'On Break':
-        return 'bg-orange-500'
+        return 'bg-amber-500'
       case 'Off Duty':
-        return 'bg-gray-400'
+        return 'bg-slate-400'
       default:
-        return 'bg-gray-400'
+        return 'bg-slate-400'
     }
   }
 
@@ -81,9 +81,9 @@ export default function StaffTab() {
       <motion.div
         variants={itemVariants}
         whileHover={{ y: -5 }}
-        className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+        className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200"
       >
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Staff Management</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-6">Staff Management</h2>
 
         <div className="space-y-4">
           {staff.map((member, index) => (
@@ -93,7 +93,7 @@ export default function StaffTab() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 + 0.3 }}
               whileHover={{ x: 5, scale: 1.01 }}
-              className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-all cursor-pointer border border-gray-100"
+              className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 transition-all cursor-pointer border border-slate-200"
             >
               {/* Left Side - Avatar and Info */}
               <div className="flex items-center space-x-4">
@@ -105,15 +105,15 @@ export default function StaffTab() {
                   {member.initials}
                 </motion.div>
                 <div>
-                  <p className="font-bold text-gray-900 text-lg">{member.name}</p>
-                  <p className="text-sm text-gray-500">{member.id}</p>
+                  <p className="font-bold text-slate-900 text-lg">{member.name}</p>
+                  <p className="text-sm text-slate-500">{member.id}</p>
                 </div>
               </div>
 
               {/* Right Side - Status and Tasks */}
               <div className="flex items-center space-x-6">
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-slate-500">
                     {member.tasks} tasks today
                   </p>
                 </div>
