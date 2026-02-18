@@ -8,13 +8,14 @@ import OverviewTab from '@/components/admin/OverviewTab'
 import AnalyticsTab from '@/components/admin/AnalyticsTab'
 import StaffTab from '@/components/admin/StaffTab'
 import SettingsTab from '@/components/admin/SettingsTab'
+import ANPRDetector from '@/components/anpr/ANPRDetector'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('Overview')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const tabs = ['Overview', 'Analytics', 'Staff', 'Settings']
+  const tabs = ['Overview', 'Analytics', 'Staff', 'ANPR', 'Settings']
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -154,6 +155,17 @@ export default function AdminDashboardPage() {
             {activeTab === 'Analytics' && <AnalyticsTab />}
             {activeTab === 'Staff' && <StaffTab />}
             {activeTab === 'Settings' && <SettingsTab />}
+            {activeTab === 'ANPR' && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-slate-900">License Plate Recognition</h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Upload an image or use your camera to detect and read Pakistani license plates using the AI model.
+                  </p>
+                </div>
+                <ANPRDetector />
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
       </motion.div>
