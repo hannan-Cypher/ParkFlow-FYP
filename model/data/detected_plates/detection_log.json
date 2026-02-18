@@ -1,0 +1,308 @@
+[
+  {
+    "plate_id": 1,
+    "timestamp": "2026-02-18T23:11:00.407056",
+    "detection_confidence": 0.9112626910209656,
+    "ocr_text": "LEE125559",
+    "ocr_confidence": 0.9967462789914113,
+    "ocr_method": "otsu_inv",
+    "plate_filename": "plate_1_20260218_231055_LEE125559_conf91%.jpg",
+    "full_frame_filename": "frame_20260218_231055.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      347,
+      391,
+      442,
+      454
+    ]
+  },
+  {
+    "plate_id": 2,
+    "timestamp": "2026-02-18T23:11:07.233483",
+    "detection_confidence": 0.8950106501579285,
+    "ocr_text": "ADY391",
+    "ocr_confidence": 0.729297463589814,
+    "ocr_method": "denoised",
+    "plate_filename": "plate_2_20260218_230917_ADY391_conf90%.jpg",
+    "full_frame_filename": "frame_20260218_230917.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      333,
+      1846,
+      1410,
+      2490
+    ]
+  },
+  {
+    "plate_id": 3,
+    "timestamp": "2026-02-18T23:13:30.979389",
+    "detection_confidence": 0.8919875025749207,
+    "ocr_text": "ADY391",
+    "ocr_confidence": 0.8101192201226106,
+    "ocr_method": "original_resized",
+    "plate_filename": "plate_3_20260218_231324_ADY391_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_231324.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      133,
+      1166,
+      344,
+      1261
+    ]
+  },
+  {
+    "plate_id": 4,
+    "timestamp": "2026-02-18T23:13:34.444621",
+    "detection_confidence": 0.8596594929695129,
+    "ocr_text": "ADY39",
+    "ocr_confidence": 0.5437134934936195,
+    "ocr_method": "sharpened",
+    "plate_filename": "plate_4_20260218_231324_ADY39_conf86%.jpg",
+    "full_frame_filename": "frame_20260218_231324.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      278,
+      525,
+      407,
+      582
+    ]
+  },
+  {
+    "plate_id": 5,
+    "timestamp": "2026-02-18T23:16:58.953542",
+    "detection_confidence": 0.8950106501579285,
+    "ocr_text": "ADY391",
+    "ocr_confidence": 0.729297463589814,
+    "ocr_method": "denoised",
+    "plate_filename": "plate_5_20260218_231518_ADY391_conf90%.jpg",
+    "full_frame_filename": "frame_20260218_231518.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      333,
+      1846,
+      1410,
+      2490
+    ]
+  },
+  {
+    "plate_id": 6,
+    "timestamp": "2026-02-18T23:34:42.480369",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "MNA93877",
+    "ocr_confidence": 0.8946164285509126,
+    "ocr_method": "otsu",
+    "plate_filename": "plate_6_20260218_233439_MNA93877_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_233439.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 7,
+    "timestamp": "2026-02-18T23:35:22.141453",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "MNA93877",
+    "ocr_confidence": 0.8946164285509126,
+    "ocr_method": "otsu",
+    "plate_filename": "plate_7_20260218_233519_MNA93877_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_233519.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 8,
+    "timestamp": "2026-02-18T23:38:17.234430",
+    "detection_confidence": 0.9023703336715698,
+    "ocr_text": "ADY391",
+    "ocr_confidence": 0.7319920161559594,
+    "ocr_method": "sharpened",
+    "plate_filename": "plate_8_20260218_233759_ADY391_conf90%.jpg",
+    "full_frame_filename": "frame_20260218_233759.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      106,
+      586,
+      434,
+      742
+    ]
+  },
+  {
+    "plate_id": 9,
+    "timestamp": "2026-02-18T23:39:12.528751",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "MNA93877",
+    "ocr_confidence": 0.8946164285509126,
+    "ocr_method": "otsu",
+    "plate_filename": "plate_9_20260218_233909_MNA93877_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_233909.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 10,
+    "timestamp": "2026-02-18T23:40:31.786430",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "UNREADABLE",
+    "ocr_confidence": 0.9995801073428661,
+    "ocr_method": "bottom_original_resized",
+    "plate_filename": "plate_10_20260218_234022_UNREADABLE_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_234022.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 11,
+    "timestamp": "2026-02-18T23:40:48.255874",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "UNREADABLE",
+    "ocr_confidence": 0.9995801073428661,
+    "ocr_method": "bottom_original_resized",
+    "plate_filename": "plate_11_20260218_234038_UNREADABLE_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_234038.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 12,
+    "timestamp": "2026-02-18T23:44:06.577474",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "877",
+    "ocr_confidence": 0.9995801073428661,
+    "ocr_method": "bottom_original_resized",
+    "plate_filename": "plate_12_20260218_234356_877_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_234356.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 13,
+    "timestamp": "2026-02-18T23:47:46.534069",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "MNA82877",
+    "ocr_confidence": 0.7521097866127711,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_13_20260218_234736_MNA82877_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_234736.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 14,
+    "timestamp": "2026-02-18T23:50:23.898677",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "MNA82877",
+    "ocr_confidence": 0.7521097866127711,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_14_20260218_235012_MNA82877_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_235012.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 15,
+    "timestamp": "2026-02-18T23:53:11.666841",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "MA877",
+    "ocr_confidence": 0.9849972027628175,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_15_20260218_235237_MA877_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_235237.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 16,
+    "timestamp": "2026-02-18T23:58:22.202288",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "NAIB877",
+    "ocr_confidence": 0.806356932988997,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_16_20260218_235757_NAIB877_conf89%.jpg",
+    "full_frame_filename": "frame_20260218_235757.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 17,
+    "timestamp": "2026-02-19T00:04:25.406440",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "MNA877",
+    "ocr_confidence": 0.806356932988997,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_17_20260219_000402_MNA877_conf89%.jpg",
+    "full_frame_filename": "frame_20260219_000402.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 18,
+    "timestamp": "2026-02-19T00:06:37.151518",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "MNA18877",
+    "ocr_confidence": 0.806356932988997,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_18_20260219_000613_MNA18877_conf89%.jpg",
+    "full_frame_filename": "frame_20260219_000613.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  }
+]
