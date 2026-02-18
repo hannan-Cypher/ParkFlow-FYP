@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/model/data/detected_plates/full_frames
 
 # next.js
 /.next/
@@ -50,4 +51,7 @@ README.md
 next.config.js
 next.config.mjs
 next.config.ts
-backup_before_fix.sql
+backup_before_fix.sqlmodel/venv/
+model/best.pt
+model/yolov8m.pt
+model/data/
