@@ -123,15 +123,6 @@ export default function Signup() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center justify-center space-x-2 group">
-            <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-            >
-              <Car className="w-12 h-12 text-primary-500" />
-            </motion.div>
-            <span className="text-3xl font-display font-bold text-dark-900">AI Valet</span>
-          </Link>
           <h2 className="mt-6 text-3xl font-display font-bold text-dark-900">
             Create your account
           </h2>

@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Car, Phone } from 'lucide-react'
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -23,6 +25,12 @@ export default function Navbar() {
     { label: 'About', href: '/about' },
     { label: 'Contact', href: '/contact' },
   ]
+
+  // Logic to determine if we are on an auth page (Login or Signup)
+  const isAuthPage = pathname === '/login' || pathname === '/signup'
+
+  // Determine styling: darker text is needed if the user has scrolled OR if we are on an auth page
+  const useDarkStyling = scrolled || isAuthPage
 
   return (
     <motion.nav
@@ -44,7 +52,7 @@ export default function Navbar() {
               transition={{ duration: 0.6 }}
               className="relative"
             >
-              <Car className={`w-8 h-8 ${scrolled ? 'text-primary-500' : 'text-white'}`} />
+              <Car className={`w-8 h-8 ${useDarkStyling ? 'text-primary-500' : 'text-white'}`} />
               <motion.div
                 className="absolute inset-0 bg-primary-500 rounded-full blur-lg opacity-0 group-hover:opacity-50"
                 animate={{ scale: [1, 1.2, 1] }}
@@ -52,7 +60,7 @@ export default function Navbar() {
               />
             </motion.div>
             <span className={`text-2xl font-display font-bold ${
-              scrolled ? 'text-dark-900' : 'text-white'
+              useDarkStyling ? 'text-dark-900' : 'text-white'
             }`}>
               ParkFlow
             </span>
@@ -70,7 +78,7 @@ export default function Navbar() {
                 <Link
                   href={item.href}
                   className={`relative font-medium transition-colors group ${
-                    scrolled ? 'text-dark-700 hover:text-primary-500' : 'text-white/90 hover:text-white'
+                    useDarkStyling ? 'text-dark-700 hover:text-primary-500' : 'text-white/90 hover:text-white'
                   }`}
                 >
                   {item.label}
@@ -85,8 +93,9 @@ export default function Navbar() {
               transition={{ delay: 0.4 }}
               className="flex items-center space-x-3"
             >
-              <Link href="/signup" className="btn-secondary flex items-center space-x-2">
-                <span>Sign In</span>
+              {/* Updated href to /login */}
+              <Link href="/login" className="btn-secondary flex items-center space-x-2">
+                <span>Log In</span>
               </Link>
               <Link href="/contact" className="btn-primary flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
@@ -100,7 +109,7 @@ export default function Navbar() {
             whileTap={{ scale: 0.9 }}
             onClick={() => setIsOpen(!isOpen)}
             className={`md:hidden p-2 rounded-lg ${
-              scrolled ? 'text-dark-900' : 'text-white'
+              useDarkStyling ? 'text-dark-900' : 'text-white'
             }`}
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -140,8 +149,9 @@ export default function Navbar() {
                   transition={{ delay: 0.4 }}
                   className="px-4 pt-2"
                 >
-                  <Link href="/signup" className="btn-secondary w-full flex items-center justify-center space-x-2 mb-2">
-                    <span>Sign In</span>
+                  {/* Updated href to /login */}
+                  <Link href="/login" className="btn-secondary w-full flex items-center justify-center space-x-2 mb-2">
+                    <span>Log In</span>
                   </Link>
                   <Link href="/contact" className="btn-primary w-full flex items-center justify-center space-x-2">
                     <Phone className="w-4 h-4" />

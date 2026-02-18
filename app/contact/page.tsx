@@ -31,7 +31,7 @@ export default function ContactPage() {
     {
       icon: Phone,
       title: 'Phone',
-      details: '(555) 123-4567',
+      details: '+92 330 2031112',
       link: 'tel:+15551234567',
     },
     {
@@ -109,7 +109,7 @@ export default function ContactPage() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all outline-none"
-                      placeholder="John Doe"
+                      placeholder="Sarmad Tahir"
                     />
                   </div>
 
@@ -124,7 +124,7 @@ export default function ContactPage() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all outline-none"
-                      placeholder="john@example.com"
+                      placeholder="sarmad@example.com"
                     />
                   </div>
 
@@ -138,7 +138,7 @@ export default function ContactPage() {
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all outline-none"
-                      placeholder="+1 (555) 123-4567"
+                      placeholder="+92 330 2031112"
                     />
                   </div>
 
