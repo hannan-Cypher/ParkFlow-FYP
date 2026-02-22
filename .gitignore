@@ -51,7 +51,9 @@ README.md
 next.config.js
 next.config.mjs
 next.config.ts
-backup_before_fix.sqlmodel/venv/
+backup_before_fix.sql
+model/venv/
+model/static/plates/
 model/best.pt
 model/yolov8m.pt
 model/data/

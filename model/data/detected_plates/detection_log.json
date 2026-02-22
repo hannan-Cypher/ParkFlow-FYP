@@ -304,5 +304,294 @@
       405,
       487
     ]
+  },
+  {
+    "plate_id": 19,
+    "timestamp": "2026-02-21T11:26:22.025171",
+    "detection_confidence": 0.8909149765968323,
+    "ocr_text": "MNA18877",
+    "ocr_confidence": 0.806356932988997,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_19_20260221_112556_MNA18877_conf89%.jpg",
+    "full_frame_filename": "frame_20260221_112556.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      320,
+      418,
+      405,
+      487
+    ]
+  },
+  {
+    "plate_id": 20,
+    "timestamp": "2026-02-21T11:27:24.062139",
+    "detection_confidence": 0.8697687387466431,
+    "ocr_text": "HN3746",
+    "ocr_confidence": 0.9181260985163868,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_20_20260221_112658_HN3746_conf87%.jpg",
+    "full_frame_filename": "frame_20260221_112658.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      301,
+      419,
+      387,
+      481
+    ]
+  },
+  {
+    "plate_id": 21,
+    "timestamp": "2026-02-21T11:28:07.449717",
+    "detection_confidence": 0.861427903175354,
+    "ocr_text": "TS2853",
+    "ocr_confidence": 0.6332499954303845,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_21_20260221_112753_TS2853_conf86%.jpg",
+    "full_frame_filename": "frame_20260221_112753.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      472,
+      423,
+      541,
+      464
+    ]
+  },
+  {
+    "plate_id": 22,
+    "timestamp": "2026-02-21T13:30:01.957421",
+    "detection_confidence": 0.8874154686927795,
+    "ocr_text": "ERROR",
+    "ocr_confidence": 0.0,
+    "ocr_method": "none",
+    "plate_filename": "plate_22_20260221_132942_ERROR_conf89%.jpg",
+    "full_frame_filename": "frame_20260221_132942.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      143,
+      408,
+      217,
+      472
+    ]
+  },
+  {
+    "plate_id": 23,
+    "timestamp": "2026-02-21T13:32:29.044190",
+    "detection_confidence": 0.8874154686927795,
+    "ocr_text": "ERROR",
+    "ocr_confidence": 0.0,
+    "ocr_method": "none",
+    "plate_filename": "plate_23_20260221_133209_ERROR_conf89%.jpg",
+    "full_frame_filename": "frame_20260221_133209.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      143,
+      408,
+      217,
+      472
+    ]
+  },
+  {
+    "plate_id": 24,
+    "timestamp": "2026-02-21T13:38:16.804991",
+    "detection_confidence": 0.8874154686927795,
+    "ocr_text": "UNREADABLE",
+    "ocr_confidence": 0.939075629695458,
+    "ocr_method": "top_original_resized",
+    "plate_filename": "plate_24_20260221_133758_UNREADABLE_conf89%.jpg",
+    "full_frame_filename": "frame_20260221_133758.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      143,
+      408,
+      217,
+      472
+    ]
+  },
+  {
+    "plate_id": 25,
+    "timestamp": "2026-02-21T13:57:07.166882",
+    "detection_confidence": 0.8874154686927795,
+    "ocr_text": "UNREADABLE",
+    "ocr_confidence": 0.9853601084817127,
+    "ocr_method": "top_thresh2",
+    "plate_filename": "plate_25_20260221_135652_UNREADABLE_conf89%.jpg",
+    "full_frame_filename": "frame_20260221_135652.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      143,
+      408,
+      217,
+      472
+    ]
+  },
+  {
+    "plate_id": 26,
+    "timestamp": "2026-02-21T14:03:53.827348",
+    "detection_confidence": 0.8874154686927795,
+    "ocr_text": "UNREADABLE",
+    "ocr_confidence": 0.9853601084817127,
+    "ocr_method": "top_thresh2",
+    "plate_filename": "plate_26_20260221_140338_UNREADABLE_conf89%.jpg",
+    "full_frame_filename": "frame_20260221_140338.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      143,
+      408,
+      217,
+      472
+    ]
+  },
+  {
+    "plate_id": 27,
+    "timestamp": "2026-02-21T14:08:14.570910",
+    "detection_confidence": 0.8874154686927795,
+    "ocr_text": "LED-9",
+    "ocr_confidence": 1.3045766528473095,
+    "ocr_method": "full_denoised",
+    "plate_filename": "plate_27_20260221_140759_LED-9_conf89%.jpg",
+    "full_frame_filename": "frame_20260221_140759.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      143,
+      408,
+      217,
+      472
+    ]
+  },
+  {
+    "plate_id": 28,
+    "timestamp": "2026-02-21T14:09:09.709600",
+    "detection_confidence": 0.8949192762374878,
+    "ocr_text": "MMA-56",
+    "ocr_confidence": 1.363740522616108,
+    "ocr_method": "full_binary_inv",
+    "plate_filename": "plate_28_20260221_140847_MMA-56_conf89%.jpg",
+    "full_frame_filename": "frame_20260221_140847.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      301,
+      384,
+      408,
+      448
+    ]
+  },
+  {
+    "plate_id": 29,
+    "timestamp": "2026-02-21T14:10:05.629877",
+    "detection_confidence": 0.8957789540290833,
+    "ocr_text": "HHE-4",
+    "ocr_confidence": 1.0287099511379345,
+    "ocr_method": "full_thresh1",
+    "plate_filename": "plate_29_20260221_140957_HHE-4_conf90%.jpg",
+    "full_frame_filename": "frame_20260221_140957.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      85,
+      249,
+      132,
+      291
+    ]
+  },
+  {
+    "plate_id": 30,
+    "timestamp": "2026-02-21T14:26:55.519874",
+    "detection_confidence": 0.9003041386604309,
+    "ocr_text": "LED-902",
+    "ocr_confidence": 0.7966212587626228,
+    "ocr_method": "full_otsu_inv",
+    "plate_filename": "plate_30_20260221_142654_LED-902_conf90%.jpg",
+    "full_frame_filename": "frame_20260221_142654.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      114,
+      254,
+      176,
+      296
+    ]
+  },
+  {
+    "plate_id": 31,
+    "timestamp": "2026-02-21T14:28:17.239006",
+    "detection_confidence": 0.8654305338859558,
+    "ocr_text": "LEA-12",
+    "ocr_confidence": 1.317027084782836,
+    "ocr_method": "full_otsu_inv",
+    "plate_filename": "plate_31_20260221_142816_LEA-12_conf87%.jpg",
+    "full_frame_filename": "frame_20260221_142816.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      230,
+      768,
+      298,
+      804
+    ]
+  },
+  {
+    "plate_id": 32,
+    "timestamp": "2026-02-21T14:29:11.816804",
+    "detection_confidence": 0.8851532340049744,
+    "ocr_text": "SLAV-4",
+    "ocr_confidence": 0.6162058777317542,
+    "ocr_method": "full_otsu_inv",
+    "plate_filename": "plate_32_20260221_142909_SLAV-4_conf89%.jpg",
+    "full_frame_filename": "frame_20260221_142909.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      491,
+      713,
+      575,
+      812
+    ]
+  },
+  {
+    "plate_id": 33,
+    "timestamp": "2026-02-21T14:30:03.200475",
+    "detection_confidence": 0.8658118844032288,
+    "ocr_text": "UNREADABLE",
+    "ocr_confidence": 0.11501060218768211,
+    "ocr_method": "full_otsu_inv",
+    "plate_filename": "plate_33_20260221_143000_UNREADABLE_conf87%.jpg",
+    "full_frame_filename": "frame_20260221_143000.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      527,
+      449,
+      615,
+      535
+    ]
+  },
+  {
+    "plate_id": 34,
+    "timestamp": "2026-02-21T14:36:04.023416",
+    "detection_confidence": 0.8800631761550903,
+    "ocr_text": "AWG-5",
+    "ocr_confidence": 0.5068606890232533,
+    "ocr_method": "full_otsu_inv",
+    "plate_filename": "plate_34_20260221_143553_AWG-5_conf88%.jpg",
+    "full_frame_filename": "frame_20260221_143553.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      257,
+      681,
+      503,
+      791
+    ]
+  },
+  {
+    "plate_id": 35,
+    "timestamp": "2026-02-21T14:50:04.715803",
+    "detection_confidence": 0.8836456537246704,
+    "ocr_text": "ANOG-2",
+    "ocr_confidence": 0.6298455288853037,
+    "ocr_method": "split_combined",
+    "plate_filename": "plate_35_20260221_145001_ANOG-2_conf88%.jpg",
+    "full_frame_filename": "frame_20260221_145001.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      264,
+      257,
+      373,
+      332
+    ]
   }
 ]
