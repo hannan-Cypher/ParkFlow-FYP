@@ -8,6 +8,7 @@ import OverviewTab from '@/components/admin/OverviewTab'
 import AnalyticsTab from '@/components/admin/AnalyticsTab'
 import StaffTab from '@/components/admin/StaffTab'
 import SettingsTab from '@/components/admin/SettingsTab'
+import LocationsTab from '@/components/admin/LocationsTab'
 import ANPRDetector from '@/components/anpr/ANPRDetector'
 
 export default function AdminDashboardPage() {
@@ -15,7 +16,7 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('Overview')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
-  const tabs = ['Overview', 'Analytics', 'Staff', 'ANPR', 'Settings']
+  const tabs = ['Overview', 'Analytics', 'Staff', 'Locations', 'ANPR', 'Settings']
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -131,11 +132,10 @@ export default function AdminDashboardPage() {
               onClick={() => setActiveTab(tab)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-                activeTab === tab
+              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ${activeTab === tab
                   ? 'bg-sky-600 text-white shadow-lg'
                   : 'text-slate-600 hover:bg-slate-50'
-              }`}
+                }`}
             >
               {tab}
             </motion.button>
@@ -155,6 +155,11 @@ export default function AdminDashboardPage() {
             {activeTab === 'Analytics' && <AnalyticsTab />}
             {activeTab === 'Staff' && <StaffTab />}
             {activeTab === 'Settings' && <SettingsTab />}
+            {activeTab === 'Locations' && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <LocationsTab />
+              </div>
+            )}
             {activeTab === 'ANPR' && (
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="mb-6">

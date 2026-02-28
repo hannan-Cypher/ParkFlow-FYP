@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS venues (
     city VARCHAR(100) NOT NULL,
     country VARCHAR(100) NOT NULL DEFAULT 'Pakistan',
     total_slots INTEGER NOT NULL DEFAULT 0,
+    gates INTEGER NOT NULL DEFAULT 1,
     contact_phone VARCHAR(20),
     contact_email VARCHAR(255),
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'maintenance')),

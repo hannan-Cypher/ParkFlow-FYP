@@ -9,6 +9,18 @@ import os
 import json
 import easyocr
 import re
+import logging
+from hybrid_ocr import hybrid_ocr, get_fpocr_model, HybridOCRResult
+from ocr_postprocess import (
+    full_postprocess,
+    preprocess_for_ocr_enhanced,
+    remove_regional_bleeding,
+    split_plate_regions,
+    validate_pakistani_plate,
+)
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
@@ -34,6 +46,14 @@ print("Model loaded.")
 print("Loading OCR reader...")
 reader = easyocr.Reader(['en'], gpu=False)
 print("OCR reader loaded.")
+
+# Pre-warm fast-plate-ocr model (downloads ONNX weights on first run)
+print("Pre-warming fast-plate-ocr model...")
+_fpocr = get_fpocr_model()
+if _fpocr:
+    print("fast-plate-ocr model ready.")
+else:
+    print("fast-plate-ocr unavailable — EasyOCR-only mode.")
 
 # ============================================================================
 # PAKISTANI PLATE BLACKLIST
@@ -174,23 +194,34 @@ def preprocess_for_ocr(plate_img):
 
 def mask_year_region(plate_img):
     """
-    Pakistani plates print the registration year as a small 2-digit number
-    in the top-right corner inside an arrow-bordered box (e.g. '16' for 2016).
-    Layer 1 defence: physically zero-out that region before any OCR runs.
+    Black out OCR-noise regions on a Pakistani plate crop before any OCR runs.
 
-    Layout of a standard Pakistani plate:
-       [ Emblem ] [ CITY ] [ ↑YY ]   ← top row (YY = 2-digit year, top-right)
-                  [ 1234  ]           ← bottom row (registration number)
+    Masks TWO regions:
+      1. Top-right corner  (top 60% height × rightmost 28% width)
+         → covers the 2-digit registration year badge (e.g. '16' for 2016)
+      2. Bottom strip      (bottom 22% height, full width)
+         → covers the city/province name line (e.g. 'ICT-ISLAMABAD', 'PUNJAB')
+           that appears on the lower border of all Pakistani plates
 
-    We black out the top 60 % of height × rightmost 28 % of width.
-    This is aggressive enough to cover all common plate crop sizes.
+    Both regions are zeroed to black so EasyOCR skips them entirely.
     """
     masked = plate_img.copy()
     h, w = masked.shape[:2]
-    y_cut = int(h * 0.60)   # top 60 % rows
-    x_cut = int(w * 0.72)   # rightmost 28 % columns
-    masked[0:y_cut, x_cut:w] = 0
+    # Region 1 — top-right year badge
+    masked[0:int(h * 0.60), int(w * 0.72):w] = 0
+    # Region 2 — bottom city/province name strip (keep conservative: only bottom 15%)
+    masked[int(h * 0.85):h, 0:w] = 0
     return masked
+
+
+def is_in_city_box(bbox, img_w: int, img_h: int) -> bool:
+    """
+    Spatial filter: return True if a detected text bbox sits in the bottom
+    city-name strip (bottom 15% of plate height, any x position).
+    """
+    ys = [pt[1] for pt in bbox]
+    cy = sum(ys) / 4
+    return cy > img_h * 0.85
 
 
 def is_in_year_box(bbox, img_w, img_h):
@@ -214,136 +245,113 @@ def is_in_year_box(bbox, img_w, img_h):
 
 
 def extract_text_from_plate(plate_img):
+    """
+    Legacy EasyOCR-only fallback used when hybrid_ocr() raises an exception.
+
+    Uses the 3-zone split (Problem 2 fix) and full_postprocess (Problems 1, 3, 4)
+    so the fallback path also benefits from all bug fixes.
+
+    Parameters
+    ----------
+    plate_img : BGR numpy array of the plate crop from YOLO.
+
+    Returns
+    -------
+    dict with keys: text, confidence, method.
+    """
     try:
         h, w = plate_img.shape[:2]
 
-        # ── Mask the top-right year region before any OCR ──────────────────
+        # Mask top-right year region before any OCR (Layer 1 defence)
         plate_img = mask_year_region(plate_img)
 
-        # ── Aspect ratio: Pakistani single-line plates are wide (w/h > 2.5)
-        # Only attempt top/bottom split for near-square multi-line plates.
         aspect_ratio = w / h if h > 0 else 99
         use_split    = aspect_ratio < 2.5
 
-        top_half    = plate_img[0:h//2, 0:w]
-        bottom_half = plate_img[h//2:h, 0:w]
-
-        th, tw  = top_half.shape[:2]
-        top_half = cv2.resize(top_half, (tw * 3, th * 3), interpolation=cv2.INTER_CUBIC)
-
         best_text       = ""
-        best_confidence = 0
+        best_confidence = 0.0
         best_version    = "original"
 
-        # Try full plate always; add halves only for multi-line plates
-        regions = [('full', plate_img)]
+        # ── Strategy A: 3-zone split for multi-line plates ──────────────────────
         if use_split:
-            regions += [('top', top_half), ('bottom', bottom_half)]
+            regions = split_plate_regions(plate_img)
 
-        for region_name, region_img in regions:
-            # Get image dimensions AFTER preprocessing upscale for bbox math
-            rh, rw = region_img.shape[:2]
-            versions = preprocess_for_ocr(region_img)
-            for version_name, img_version in versions:
-                vh, vw = img_version.shape[:2]   # may differ (3x upscale inside)
-                result = reader.readtext(
-                    img_version,
-                    detail=1,
-                    paragraph=False,
-                    min_size=5,
-                    contrast_ths=0.1,
-                    adjust_contrast=0.5
-                )
-                if result:
-                    all_texts  = []
-                    total_conf = 0
-                    for (bbox, text, conf) in result:
-                        # ── Layer 2: skip bboxes inside the year-box region ──
-                        if is_in_year_box(bbox, vw, vh):
-                            print(f"   [year-box skip] '{text}' at bbox centre")
-                            continue
-                        ct = ''.join(c for c in text if c.isalnum()).upper()
-                        if len(ct) >= 1:
-                            all_texts.append(ct)
-                            total_conf += conf
-                    if not all_texts:
-                        continue
-                    combined = ''.join(all_texts)
-                    avg_conf = total_conf / len(all_texts) if all_texts else 0
+            # Letters zone (middle): expect registration letters like 'RI'
+            letters_img = preprocess_for_ocr_enhanced(regions.letters)
+            lh, lw = letters_img.shape[:2]
+            letters_result = reader.readtext(
+                letters_img, detail=1, paragraph=False, min_size=3,
+                contrast_ths=0.1, adjust_contrast=0.5,
+            )
+            letters_tokens, letters_confs = [], []
+            for (bbox, text, conf) in letters_result:
+                if is_in_year_box(bbox, lw, lh):
+                    continue
+                ct = ''.join(c for c in text if c.isalnum()).upper()
+                if ct:
+                    letters_tokens.append(ct)
+                    letters_confs.append(conf)
+            raw_letters = remove_regional_bleeding(''.join(letters_tokens))
 
-                    # Bonus: strongly prefer candidates that have BOTH letters
-                    # and digits (a valid plate) over pure-letter or pure-digit
-                    # results which are OCR artefacts from partial crops.
-                    has_letters = any(c.isalpha() for c in combined)
-                    has_digits  = any(c.isdigit() for c in combined)
-                    score = avg_conf * (1.4 if (has_letters and has_digits) else 1.0)
+            # Numbers zone (bottom): expect registration digits like '423'
+            numbers_img = preprocess_for_ocr_enhanced(regions.numbers)
+            numbers_result = reader.readtext(
+                numbers_img, detail=1, paragraph=False, min_size=3,
+                contrast_ths=0.1, adjust_contrast=0.5,
+            )
+            raw_numbers = ''.join(
+                ''.join(c for c in t if c.isdigit())
+                for (_, t, _) in numbers_result
+            )
 
-                    if score > best_confidence and len(combined) >= 2:
-                        best_text       = combined
-                        best_confidence = score
-                        best_version    = f"{region_name}_{version_name}"
+            if raw_letters and raw_numbers:
+                clean_letters = re.sub(r'[^A-Z]', '', raw_letters.upper())
+                clean_numbers = re.sub(r'[^0-9]', '', raw_numbers)
+                if clean_letters and clean_numbers:
+                    zone_combined = clean_letters + clean_numbers
+                    zone_conf = (
+                        (sum(letters_confs) / len(letters_confs) if letters_confs else 0)
+                        + 0.6   # numbers from bottom zone get base confidence
+                    ) / 2
+                    if len(zone_combined) > len(best_text):
+                        best_text       = zone_combined
+                        best_confidence = zone_conf
+                        best_version    = "3zone_split"
 
-        # ── Attempt split_combined only for multi-line plates ───────────────
-        combined_split      = ""
-        combined_split_conf = 0
+        # ── Strategy B: full plate OCR (always tried as baseline) ─────────────
+        full_img = preprocess_for_ocr_enhanced(plate_img)
+        fh, fw = full_img.shape[:2]
+        full_result = reader.readtext(
+            full_img, detail=1, paragraph=False, min_size=5,
+            contrast_ths=0.1, adjust_contrast=0.5,
+        )
+        all_tokens, all_confs = [], []
+        for (bbox, text, conf) in full_result:
+            if is_in_year_box(bbox, fw, fh):
+                print(f"   [year-box skip] '{text}'")
+                continue
+            if is_in_city_box(bbox, fw, fh):
+                print(f"   [city-strip skip] '{text}'")
+                continue
+            ct = ''.join(c for c in text if c.isalnum()).upper()
+            if ct:
+                all_tokens.append(ct)
+                all_confs.append(conf)
 
-        if use_split:
-            top_versions    = preprocess_for_ocr(top_half)
-            bottom_versions = preprocess_for_ocr(bottom_half)
 
-            top_text    = ""
-            bottom_text = ""
-            top_conf    = 0
-            bottom_conf = 0
+        if all_tokens:
+            combined  = ''.join(all_tokens)
+            avg_conf  = sum(all_confs) / len(all_confs)
+            has_l = any(c.isalpha() for c in combined)
+            has_d = any(c.isdigit() for c in combined)
+            score = avg_conf * (1.4 if has_l and has_d else 1.0)
+            if score > best_confidence and len(combined) >= 2:
+                best_text       = combined
+                best_confidence = score
+                best_version    = "full_plate"
 
-            for _, img_version in top_versions:
-                th2, tw2 = img_version.shape[:2]
-                result = reader.readtext(img_version, detail=1, paragraph=False)
-                if result:
-                    texts, confs = [], []
-                    for (bbox, t, c) in result:
-                        # skip year-box bboxes in the top-half image too
-                        if is_in_year_box(bbox, tw2, th2):
-                            continue
-                        ct = ''.join(ch for ch in t if ch.isalnum()).upper()
-                        if ct:
-                            texts.append(ct)
-                            confs.append(c)
-                    if texts:
-                        combined = ''.join(texts)
-                        avg_conf = sum(confs) / len(confs)
-                        if avg_conf > top_conf and len(combined) >= 2:
-                            top_text = combined
-                            top_conf = avg_conf
-
-            for _, img_version in bottom_versions:
-                result = reader.readtext(img_version, detail=1, paragraph=False)
-                if result:
-                    texts = [''.join(c for c in t if c.isalnum()).upper() for (_, t, _) in result]
-                    confs = [c for (_, _, c) in result]
-                    combined = ''.join(texts)
-                    avg_conf = sum(confs) / len(confs)
-                    # Accept even a single digit from the bottom row (e.g. '9' in 'LED-149')
-                    if avg_conf > bottom_conf and len(combined) >= 1:
-                        bottom_text = combined
-                        bottom_conf = avg_conf
-
-            if top_text and bottom_text:
-                combined_split      = top_text + bottom_text
-                combined_split_conf = (top_conf + bottom_conf) / 2
-
-        if combined_split:
-            if len(combined_split) > len(best_text) and combined_split_conf > 0.5:
-                best_text       = combined_split
-                best_confidence = combined_split_conf
-                best_version    = "split_combined"
-            elif combined_split_conf > best_confidence:
-                best_text       = combined_split
-                best_confidence = combined_split_conf
-                best_version    = "split_combined"
-
-        final_text = clean_plate_text(best_text) if best_text else "UNREADABLE"
-        final_text = validate_pakistan_plate(final_text)
+        # ── Post-process winning raw text through unified pipeline ───────────
+        final_text = full_postprocess(best_text) if best_text else "UNREADABLE"
         print(f"   Raw OCR : '{best_text}'")
         print(f"   Cleaned : '{final_text}' | method: {best_version} | conf: {best_confidence:.2%}")
 
@@ -460,10 +468,22 @@ def detect():
             x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
             plate_img       = frame[y1:y2, x1:x2]
 
-            ocr_result     = extract_text_from_plate(plate_img)
-            plate_text     = ocr_result['text']
-            ocr_confidence = ocr_result['confidence']
-            ocr_method     = ocr_result['method']
+            # ── Hybrid OCR: fast-plate-ocr + EasyOCR with selection logic ──
+            try:
+                ocr_result: HybridOCRResult = hybrid_ocr(plate_img, reader=reader)
+                plate_text     = ocr_result.text
+                ocr_confidence = ocr_result.confidence
+                ocr_method     = ocr_result.method
+                ocr_debug      = ocr_result.debug
+                ocr_elapsed_ms = ocr_result.elapsed_ms
+            except Exception as _ocr_exc:
+                log.error(f"hybrid_ocr failed, falling back to legacy OCR: {_ocr_exc}")
+                _fallback      = extract_text_from_plate(plate_img)
+                plate_text     = _fallback['text']
+                ocr_confidence = _fallback['confidence']
+                ocr_method     = _fallback['method'] + '_fallback'
+                ocr_debug      = {}
+                ocr_elapsed_ms = 0.0
 
             plate_counter += 1
             plate_filename = f"plate_{plate_counter}_{session_timestamp}_{plate_text}_conf{conf:.0%}.jpg"
@@ -482,6 +502,8 @@ def detect():
                 'ocr_text':             plate_text,
                 'ocr_confidence':       ocr_confidence,
                 'ocr_method':           ocr_method,
+                'ocr_elapsed_ms':       round(ocr_elapsed_ms, 1),
+                'ocr_debug':            ocr_debug,
                 'plate_filename':       plate_filename,
                 'full_frame_filename':  full_frame_filename,
                 'user_info':            user_info,

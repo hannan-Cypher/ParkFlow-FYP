@@ -1,217 +1,357 @@
 'use client'
 
+import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { DollarSign, Car, Users, Clock, Star } from 'lucide-react'
+import {
+  Banknote,
+  Car,
+  Users,
+  Clock,
+  Loader2,
+  RefreshCw,
+  TrendingUp,
+  ParkingCircle,
+} from 'lucide-react'
+
+interface AnalyticsData {
+  totalRevenue: number
+  todayRevenue: number
+  totalSessions: number
+  activeSessions: number
+  completedSessions: number
+  todayCompleted: number
+  avgDurationHours: number
+  totalCustomers: number
+  totalStaff: number
+  totalSlots: number
+  occupiedSlots: number
+  venues: {
+    name: string
+    active: number
+    completed: number
+    revenue: number
+    totalSlots: number
+    occupiedSlots: number
+  }[]
+  hourlyBreakdown: { hour: string; count: number }[]
+}
 
 export default function AnalyticsTab() {
-  const containerVariants = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+  const [data, setData] = useState<AnalyticsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const fetchAnalytics = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) setRefreshing(true)
+      else setLoading(true)
+
+      const [sessionsRes, staffRes] = await Promise.all([
+        fetch('/api/sessions?status=all'),
+        fetch('/api/staff'),
+      ])
+
+      const sessionsData = await sessionsRes.json()
+      const staffData = await staffRes.json()
+      const sessions = sessionsData.sessions ?? []
+      const staff = staffData.staff ?? []
+      const today = new Date().toDateString()
+
+      const active = sessions.filter((s: { status: string }) => s.status === 'active')
+      const completed = sessions.filter((s: { status: string }) => s.status === 'completed')
+      const todayCompleted = completed.filter(
+        (s: { exit_time: string }) => s.exit_time && new Date(s.exit_time).toDateString() === today
+      )
+
+      const totalRevenue = completed.reduce(
+        (sum: number, s: { total_amount: number | null }) => sum + (s.total_amount ?? 0),
+        0
+      )
+      const todayRevenue = todayCompleted.reduce(
+        (sum: number, s: { total_amount: number | null }) => sum + (s.total_amount ?? 0),
+        0
+      )
+      const avgDuration =
+        completed.length > 0
+          ? completed.reduce(
+            (sum: number, s: { total_hours: number | null }) => sum + (s.total_hours ?? 0),
+            0
+          ) / completed.length
+          : 0
+
+      // Unique customers (by customer_name)
+      const uniqueCustomers = new Set(
+        sessions
+          .map((s: { customer_name: string | null }) => s.customer_name)
+          .filter(Boolean)
+      ).size
+
+      // Venue breakdown
+      const venueMap = new Map<
+        string,
+        { name: string; active: number; completed: number; revenue: number; totalSlots: number; occupiedSlots: number }
+      >()
+      sessions.forEach(
+        (s: {
+          venue: { id: string; name: string }
+          status: string
+          total_amount: number | null
+        }) => {
+          const key = s.venue.id
+          const existing = venueMap.get(key) ?? {
+            name: s.venue.name,
+            active: 0,
+            completed: 0,
+            revenue: 0,
+            totalSlots: 0,
+            occupiedSlots: 0,
+          }
+          if (s.status === 'active') existing.active++
+          if (s.status === 'completed') {
+            existing.completed++
+            existing.revenue += s.total_amount ?? 0
+          }
+          venueMap.set(key, existing)
+        }
+      )
+
+      // Hourly breakdown of check-ins (all time)
+      const hourCounts: Record<string, number> = {}
+      sessions.forEach((s: { entry_time: string }) => {
+        const h = new Date(s.entry_time).getHours()
+        const label = `${h % 12 || 12}:00 ${h < 12 ? 'AM' : 'PM'}`
+        hourCounts[label] = (hourCounts[label] || 0) + 1
+      })
+      const hourlyBreakdown = Object.entries(hourCounts)
+        .map(([hour, count]) => ({ hour, count }))
+        .sort((a, b) => {
+          // Sort by actual hour
+          const getH = (h: string) => {
+            const match = h.match(/^(\d+)/)
+            const isPM = h.includes('PM')
+            let n = parseInt(match?.[1] ?? '0')
+            if (isPM && n !== 12) n += 12
+            if (!isPM && n === 12) n = 0
+            return n
+          }
+          return getH(a.hour) - getH(b.hour)
+        })
+
+      setData({
+        totalRevenue,
+        todayRevenue,
+        totalSessions: sessions.length,
+        activeSessions: active.length,
+        completedSessions: completed.length,
+        todayCompleted: todayCompleted.length,
+        avgDurationHours: avgDuration,
+        totalCustomers: uniqueCustomers,
+        totalStaff: staff.length,
+        totalSlots: 0,
+        occupiedSlots: 0,
+        venues: Array.from(venueMap.values()),
+        hourlyBreakdown,
+      })
+    } catch (err) {
+      console.error('Analytics fetch error:', err)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchAnalytics()
+    const interval = setInterval(() => fetchAnalytics(true), 30000)
+    return () => clearInterval(interval)
+  }, [fetchAnalytics])
+
+  if (loading || !data) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+      </div>
+    )
   }
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: 'easeOut',
-      },
-    },
-  }
+  const avgH = Math.floor(data.avgDurationHours)
+  const avgM = Math.round((data.avgDurationHours - avgH) * 60)
+  const avgDisplay = avgH > 0 ? `${avgH}h ${avgM}m` : `${avgM}m`
 
   const metrics = [
     {
-      icon: DollarSign,
+      icon: Banknote,
       label: 'Total Revenue',
-      value: 'Rs 12,450',
-      change: '+12.5%',
-      color: 'from-blue-500 to-sky-500',
+      value: `Rs.${data.totalRevenue.toLocaleString()}`,
+      sub: `Rs.${data.todayRevenue.toLocaleString()} today`,
+      color: 'from-violet-500 to-purple-600',
     },
     {
       icon: Car,
-      label: 'Active Vehicles',
-      value: '24',
-      change: '+3',
-      color: 'from-emerald-500 to-green-500',
+      label: 'Total Sessions',
+      value: data.totalSessions.toString(),
+      sub: `${data.activeSessions} active, ${data.completedSessions} completed`,
+      color: 'from-sky-500 to-blue-600',
     },
     {
       icon: Users,
-      label: 'Daily Customers',
-      value: '156',
-      change: '+8.2%',
-      color: 'from-purple-500 to-pink-500',
+      label: 'Customers Served',
+      value: data.totalCustomers.toString(),
+      sub: `${data.totalStaff} staff members`,
+      color: 'from-emerald-500 to-green-600',
     },
     {
       icon: Clock,
       label: 'Avg. Duration',
-      value: '2.3h',
-      change: '-5%',
-      color: 'from-orange-500 to-amber-500',
+      value: avgDisplay,
+      sub: `${data.todayCompleted} completed today`,
+      color: 'from-amber-500 to-orange-600',
     },
   ]
 
-  const peakHours = [
-    { time: '10:00 - 11:00 AM', vehicles: 34, percentage: 100 },
-    { time: '2:00 - 3:00 PM', vehicles: 31, percentage: 91 },
-    { time: '6:00 - 7:00 PM', vehicles: 37, percentage: 109 },
-  ]
-
-  const satisfactionRatings = [
-    { stars: 5, percentage: 75 },
-    { stars: 4, percentage: 20 },
-    { stars: 3, percentage: 3 },
-    { stars: 2, percentage: 1 },
-    { stars: 1, percentage: 1 },
-  ]
+  const maxHourCount = Math.max(...data.hourlyBreakdown.map((h) => h.count), 1)
 
   return (
     <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      {/* Metrics Cards */}
-      <motion.div
-        variants={containerVariants}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-      >
-        {metrics.map((metric, index) => (
-          <motion.div
-            key={index}
-            variants={itemVariants}
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200 relative overflow-hidden"
-          >
-            {/* Background Gradient */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${metric.color} opacity-5`} />
+      {/* Refresh button */}
+      <div className="flex justify-end">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => fetchAnalytics(true)}
+          disabled={refreshing}
+          className="p-2 rounded-lg text-slate-400 hover:bg-white hover:text-slate-600 transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+        </motion.button>
+      </div>
 
-            {/* Content */}
-            <div className="relative">
-              <div className="flex items-center justify-between mb-4">
-                <motion.div
-                  whileHover={{ rotate: 360 }}
-                  transition={{ duration: 0.6 }}
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${metric.color} flex items-center justify-center`}
-                >
-                  <metric.icon className="w-6 h-6 text-white" />
-                </motion.div>
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: index * 0.1 + 0.3 }}
-                  className="text-sm font-semibold px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full"
-                >
-                  {metric.change}
-                </motion.span>
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.map((metric, i) => (
+          <motion.div
+            key={metric.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.08 }}
+            whileHover={{ y: -3, scale: 1.02 }}
+            className="bg-white rounded-2xl shadow-sm p-5 border border-slate-200 relative overflow-hidden"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  {metric.label}
+                </p>
+                <p className="text-3xl font-extrabold text-slate-900 mt-1">{metric.value}</p>
+                <p className="text-xs text-slate-400 mt-1">{metric.sub}</p>
               </div>
-              <p className="text-slate-600 text-sm mb-1">{metric.label}</p>
-              <p className="text-3xl font-bold text-slate-900">{metric.value}</p>
+              <div
+                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${metric.color} flex items-center justify-center shadow-lg`}
+              >
+                <metric.icon className="w-6 h-6 text-white" />
+              </div>
             </div>
           </motion.div>
         ))}
-      </motion.div>
+      </div>
 
-      {/* Peak Hours and Customer Satisfaction */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Peak Hours Analysis */}
+        {/* Check-in Hours Distribution */}
         <motion.div
-          variants={itemVariants}
-          whileHover={{ y: -5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
         >
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">Peak Hours Analysis</h2>
-
-          <div className="space-y-6">
-            {peakHours.map((hour, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 + 0.3 }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-slate-700 font-medium">{hour.time}</span>
-                  <span className="text-slate-600">{hour.vehicles} vehicles</span>
-                </div>
-                <div className="relative h-3 bg-slate-200 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${hour.percentage}%` }}
-                    transition={{ delay: index * 0.1 + 0.5, duration: 0.8, ease: 'easeOut' }}
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-sky-600 to-blue-600 rounded-full"
-                  />
-                </div>
-              </motion.div>
-            ))}
+          <div className="flex items-center gap-2 mb-5">
+            <TrendingUp className="w-5 h-5 text-sky-600" />
+            <h2 className="text-lg font-bold text-slate-900">Check-in Hours</h2>
           </div>
-        </motion.div>
 
-        {/* Customer Satisfaction */}
-        <motion.div
-          variants={itemVariants}
-          whileHover={{ y: -5 }}
-          className="bg-white rounded-2xl shadow-lg p-6 border border-slate-200"
-        >
-          <h2 className="text-2xl font-bold text-slate-900 mb-6">Customer Satisfaction</h2>
-
-          {/* Overall Rating */}
-          <div className="text-center mb-6">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.3, type: 'spring' }}
-              className="text-6xl font-bold text-sky-600 mb-2"
-            >
-              4.8
-            </motion.div>
-            <div className="flex items-center justify-center space-x-1 mb-2">
-              {[1, 2, 3, 4, 5].map((star) => (
+          {data.hourlyBreakdown.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+              <TrendingUp className="w-10 h-10 mb-2 opacity-30" />
+              <p className="text-sm">No data yet</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {data.hourlyBreakdown.map((h, i) => (
                 <motion.div
-                  key={star}
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ delay: star * 0.1 + 0.3 }}
+                  key={h.hour}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
                 >
-                  <Star className="w-6 h-6 text-sky-600 fill-current" />
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-medium text-slate-600">{h.hour}</span>
+                    <span className="text-sm text-slate-500">{h.count} vehicles</span>
+                  </div>
+                  <div className="relative h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(h.count / maxHourCount) * 100}%` }}
+                      transition={{ delay: i * 0.05 + 0.2, duration: 0.6, ease: 'easeOut' }}
+                      className="absolute inset-y-0 left-0 bg-gradient-to-r from-sky-500 to-blue-500 rounded-full"
+                    />
+                  </div>
                 </motion.div>
               ))}
             </div>
-            <p className="text-slate-600">Based on 1,234 reviews</p>
+          )}
+        </motion.div>
+
+        {/* Venue Occupancy */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+        >
+          <div className="flex items-center gap-2 mb-5">
+            <ParkingCircle className="w-5 h-5 text-sky-600" />
+            <h2 className="text-lg font-bold text-slate-900">Venue Performance</h2>
           </div>
 
-          {/* Rating Breakdown */}
-          <div className="space-y-3">
-            {satisfactionRatings.map((rating, index) => (
-              <motion.div
-                key={rating.stars}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 + 0.5 }}
-                className="flex items-center space-x-3"
-              >
-                <div className="flex items-center space-x-1 w-12">
-                  <span className="text-sm font-medium text-slate-700">{rating.stars}</span>
-                  <Star className="w-3 h-3 text-slate-400" />
-                </div>
-                <div className="flex-1 relative h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${rating.percentage}%` }}
-                    transition={{ delay: index * 0.1 + 0.7, duration: 0.6, ease: 'easeOut' }}
-                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-sky-600 to-blue-600 rounded-full"
-                  />
-                </div>
-                <span className="text-sm text-slate-600 w-12 text-right">{rating.percentage}%</span>
-              </motion.div>
-            ))}
-          </div>
+          {data.venues.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+              <ParkingCircle className="w-10 h-10 mb-2 opacity-30" />
+              <p className="text-sm">No data yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {data.venues.map((v, i) => (
+                <motion.div
+                  key={v.name}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.08 }}
+                  className="p-4 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-100"
+                >
+                  <h3 className="font-bold text-slate-900 mb-3">{v.name}</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-xs text-slate-500">Active</p>
+                      <p className="text-xl font-extrabold text-sky-600">{v.active}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Completed</p>
+                      <p className="text-xl font-extrabold text-emerald-600">{v.completed}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Revenue</p>
+                      <p className="text-lg font-extrabold text-violet-600">
+                        Rs.{v.revenue.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </motion.div>
       </div>
     </motion.div>

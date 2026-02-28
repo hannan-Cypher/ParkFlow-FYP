@@ -53,7 +53,9 @@ next.config.mjs
 next.config.ts
 backup_before_fix.sql
 model/venv/
+model/venv311/
 model/static/plates/
+model/test_plates/
 model/best.pt
 model/yolov8m.pt
 model/data/
