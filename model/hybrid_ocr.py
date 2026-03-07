@@ -480,6 +480,158 @@ def mask_year_region(plate_img: np.ndarray) -> np.ndarray:
     return masked
 
 
+def mask_city_strip_only(plate_img: np.ndarray) -> np.ndarray:
+    """
+    Black out ONLY the bottom city/province strip — used when no year badge
+    is detected, so the top-right region stays intact (protects plate digits).
+
+    Parameters
+    ----------
+    plate_img : BGR or grayscale plate crop.
+
+    Returns
+    -------
+    Copy of plate_img with only the bottom city strip zeroed to black.
+    """
+    masked = plate_img.copy()
+    h, w = masked.shape[:2]
+    # Only mask bottom city/province name strip (bottom 15%)
+    masked[int(h * 0.85):h, 0:w] = 0
+    return masked
+
+
+# Year badge regex: match exactly 1–2 digits in the range 00–29
+_YEAR_PROBE_RE = re.compile(r'^(0[0-9]|1[0-9]|2[0-9])$')
+
+
+def probe_year_region(
+    plate_img: np.ndarray,
+    reader: easyocr.Reader,
+) -> bool:
+    """
+    Pre-OCR Probe: check if the top-right corner of a plate contains
+    a 2-digit registration year badge (e.g. '20', '16', '18').
+
+    Crops the "Year Probe Zone" (top 60% height × rightmost 28% width),
+    upscales it, runs a quick EasyOCR pass with bounding boxes, and checks:
+      1. Any detected text matches a 2-digit year in range 00–29.
+      2. The bbox is ISOLATED within the zone (not bleeding in from the left
+         edge, which would indicate it's a continuation of the main plate text).
+
+    This prevents false positives like reading '35' from 'AAY-035' where the
+    digits extend from the main plate area into the top-right corner.
+
+    This is near-instantaneous (~20-50ms) because the crop is very small.
+
+    Parameters
+    ----------
+    plate_img : BGR plate crop (original, un-masked).
+    reader    : Initialised easyocr.Reader (CPU).
+
+    Returns
+    -------
+    True if an isolated year badge is detected, False otherwise.
+    """
+    if plate_img is None or plate_img.size == 0:
+        return False
+
+    h, w = plate_img.shape[:2]
+
+    # Wide single-line plates (aspect ratio >= 3.0) never have year badges
+    aspect_ratio = w / h if h > 0 else 99
+    if aspect_ratio >= 3.0:
+        log.debug(f"[year-probe] aspect={aspect_ratio:.2f} >= 3.0 → no year badge")
+        return False
+
+    # Crop the year probe zone: top 60% height × rightmost 28% width
+    y_end = int(h * 0.60)
+    x_start = int(w * 0.72)
+    year_zone = plate_img[0:y_end, x_start:w]
+
+    if year_zone.size == 0:
+        return False
+
+    # Upscale 3× for better OCR accuracy on tiny crop
+    zh, zw = year_zone.shape[:2]
+    year_zone_up = cv2.resize(year_zone, (zw * 3, zh * 3), interpolation=cv2.INTER_CUBIC)
+    zw_up, zh_up = zw * 3, zh * 3
+
+    try:
+        # Use detail=1 to get bounding boxes for spatial filtering
+        probe_results = reader.readtext(
+            year_zone_up,
+            detail=1,
+            paragraph=False,
+            min_size=3,
+            contrast_ths=0.1,
+            adjust_contrast=0.5,
+        )
+
+        if not probe_results:
+            log.debug("[year-probe] No text found in year zone → no year badge")
+            return False
+
+        for (bbox, text, conf) in probe_results:
+            digits_only = re.sub(r'[^0-9]', '', text)
+
+            # Must be exactly a 2-digit year (00-29)
+            if not _YEAR_PROBE_RE.match(digits_only):
+                log.debug(f"[year-probe] '{text}' → digits='{digits_only}' not a year")
+                continue
+
+            # Spatial isolation check: the bbox's left edge must NOT touch
+            # the left boundary of the probe zone.  If it does, the text is
+            # bleeding in from the main plate area (e.g. '35' from 'AAY-035').
+            # A real year badge is centered/indented within the zone.
+            xs = [pt[0] for pt in bbox]
+            left_x = min(xs)
+            right_x = max(xs)
+            bbox_width = right_x - left_x
+
+            # Criterion 1: left edge must be indented at least 10% into zone
+            left_margin_pct = left_x / zw_up if zw_up > 0 else 0
+
+            # Criterion 2: bbox width should be less than 80% of zone width
+            # (a real year badge is compact; plate text bleeding in is wider)
+            width_pct = bbox_width / zw_up if zw_up > 0 else 1.0
+
+            log.info(
+                f"[year-probe] candidate='{text}' digits='{digits_only}' "
+                f"conf={conf:.2%} left_margin={left_margin_pct:.1%} "
+                f"width_pct={width_pct:.1%}"
+            )
+
+            if left_margin_pct < 0.05:
+                # Text bbox starts at the left edge of the zone → it's bleeding
+                # in from the main plate. NOT an isolated year badge.
+                log.info(
+                    f"[year-probe] REJECTED: text bleeds from left edge "
+                    f"(left_margin={left_margin_pct:.1%} < 5%)"
+                )
+                continue
+
+            if width_pct > 0.85:
+                # Text is too wide relative to the zone — it's spanning most
+                # of the zone, likely plate text not a compact year badge.
+                log.info(
+                    f"[year-probe] REJECTED: text too wide "
+                    f"(width={width_pct:.1%} > 85%)"
+                )
+                continue
+
+            # Passed all checks — this is an isolated year badge
+            log.info(f"[year-probe] YEAR DETECTED: '{digits_only}' ✓")
+            return True
+
+        log.debug("[year-probe] No isolated year badge found → no year")
+        return False
+
+    except Exception as exc:
+        log.warning(f"[year-probe] Probe failed: {exc} → defaulting to masking")
+        # On failure, safer to assume year exists and mask (existing behavior)
+        return True
+
+
 def is_in_city_box(bbox: list, img_w: int, img_h: int) -> bool:
     """
     Spatial filter: return True if a bbox centre sits in the bottom city strip
@@ -573,18 +725,24 @@ def run_fast_plate_ocr(
 def run_easyocr(
     plate_img: np.ndarray,
     reader: easyocr.Reader,
+    force_year_mask: bool | None = None,
 ) -> tuple[str, float]:
     """
     Run the full EasyOCR preprocessing pipeline on a plate crop.
 
-    Pipeline: mask year region → preprocess_for_ocr_enhanced (upscale first
-              → gray → NL-means denoise → equalise → CLAHE → sharpen →
-              otsu_inv) → readtext → filter year-box bboxes → combine tokens.
+    Uses the Pre-OCR Probe to decide whether to mask the year region:
+      - If probe detects a 2-digit year → mask top-right (year-constrained path)
+      - If no year detected → only mask city strip (simple path, preserves digits)
+
+    Pipeline: probe_year_region → conditional masking → preprocess_for_ocr_enhanced
+              → readtext → filter year-box bboxes → combine tokens.
 
     Parameters
     ----------
-    plate_img : BGR plate crop.
-    reader    : Initialised easyocr.Reader (CPU).
+    plate_img      : BGR plate crop.
+    reader         : Initialised easyocr.Reader (CPU).
+    force_year_mask: If True/False, bypass the probe and force/skip year masking.
+                     If None (default), use the probe to decide automatically.
 
     Returns
     -------
@@ -595,7 +753,22 @@ def run_easyocr(
         return ("", 0.0)
 
     try:
-        img = mask_year_region(plate_img)
+        # ── Pre-OCR Probe: decide whether to mask year region ────────────
+        if force_year_mask is not None:
+            has_year = force_year_mask
+            log.debug(f"[easyocr] Year mask forced: {has_year}")
+        else:
+            has_year = probe_year_region(plate_img, reader)
+
+        if has_year:
+            # Year badge detected → mask both year region AND city strip
+            img = mask_year_region(plate_img)
+            log.info("[easyocr] Year badge detected → masking year region")
+        else:
+            # No year badge → only mask city strip, preserve full plate
+            img = mask_city_strip_only(plate_img)
+            log.info("[easyocr] No year badge → simple path (city strip only)")
+
         img_version = preprocess_for_ocr_enhanced(img)   # Problem 5 fix
         vh, vw = img_version.shape[:2]
 
@@ -612,7 +785,8 @@ def run_easyocr(
 
         tokens, confs = [], []
         for (bbox, text, conf) in result:
-            if is_in_year_box(bbox, vw, vh):
+            # Only apply year-box spatial filter when year was detected
+            if has_year and is_in_year_box(bbox, vw, vh):
                 log.debug(f"[easyocr] year-box skip: '{text}'")
                 continue
             if is_in_city_box(bbox, vw, vh):

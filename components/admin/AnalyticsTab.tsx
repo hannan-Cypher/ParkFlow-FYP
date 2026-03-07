@@ -46,13 +46,15 @@ export default function AnalyticsTab() {
       if (isRefresh) setRefreshing(true)
       else setLoading(true)
 
-      const [sessionsRes, staffRes] = await Promise.all([
+      const [sessionsRes, staffRes, statsRes] = await Promise.all([
         fetch('/api/sessions?status=all'),
         fetch('/api/staff'),
+        fetch('/api/admin/stats'),
       ])
 
       const sessionsData = await sessionsRes.json()
       const staffData = await staffRes.json()
+      const statsData = statsRes.ok ? await statsRes.json() : null
       const sessions = sessionsData.sessions ?? []
       const staff = staffData.staff ?? []
       const today = new Date().toDateString()
@@ -147,8 +149,8 @@ export default function AnalyticsTab() {
         avgDurationHours: avgDuration,
         totalCustomers: uniqueCustomers,
         totalStaff: staff.length,
-        totalSlots: 0,
-        occupiedSlots: 0,
+        totalSlots: statsData?.slots?.total ?? 0,
+        occupiedSlots: statsData?.slots?.occupied ?? 0,
         venues: Array.from(venueMap.values()),
         hourlyBreakdown,
       })
@@ -207,6 +209,13 @@ export default function AnalyticsTab() {
       sub: `${data.todayCompleted} completed today`,
       color: 'from-amber-500 to-orange-600',
     },
+    {
+      icon: ParkingCircle,
+      label: 'Slot Occupancy',
+      value: data.totalSlots > 0 ? `${Math.round((data.occupiedSlots / data.totalSlots) * 100)}%` : '0%',
+      sub: `${data.occupiedSlots}/${data.totalSlots} slots occupied`,
+      color: 'from-rose-500 to-red-600',
+    },
   ]
 
   const maxHourCount = Math.max(...data.hourlyBreakdown.map((h) => h.count), 1)
@@ -231,7 +240,7 @@ export default function AnalyticsTab() {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {metrics.map((metric, i) => (
           <motion.div
             key={metric.label}

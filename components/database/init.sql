@@ -153,7 +153,18 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create sessions table (for auth tokens)
+CREATE TABLE IF NOT EXISTS sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes
+CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
@@ -207,8 +218,8 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO users (id, email, password, full_name, phone, role, email_verified) 
 VALUES (
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    'admin@parkflow.com',
-    '$2a$10$rBV2gFZyRvVN7h2h8h8h8eO2kKbJxJxJxJxJxJxJxJxJxJxJxJxJxK',
+    'admin@parkflowpk.com',
+    '$2a$10$4gy1nRgCJZNXvgxoI8l1MeRq/uyGntX.39.G.erA0XMRIWi9z0OiS',
     'System Administrator',
     '0300-1111111',
     'admin',

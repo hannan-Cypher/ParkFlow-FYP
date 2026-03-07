@@ -328,6 +328,21 @@ FROM users u WHERE u.email = 'sehar.aziz@gmail.com';
 -- END OF SAMPLE DATA
 -- ============================================
 
+-- ============================================
+-- 6. ASSIGN STAFF TO VENUES
+-- ============================================
+-- Distribute 8 staff across the 5 venues
+-- Centaurus Mall: 2 staff, Emporium Mall: 2 staff, Lucky One: 2 staff, Packages: 1, Dolmen: 1
+
+UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Centaurus Mall' LIMIT 1) WHERE email = 'usman.qadir@parkflowpk.com';
+UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Centaurus Mall' LIMIT 1) WHERE email = 'bilal.khan@parkflowpk.com';
+UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Emporium Mall' LIMIT 1) WHERE email = 'hamza.shah@parkflowpk.com';
+UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Emporium Mall' LIMIT 1) WHERE email = 'sara.ahmed@parkflowpk.com';
+UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Lucky One Mall' LIMIT 1) WHERE email = 'zain.malik@parkflowpk.com';
+UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Lucky One Mall' LIMIT 1) WHERE email = 'ayesha.khan@parkflowpk.com';
+UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Packages Mall' LIMIT 1) WHERE email = 'saad.iqbal@parkflowpk.com';
+UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Dolmen Mall Clifton' LIMIT 1) WHERE email = 'hira.ahmed@parkflowpk.com';
+
 -- Summary Report
 DO $$
 DECLARE

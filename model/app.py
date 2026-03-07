@@ -10,7 +10,7 @@ import json
 import easyocr
 import re
 import logging
-from hybrid_ocr import hybrid_ocr, get_fpocr_model, HybridOCRResult
+from hybrid_ocr import hybrid_ocr, get_fpocr_model, HybridOCRResult, probe_year_region, mask_city_strip_only
 from ocr_postprocess import (
     full_postprocess,
     preprocess_for_ocr_enhanced,
@@ -262,8 +262,16 @@ def extract_text_from_plate(plate_img):
     try:
         h, w = plate_img.shape[:2]
 
-        # Mask top-right year region before any OCR (Layer 1 defence)
-        plate_img = mask_year_region(plate_img)
+        # Pre-OCR Probe: check if year badge exists before deciding to mask
+        has_year = probe_year_region(plate_img, reader)
+        if has_year:
+            # Year badge detected → mask top-right year region (Layer 1 defence)
+            plate_img = mask_year_region(plate_img)
+            print(f"   [year-probe] Year badge detected → masking year region")
+        else:
+            # No year badge → only mask city strip (protect plate digits)
+            plate_img = mask_city_strip_only(plate_img)
+            print(f"   [year-probe] No year badge → simple path (city strip only)")
 
         aspect_ratio = w / h if h > 0 else 99
         use_split    = aspect_ratio < 2.5
@@ -285,7 +293,7 @@ def extract_text_from_plate(plate_img):
             )
             letters_tokens, letters_confs = [], []
             for (bbox, text, conf) in letters_result:
-                if is_in_year_box(bbox, lw, lh):
+                if has_year and is_in_year_box(bbox, lw, lh):
                     continue
                 ct = ''.join(c for c in text if c.isalnum()).upper()
                 if ct:
@@ -327,7 +335,7 @@ def extract_text_from_plate(plate_img):
         )
         all_tokens, all_confs = [], []
         for (bbox, text, conf) in full_result:
-            if is_in_year_box(bbox, fw, fh):
+            if has_year and is_in_year_box(bbox, fw, fh):
                 print(f"   [year-box skip] '{text}'")
                 continue
             if is_in_city_box(bbox, fw, fh):

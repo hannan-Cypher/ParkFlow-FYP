@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   Clock,
   Briefcase,
+  ChevronDown,
+  X,
 } from 'lucide-react'
 
 interface StaffMember {
@@ -22,6 +24,12 @@ interface StaffMember {
   active_tasks: number
   completed_today: number
   total_completed: number
+}
+
+interface Venue {
+  id: string
+  name: string
+  city: string
 }
 
 const COLORS = [
@@ -46,18 +54,29 @@ function getInitials(name: string): string {
 
 export default function StaffTab() {
   const [staff, setStaff] = useState<StaffMember[]>([])
+  const [venues, setVenues] = useState<Venue[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [assigningId, setAssigningId] = useState<string | null>(null)
+  const [showAssignDropdown, setShowAssignDropdown] = useState<string | null>(null)
 
-  const fetchStaff = useCallback(async (isRefresh = false) => {
+  const fetchData = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true)
       else setLoading(true)
 
-      const res = await fetch('/api/staff')
-      if (res.ok) {
-        const data = await res.json()
+      const [staffRes, venuesRes] = await Promise.all([
+        fetch('/api/staff'),
+        fetch('/api/locations'),
+      ])
+
+      if (staffRes.ok) {
+        const data = await staffRes.json()
         setStaff(data.staff ?? [])
+      }
+      if (venuesRes.ok) {
+        const data = await venuesRes.json()
+        setVenues(data.locations ?? [])
       }
     } catch (err) {
       console.error('Failed to fetch staff:', err)
@@ -68,10 +87,30 @@ export default function StaffTab() {
   }, [])
 
   useEffect(() => {
-    fetchStaff()
-    const interval = setInterval(() => fetchStaff(true), 30000)
+    fetchData()
+    const interval = setInterval(() => fetchData(true), 30000)
     return () => clearInterval(interval)
-  }, [fetchStaff])
+  }, [fetchData])
+
+  const handleAssignVenue = async (staffId: string, venueId: string | null) => {
+    try {
+      setAssigningId(staffId)
+      const res = await fetch('/api/staff/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_id: staffId, venue_id: venueId }),
+      })
+
+      if (res.ok) {
+        await fetchData(true)
+      }
+    } catch (err) {
+      console.error('Failed to assign staff:', err)
+    } finally {
+      setAssigningId(null)
+      setShowAssignDropdown(null)
+    }
+  }
 
   const totalActive = staff.filter((s) => s.is_active).length
   const totalBusy = staff.filter((s) => s.active_tasks > 0).length
@@ -116,7 +155,7 @@ export default function StaffTab() {
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={() => fetchStaff(true)}
+            onClick={() => fetchData(true)}
             disabled={refreshing}
             className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
           >
@@ -151,12 +190,54 @@ export default function StaffTab() {
                     <div>
                       <p className="font-bold text-slate-900">{member.full_name}</p>
                       <div className="flex items-center gap-2 text-xs text-slate-500">
-                        {member.venue && (
-                          <span className="flex items-center gap-1">
+                        {/* Venue assignment with dropdown */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowAssignDropdown(
+                              showAssignDropdown === member.id ? null : member.id
+                            )}
+                            className="flex items-center gap-1 hover:text-sky-600 transition-colors"
+                          >
                             <MapPin className="w-3 h-3" />
-                            {member.venue.name}
-                          </span>
-                        )}
+                            <span>{member.venue?.name || 'Unassigned'}</span>
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+
+                          {showAssignDropdown === member.id && (
+                            <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 rounded-xl shadow-lg z-10 py-1">
+                              <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase">
+                                Assign to Venue
+                              </div>
+                              {venues.map((venue) => (
+                                <button
+                                  key={venue.id}
+                                  onClick={() => handleAssignVenue(member.id, venue.id)}
+                                  disabled={assigningId === member.id}
+                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-sky-50 transition-colors flex items-center justify-between ${member.venue?.id === venue.id ? 'bg-sky-50 text-sky-700 font-medium' : 'text-slate-700'
+                                    }`}
+                                >
+                                  <span>{venue.name}</span>
+                                  {member.venue?.id === venue.id && (
+                                    <CheckCircle2 className="w-4 h-4 text-sky-600" />
+                                  )}
+                                </button>
+                              ))}
+                              {member.venue && (
+                                <>
+                                  <div className="border-t border-slate-100 my-1" />
+                                  <button
+                                    onClick={() => handleAssignVenue(member.id, null)}
+                                    disabled={assigningId === member.id}
+                                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-1"
+                                  >
+                                    <X className="w-3 h-3" />
+                                    Unassign
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         <span>•</span>
                         <span>{member.phone}</span>
                       </div>
@@ -177,10 +258,10 @@ export default function StaffTab() {
                     </div>
                     <div
                       className={`px-3 py-1.5 rounded-lg font-semibold text-sm shadow-sm ${member.active_tasks > 0
-                          ? 'bg-amber-100 text-amber-700'
-                          : member.is_active
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-slate-200 text-slate-500'
+                        ? 'bg-amber-100 text-amber-700'
+                        : member.is_active
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-slate-200 text-slate-500'
                         }`}
                     >
                       {member.active_tasks > 0

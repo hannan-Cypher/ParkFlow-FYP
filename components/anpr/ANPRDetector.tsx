@@ -136,11 +136,10 @@ export default function ANPRDetector() {
           <button
             key={m}
             onClick={() => { setMode(m); reset(); }}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
-              mode === m
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${mode === m
                 ? "bg-white shadow-sm ring-1 ring-slate-200 text-slate-900"
                 : "text-slate-500 hover:text-slate-700"
-            }`}
+              }`}
           >
             {m === "upload" ? <Upload className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
             {m === "upload" ? "Upload Image" : "Use Camera"}
@@ -190,9 +189,16 @@ export default function ANPRDetector() {
           {mode === "camera" && (
             <motion.div variants={item} initial="hidden" animate="show" className="space-y-3">
               <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 min-h-48">
-                {cameraActive ? (
-                  <video ref={videoRef} className="w-full object-cover" playsInline muted />
-                ) : previewSrc ? (
+                {/* Video element is ALWAYS in the DOM so the ref is available
+                    when startCamera() attaches the stream. Hidden via CSS. */}
+                <video
+                  ref={videoRef}
+                  className={`w-full object-cover ${cameraActive ? '' : 'hidden'}`}
+                  playsInline
+                  muted
+                  autoPlay
+                />
+                {!cameraActive && previewSrc ? (
                   <>
                     <img src={previewSrc} alt="Captured" className="w-full object-contain max-h-64" />
                     <button
@@ -202,11 +208,11 @@ export default function ANPRDetector() {
                       <XCircle className="h-4 w-4 text-slate-600" />
                     </button>
                   </>
-                ) : (
+                ) : !cameraActive && !previewSrc ? (
                   <div className="flex h-48 items-center justify-center text-slate-500">
                     <Camera className="h-12 w-12 opacity-30" />
                   </div>
-                )}
+                ) : null}
               </div>
 
               {/* hidden canvas for capture */}
@@ -295,11 +301,10 @@ export default function ANPRDetector() {
                 className="space-y-4"
               >
                 {/* Status banner */}
-                <div className={`flex items-center gap-3 rounded-2xl p-4 ${
-                  result.success && result.total > 0
+                <div className={`flex items-center gap-3 rounded-2xl p-4 ${result.success && result.total > 0
                     ? "bg-emerald-50 border border-emerald-200"
                     : "bg-amber-50 border border-amber-200"
-                }`}>
+                  }`}>
                   {result.success && result.total > 0 ? (
                     <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
                   ) : (
