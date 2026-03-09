@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: valet_parking_db
+    environment:
+      POSTGRES_USER: Owner
+      POSTGRES_PASSWORD: 1512147296110@Hm
+      POSTGRES_DB: valet_parking
+    ports:
+      - "5433:5432"
+    volumes:
+      # Named volume for persistent data storage
+      - postgres_data:/var/lib/postgresql/data
+      # Init script only runs on first initialization
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - parkflow-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U Owner -d valet_parking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: parkflow_ai
+    ports:
+      - "8080:8080"
+    environment:
+      # Mount your YOLO model weights at ./ai-service/model/best.pt on the host
+      - MODEL_PATH=/app/model/best.pt
+      - ANPR_STORAGE_PATH=/app/data/detected_plates
+      - PORT=8080
+    volumes:
+      # Place best.pt in ./ai-service/model/ before starting
+      - ./ai-service/model:/app/model:ro
+      # Persist detected plate images and logs across restarts
+      - anpr_data:/app/data/detected_plates
+    networks:
+      - parkflow-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: parkflow_app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://Owner:1512147296110@Hm@postgres:5432/valet_parking
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=5acf3fc3e06df4cc47d04f75bf61356c5bdc05411dacd3ec013ed7678514941026dee93f8b6bf66d2e9bae52d503f0e888da39baee592b2b1ac8d9a88e01d110
+      # URL that Next.js uses to reach the Flask AI service inside Docker
+      - FLASK_AI_URL=http://ai-service:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_healthy
+    networks:
+      - parkflow-network
+    restart: unless-stopped
+
+networks:
+  parkflow-network:
+    driver: bridge
+
+volumes:
+  # Named volume declaration - this ensures data persists
+  postgres_data:
+    driver: local
+  # Volume for ANPR detected plates and logs
+  anpr_data:
+    driver: local

@@ -1,0 +1,1337 @@
+"use client";
+
+import React from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Car,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  History,
+  MapPin,
+  Navigation,
+  Plus,
+  Sparkles,
+  Wand2,
+  LogOut,
+  User,
+  Loader2,
+  RefreshCw,
+  Video,
+  AlertCircle,
+  Bell,
+  ChevronRight,
+  Banknote,
+  ArrowDownLeft,
+  Settings,
+  Wifi,
+  WifiOff,
+  Star,
+  QrCode,
+  Receipt,
+} from "lucide-react";
+import DarkModeToggle from "@/components/DarkModeToggle";
+
+// ── Animation Presets ───────────────────────────────────────────────────────
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const item = {
+  hidden: { y: 12, opacity: 0 },
+  show: {
+    y: 0,
+    opacity: 1,
+    transition: { type: "spring", stiffness: 220, damping: 22 },
+  },
+};
+
+const subtleHover = {
+  rest: { y: 0, scale: 1 },
+  hover: { y: -2, scale: 1.01 },
+};
+
+// ── Types ───────────────────────────────────────────────────────────────────
+
+interface ActiveSession {
+  id: string;
+  status: string;
+  entry_time: string;
+  duration: string | null;
+  rate_per_hour: number;
+  total_hours: number | null;
+  total_amount: number | null;
+  retrieval_status: string | null;
+  qr_code: string | null;
+  vehicle: {
+    id: string;
+    license_plate: string;
+    make: string | null;
+    model: string | null;
+    color: string | null;
+    vehicle_type: string;
+  };
+  slot: {
+    id: string;
+    slot_number: string;
+    floor_level: string | null;
+    zone: string | null;
+    slot_type: string;
+  } | null;
+  venue: {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+  };
+  staff_name: string | null;
+  customer_name: string | null;
+}
+
+interface CompletedSession {
+  id: string;
+  status: string;
+  entry_time: string;
+  exit_time: string | null;
+  duration: string | null;
+  total_amount: number | null;
+  total_hours: number | null;
+  rate_per_hour: number;
+  payment_status: string;
+  rating: number | null;
+  rating_comment: string | null;
+  vehicle: {
+    license_plate: string;
+    make: string | null;
+    model: string | null;
+    color: string | null;
+    vehicle_type: string;
+  };
+  slot: { slot_number: string; floor_level: string | null } | null;
+  venue: {
+    name: string;
+    city: string;
+  };
+}
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+const tabs = [
+  "Parking History",
+  "Live Feed",
+  "Services",
+  "Payment",
+] as const;
+
+type TabKey = (typeof tabs)[number];
+
+// ── Main Component ──────────────────────────────────────────────────────────
+
+export default function CustomerDashboardPage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = React.useState<TabKey>("Parking History");
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  // Real data states
+  const [activeSessions, setActiveSessions] = React.useState<ActiveSession[]>(
+    []
+  );
+  const [completedSessions, setCompletedSessions] = React.useState<
+    CompletedSession[]
+  >([]);
+  const [loadingActive, setLoadingActive] = React.useState(true);
+  const [loadingHistory, setLoadingHistory] = React.useState(true);
+  const [retrievalLoading, setRetrievalLoading] = React.useState<string | null>(
+    null
+  );
+  const [retrievalSuccess, setRetrievalSuccess] = React.useState<string | null>(
+    null
+  );
+
+  React.useEffect(() => setMounted(true), []);
+
+  // ── Fetch active sessions ─────────────────────────────────────────────────
+  const fetchActiveSessions = React.useCallback(async () => {
+    try {
+      setLoadingActive(true);
+      const res = await fetch("/api/sessions?status=active");
+      if (res.ok) {
+        const data = await res.json();
+        setActiveSessions(data.sessions ?? []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch active sessions:", err);
+    } finally {
+      setLoadingActive(false);
+    }
+  }, []);
+
+  // ── Fetch completed sessions ──────────────────────────────────────────────
+  const fetchCompletedSessions = React.useCallback(async () => {
+    try {
+      setLoadingHistory(true);
+      const res = await fetch("/api/sessions?status=completed");
+      if (res.ok) {
+        const data = await res.json();
+        setCompletedSessions(data.sessions ?? []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch completed sessions:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchActiveSessions();
+    fetchCompletedSessions();
+  }, [fetchActiveSessions, fetchCompletedSessions]);
+
+  // Auto-refresh every 30 seconds
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      fetchActiveSessions();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchActiveSessions]);
+
+  // ── Request vehicle retrieval ─────────────────────────────────────────────
+  const handleRetrieveVehicle = async (sessionId: string) => {
+    setRetrievalLoading(sessionId);
+    setRetrievalSuccess(null);
+    try {
+      const res = await fetch("/api/sessions/retrieve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setRetrievalSuccess(sessionId);
+        // Refresh to show updated retrieval status
+        fetchActiveSessions();
+      } else {
+        alert(data.error || "Failed to request retrieval");
+      }
+    } catch (err) {
+      console.error("Retrieval request failed:", err);
+      alert("Failed to request retrieval. Please try again.");
+    } finally {
+      setRetrievalLoading(null);
+    }
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        router.push("/login");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  if (!mounted) {
+    return <main className="mx-auto max-w-6xl px-4 pb-24 pt-10" />;
+  }
+
+  // ── Computed data ─────────────────────────────────────────────────────────
+  const currentSession =
+    activeSessions.length > 0 ? activeSessions[0] : null;
+
+  // Estimated cost for active session
+  const estimatedCost = currentSession
+    ? (() => {
+      const ms =
+        Date.now() - new Date(currentSession.entry_time).getTime();
+      const hours = Math.max(Math.ceil(ms / 3600000), 1);
+      return hours * currentSession.rate_per_hour;
+    })()
+    : 0;
+
+  return (
+    <motion.main
+      className="mx-auto max-w-6xl px-4 pb-24 pt-10 text-slate-800 dark:text-slate-100 min-h-screen"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
+      {/* Dark Mode Background */}
+      <div className="fixed inset-0 -z-10 bg-slate-50 dark:bg-slate-900 transition-colors duration-300" />
+      {/* Header with User Info and Logout */}
+      <motion.header
+        variants={item}
+        className="mb-6 flex items-center justify-between"
+      >
+        <div>
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="flex items-center space-x-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+              <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Customer
+              </span>
+            </div>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight dark:text-white">
+            Customer Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Welcome back</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <DarkModeToggle />
+
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="flex items-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </span>
+          </motion.button>
+        </div>
+      </motion.header>
+
+      {/* ── Current Active Parking Section ─────────────────────────────────── */}
+      <motion.section
+        variants={item}
+        className="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm transition-colors duration-300"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {currentSession ? (
+              <StatusPill label="Active" />
+            ) : (
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                No Active Parking
+              </span>
+            )}
+            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              Current Parking
+            </span>
+          </div>
+          <button
+            onClick={() => fetchActiveSessions()}
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${loadingActive ? "animate-spin" : ""}`}
+            />
+          </button>
+        </div>
+
+        {loadingActive && activeSessions.length === 0 ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+          </div>
+        ) : currentSession ? (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
+            {/* Vehicle card */}
+            <motion.div
+              variants={item}
+              className="relative col-span-1 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 md:col-span-7"
+            >
+              {/* Gradient header instead of image */}
+              <div className="relative h-36 w-full bg-gradient-to-br from-sky-600 via-blue-600 to-indigo-700">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Car className="w-20 h-20 text-white/20" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/40 to-transparent p-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-extrabold text-white tracking-wider font-mono">
+                      {currentSession.vehicle.license_plate}
+                    </span>
+                    {currentSession.vehicle.vehicle_type && (
+                      <span className="text-xs font-medium text-white/70 bg-white/20 px-2 py-0.5 rounded-full uppercase">
+                        {currentSession.vehicle.vehicle_type}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-white/80 mt-0.5">
+                    {[
+                      currentSession.vehicle.color,
+                      currentSession.vehicle.make,
+                      currentSession.vehicle.model,
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || "Vehicle Details"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 p-4 text-sm md:grid-cols-3">
+                <InfoRow
+                  icon={MapPin}
+                  label="Parking Slot"
+                  value={
+                    currentSession.slot?.slot_number ?? "Assigning..."
+                  }
+                />
+                <InfoRow
+                  icon={Clock}
+                  label="Duration"
+                  value={currentSession.duration ?? "0m"}
+                />
+                <InfoRow
+                  icon={Banknote}
+                  label="Est. Cost"
+                  value={`Rs.${estimatedCost}`}
+                />
+              </div>
+
+              {/* Venue + Floor/Zone info */}
+              <div className="px-4 pb-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <MapPin className="w-3 h-3" />
+                      <span>
+                        {currentSession.venue.name}
+                        {currentSession.slot?.floor_level &&
+                          ` • Floor ${currentSession.slot.floor_level}`}
+                        {currentSession.slot?.zone &&
+                          ` • ${currentSession.slot.zone}`}
+                      </span>
+                    </div>
+                    {currentSession.staff_name && (
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <User className="w-3 h-3" />
+                        <span>Valet: {currentSession.staff_name}</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* QR Code */}
+                  {currentSession.qr_code && (
+                    <div className="flex flex-col items-center gap-1 shrink-0">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=PARKFLOW:${currentSession.qr_code}&margin=4`}
+                        alt="Session QR Code"
+                        className="w-20 h-20 rounded-lg border border-slate-200"
+                      />
+                      <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                        <QrCode className="w-2.5 h-2.5" /> Retrieval QR
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Quick actions + stats */}
+            <motion.div variants={item} className="col-span-1 md:col-span-5">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+                <h3 className="mb-3 text-base font-semibold dark:text-white">
+                  Quick Actions
+                </h3>
+                <div className="grid gap-2">
+                  {/* Retrieve Vehicle Button */}
+                  {currentSession.retrieval_status === "requested" ||
+                    currentSession.retrieval_status === "in_progress" ? (
+                    <div className="flex w-full items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-left text-sm">
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <Bell className="h-5 w-5 text-amber-600" />
+                      </motion.div>
+                      <div className="flex-1">
+                        <span className="font-semibold text-amber-800">
+                          Retrieval{" "}
+                          {currentSession.retrieval_status === "requested"
+                            ? "Requested"
+                            : "In Progress"}
+                        </span>
+                        <p className="text-xs text-amber-600 mt-0.5">
+                          {currentSession.retrieval_status === "requested"
+                            ? "Staff will bring your vehicle shortly"
+                            : "Your vehicle is being brought to you"}
+                        </p>
+                      </div>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "linear",
+                        }}
+                      >
+                        <Loader2 className="h-4 w-4 text-amber-500" />
+                      </motion.div>
+                    </div>
+                  ) : currentSession.retrieval_status === "ready" ? (
+                    <div className="flex w-full items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-left text-sm">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      <div className="flex-1">
+                        <span className="font-semibold text-emerald-800">
+                          Vehicle Ready!
+                        </span>
+                        <p className="text-xs text-emerald-600 mt-0.5">
+                          Your vehicle is waiting at the pickup point
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <QuickAction
+                      icon={Car}
+                      label="Request Vehicle Retrieval"
+                      intent="primary"
+                      loading={retrievalLoading === currentSession.id}
+                      onClick={() =>
+                        handleRetrieveVehicle(currentSession.id)
+                      }
+                    />
+                  )}
+
+                  {retrievalSuccess === currentSession.id && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Retrieval request sent! Staff will bring your
+                      vehicle.
+                    </motion.div>
+                  )}
+
+                  <QuickAction
+                    icon={Video}
+                    label="View Live Parking Feed"
+                    onClick={() => setActiveTab("Live Feed")}
+                  />
+                  <QuickAction
+                    icon={Sparkles}
+                    label="Book Cleaning Service"
+                    onClick={() => setActiveTab("Services")}
+                  />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/60 p-3">
+                  <StatBox
+                    label="Current Duration"
+                    value={currentSession.duration ?? "0m"}
+                    align="right"
+                  />
+                  <StatBox
+                    label="Estimated Cost"
+                    value={`Rs.${estimatedCost}`}
+                    align="right"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500">
+            <Car className="w-16 h-16 opacity-20 mb-3" />
+            <p className="text-base font-medium text-slate-500 dark:text-slate-400">
+              No Vehicle Currently Parked
+            </p>
+            <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
+              Your active parking session will appear here
+            </p>
+          </div>
+        )}
+      </motion.section>
+
+      {/* ── Multiple Active Sessions Notice ────────────────────────────────── */}
+      {activeSessions.length > 1 && (
+        <motion.div
+          variants={item}
+          className="mt-4 rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/50 p-4"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="w-4 h-4 text-sky-600" />
+            <span className="text-sm font-semibold text-sky-800 dark:text-sky-300">
+              {activeSessions.length} Active Parking Sessions
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {activeSessions.slice(1).map((session) => (
+              <div
+                key={session.id}
+                className="flex items-center justify-between rounded-lg bg-white dark:bg-slate-800 px-3 py-2 border border-sky-100 dark:border-slate-700"
+              >
+                <div className="flex items-center gap-2">
+                  <Car className="w-4 h-4 text-sky-600" />
+                  <span className="font-mono font-bold text-sm">
+                    {session.vehicle.license_plate}
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500">
+                  {session.slot?.slot_number} • {session.duration}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
+      <motion.nav variants={item} className="mt-6">
+        <div className="relative flex items-center gap-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1">
+          {tabs.map((t) => (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={`relative w-full rounded-xl px-3 py-2 text-sm font-medium transition ${activeTab === t
+                ? "bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 dark:text-white"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </motion.nav>
+
+      {/* ── Content ──────────────────────────────────────────────────────────── */}
+      <section className="mt-4">
+        <AnimatePresence mode="wait">
+          {activeTab === "Parking History" && (
+            <ParkingHistoryTab
+              sessions={completedSessions}
+              loading={loadingHistory}
+              onRefresh={fetchCompletedSessions}
+            />
+          )}
+
+          {activeTab === "Live Feed" && <LiveFeedTab />}
+
+          {activeTab === "Services" && <ServicesTab />}
+
+          {activeTab === "Payment" && <PaymentTab sessions={completedSessions} />}
+        </AnimatePresence>
+      </section>
+    </motion.main>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: Parking History (Real data)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function ParkingHistoryTab({
+  sessions,
+  loading,
+  onRefresh,
+}: {
+  sessions: CompletedSession[];
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <motion.div
+      key="history"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ type: "spring", stiffness: 180, damping: 18 }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+          Recent Parking Sessions
+        </h4>
+        <button
+          onClick={onRefresh}
+          className="p-1.5 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+        >
+          <RefreshCw
+            className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+          />
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+        </div>
+      ) : sessions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+          <History className="w-12 h-12 opacity-20 mb-3" />
+          <p className="text-sm font-medium text-slate-500">
+            No parking history yet
+          </p>
+          <p className="text-xs text-slate-400 mt-1">
+            Your completed sessions will appear here
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {sessions.map((s, i) => (
+            <HistoryCard key={s.id} session={s} index={i} />
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ── History Card with Star Rating ───────────────────────────────────────────
+
+function HistoryCard({ session: s, index }: { session: CompletedSession; index: number }) {
+  const [rating, setRating] = React.useState<number>(s.rating ?? 0);
+  const [hover, setHover] = React.useState<number>(0);
+  const [comment, setComment] = React.useState<string>(s.rating_comment ?? "");
+  const [showComment, setShowComment] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [submitted, setSubmitted] = React.useState(s.rating != null);
+
+  const submitRating = async (stars: number) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/sessions/${s.id}/rate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: stars, rating_comment: comment || undefined }),
+      });
+      if (res.ok) {
+        setRating(stars);
+        setSubmitted(true);
+        setShowComment(false);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 dark:bg-sky-900/30 shrink-0">
+            <History className="h-5 w-5 text-sky-600" />
+          </div>
+          <div>
+            <div className="font-medium dark:text-slate-100">{s.venue.name}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {new Date(s.entry_time).toLocaleDateString("en-PK", {
+                month: "short", day: "numeric", year: "numeric",
+              })}{" "}•{" "}
+              <span className="font-mono">{s.vehicle.license_plate}</span>
+            </div>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="font-semibold dark:text-white">
+            Rs.{s.total_amount?.toFixed(0) ?? "0"}
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">{s.duration ?? "—"}</div>
+        </div>
+      </div>
+
+      {/* Star Rating */}
+      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+        {submitted ? (
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-4 h-4 ${star <= rating ? "text-amber-400 fill-amber-400" : "text-slate-300 dark:text-slate-600"}`}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {s.rating_comment || "Thank you for your rating!"}
+            </span>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Rate this session:</span>
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    disabled={submitting}
+                    onMouseEnter={() => setHover(star)}
+                    onMouseLeave={() => setHover(0)}
+                    onClick={() => {
+                      setRating(star);
+                      setShowComment(true);
+                    }}
+                    className="p-0.5 disabled:opacity-50"
+                  >
+                    <Star
+                      className={`w-5 h-5 transition-colors ${star <= (hover || rating) ? "text-amber-400 fill-amber-400" : "text-slate-300 dark:text-slate-600"}`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+            {showComment && rating > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="flex gap-2"
+              >
+                <input
+                  type="text"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Add a comment (optional)..."
+                  className="flex-1 rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-sky-400 dark:text-white"
+                />
+                <button
+                  onClick={() => submitRating(rating)}
+                  disabled={submitting}
+                  className="px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-semibold hover:bg-sky-700 disabled:opacity-50 transition-colors"
+                >
+                  {submitting ? <Loader2 className="w-3 h-3 animate-spin" /> : "Submit"}
+                </button>
+              </motion.div>
+            )}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: Live Feed (Phone as IP Camera)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function LiveFeedTab() {
+  const [cameraUrl, setCameraUrl] = React.useState<string>("");
+  const [savedUrl, setSavedUrl] = React.useState<string>("");
+  const [isConnected, setIsConnected] = React.useState(false);
+  const [showSetup, setShowSetup] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const imgRef = React.useRef<HTMLImageElement>(null);
+
+  // Load saved camera URL from localStorage
+  React.useEffect(() => {
+    const stored = localStorage.getItem("parkflow_camera_url");
+    if (stored) {
+      setCameraUrl(stored);
+      setSavedUrl(stored);
+    }
+  }, []);
+
+  const handleConnect = () => {
+    if (!cameraUrl.trim()) return;
+    setIsLoading(true);
+    // Normalize URL — make sure it points to the MJPEG video feed
+    let url = cameraUrl.trim();
+    // Common IP Webcam (Android) video URL pattern
+    if (!url.includes("/video") && !url.includes("/shot") && !url.includes(".mjpg")) {
+      // Try the most common MJPEG endpoint
+      if (url.endsWith("/")) url = url.slice(0, -1);
+      url = url + "/video";
+    }
+    localStorage.setItem("parkflow_camera_url", cameraUrl.trim());
+    setSavedUrl(url);
+    setIsConnected(false);
+    // Give time for image to load
+    setTimeout(() => setIsLoading(false), 2000);
+  };
+
+  const handleDisconnect = () => {
+    setSavedUrl("");
+    setIsConnected(false);
+    localStorage.removeItem("parkflow_camera_url");
+    setCameraUrl("");
+  };
+
+  return (
+    <motion.div
+      key="livefeed"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ type: "spring", stiffness: 180, damping: 18 }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Video className="w-4 h-4 text-sky-600" />
+          <h4 className="text-sm font-semibold text-slate-600">
+            Live Parking Camera Feed
+          </h4>
+        </div>
+        <div className="flex items-center gap-2">
+          {savedUrl && (
+            <div
+              className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${isConnected
+                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+                }`}
+            >
+              {isConnected ? (
+                <>
+                  <Wifi className="w-3 h-3" />
+                  Connected
+                </>
+              ) : (
+                <>
+                  <WifiOff className="w-3 h-3" />
+                  Connecting...
+                </>
+              )}
+            </div>
+          )}
+          <button
+            onClick={() => setShowSetup(!showSetup)}
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-white hover:text-slate-600 transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Camera Setup Panel */}
+      <AnimatePresence>
+        {(showSetup || !savedUrl) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 mb-4">
+              <h5 className="text-base font-semibold text-slate-900 dark:text-white mb-2">
+                📱 Connect Your Phone Camera
+              </h5>
+              <div className="rounded-xl bg-sky-50 border border-sky-100 p-4 mb-4">
+                <h6 className="text-sm font-semibold text-sky-800 mb-2">
+                  Setup Instructions:
+                </h6>
+                <ol className="text-xs text-sky-700 space-y-1.5 list-decimal list-inside">
+                  <li>
+                    Install{" "}
+                    <strong>&quot;IP Webcam&quot;</strong> (Android) or{" "}
+                    <strong>&quot;Camo&quot;</strong> (iPhone) on your phone
+                  </li>
+                  <li>
+                    Open the app and point your phone camera at the parking
+                    area
+                  </li>
+                  <li>
+                    Start the server in the app — it will show an IP
+                    address (e.g.,{" "}
+                    <code className="bg-sky-100 px-1 rounded">
+                      http://192.168.1.5:8080
+                    </code>
+                    )
+                  </li>
+                  <li>
+                    Enter that IP address below and click{" "}
+                    <strong>Connect</strong>
+                  </li>
+                </ol>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={cameraUrl}
+                  onChange={(e) => setCameraUrl(e.target.value)}
+                  placeholder="http://192.168.1.5:8080"
+                  className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                />
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleConnect}
+                  disabled={!cameraUrl.trim() || isLoading}
+                  className="px-5 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-semibold shadow-sm hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? "Connecting..." : "Connect"}
+                </motion.button>
+                {savedUrl && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleDisconnect}
+                    className="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
+                  >
+                    Disconnect
+                  </motion.button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Live Feed Viewer */}
+      {savedUrl ? (
+        <div className="rounded-2xl border border-slate-200 bg-black overflow-hidden relative">
+          {/* Live indicator */}
+          <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <motion.div
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-2 h-2 bg-red-500 rounded-full"
+            />
+            <span className="text-xs font-semibold text-white">LIVE</span>
+          </div>
+
+          {/* Camera name */}
+          <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <span className="text-xs font-medium text-white/80">
+              Parking Camera
+            </span>
+          </div>
+
+          {/* Timestamp overlay */}
+          <div className="absolute bottom-3 right-3 z-10 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <LiveTimestamp />
+          </div>
+
+          {/* MJPEG Stream */}
+          <img
+            ref={imgRef}
+            src={savedUrl}
+            alt="Live parking camera feed"
+            className="w-full h-auto min-h-[300px] max-h-[500px] object-contain"
+            onLoad={() => {
+              setIsConnected(true);
+              setIsLoading(false);
+            }}
+            onError={() => {
+              setIsConnected(false);
+              setIsLoading(false);
+            }}
+            style={{ imageRendering: "auto" }}
+          />
+
+          {/* Connection error overlay */}
+          {!isConnected && !isLoading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90">
+              <WifiOff className="w-12 h-12 text-slate-400 mb-3" />
+              <p className="text-white font-medium mb-1">
+                Unable to Connect
+              </p>
+              <p className="text-slate-400 text-sm text-center max-w-xs">
+                Make sure the camera app is running and both devices
+                are on the same WiFi network
+              </p>
+              <button
+                onClick={handleConnect}
+                className="mt-4 px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 transition-colors"
+              >
+                Retry Connection
+              </button>
+            </div>
+          )}
+
+          {isLoading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90">
+              <Loader2 className="w-10 h-10 text-sky-500 animate-spin mb-3" />
+              <p className="text-white font-medium">Connecting to camera...</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-sky-100 flex items-center justify-center mb-4">
+            <Video className="w-8 h-8 text-sky-600" />
+          </div>
+          <h5 className="text-lg font-semibold text-slate-800 mb-1">
+            No Camera Connected
+          </h5>
+          <p className="text-sm text-slate-500 max-w-sm">
+            Connect your phone camera to view a live feed of the parking
+            area. Click the ⚙️ settings icon to get started.
+          </p>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ── Live Timestamp Component ────────────────────────────────────────────────
+function LiveTimestamp() {
+  const [time, setTime] = React.useState(new Date());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <span className="text-xs font-mono text-white/80">
+      {time.toLocaleTimeString("en-PK", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })}
+    </span>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: Services
+// ══════════════════════════════════════════════════════════════════════════════
+
+function ServicesTab() {
+  const SERVICES = [
+    {
+      icon: Sparkles,
+      title: "Express Cleaning",
+      desc: "Quick exterior wash and interior vacuum while your car is parked",
+      price: "Rs.250",
+    },
+    {
+      icon: Wand2,
+      title: "Premium Detail",
+      desc: "Complete interior & exterior detailing with wax and polish",
+      price: "Rs.750",
+    },
+  ];
+
+  return (
+    <motion.div
+      key="services"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ type: "spring", stiffness: 180, damping: 18 }}
+    >
+      <h4 className="mb-3 text-sm font-semibold text-slate-600">
+        Available Services
+      </h4>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {SERVICES.map((svc, i) => (
+          <motion.div
+            key={i}
+            className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5"
+            variants={subtleHover}
+            initial="rest"
+            whileHover="hover"
+            animate="rest"
+          >
+            <div className="flex items-start justify-between gap-6">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
+                  <svc.icon className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate text-base font-semibold">
+                    {svc.title}
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                    {svc.desc}
+                  </p>
+                </div>
+              </div>
+              <div className="shrink-0 text-lg font-bold">
+                {svc.price}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <button
+                onClick={() => alert(`Booked: ${svc.title}`)}
+                className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              >
+                Book Now
+              </button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TAB: Payment (real payment history)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function PaymentTab({ sessions }: { sessions: CompletedSession[] }) {
+  const totalSpent = sessions.reduce((sum, s) => sum + (s.total_amount ?? 0), 0);
+  const paidSessions = sessions.filter((s) => s.payment_status === 'completed' || s.total_amount != null);
+
+  return (
+    <motion.div
+      key="payment"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ type: "spring", stiffness: 180, damping: 18 }}
+      className="space-y-4"
+    >
+      {/* Summary card */}
+      <div className="rounded-2xl border border-violet-200 dark:border-violet-800 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 p-5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-800">
+            <Banknote className="h-5 w-5 text-violet-600 dark:text-violet-300" />
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wide">Total Spent</div>
+            <div className="text-2xl font-extrabold text-slate-900 dark:text-white">Rs.{totalSpent.toLocaleString()}</div>
+          </div>
+        </div>
+        <div className="flex gap-4 text-sm text-slate-600 dark:text-slate-400">
+          <span><strong className="text-slate-800 dark:text-white">{sessions.length}</strong> sessions total</span>
+          <span><strong className="text-slate-800 dark:text-white">{paidSessions.length}</strong> paid</span>
+        </div>
+      </div>
+
+      {/* Payment history list */}
+      <div>
+        <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">Payment History</h4>
+        {sessions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+            <Receipt className="w-12 h-12 opacity-20 mb-3" />
+            <p className="text-sm font-medium text-slate-500">No payment history yet</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {sessions.map((s, i) => (
+              <motion.div
+                key={s.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.04 }}
+                className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/30 shrink-0">
+                    <ArrowDownLeft className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-slate-800 dark:text-white font-mono">
+                      {s.vehicle.license_plate}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {s.venue.name} • {s.exit_time
+                        ? new Date(s.exit_time).toLocaleDateString('en-PK', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : '—'}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-slate-900 dark:text-white">
+                    Rs.{(s.total_amount ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-xs text-slate-400">{s.duration ?? '—'}</div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Shared Components
+// ══════════════════════════════════════════════════════════════════════════════
+
+function StatusPill({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+      <span className="relative inline-flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+      </span>
+      {label}
+    </span>
+  );
+}
+
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-xl bg-white/70 dark:bg-slate-700/50 p-2 text-slate-700 dark:text-slate-200">
+      <Icon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+      <span className="text-xs text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="ml-auto font-semibold tracking-wide text-slate-900 dark:text-white">
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function QuickAction({
+  icon: Icon,
+  label,
+  intent = "neutral",
+  onClick,
+  loading = false,
+}: {
+  icon: React.ElementType;
+  label: string;
+  intent?: "primary" | "neutral";
+  onClick?: () => void;
+  loading?: boolean;
+}) {
+  return (
+    <motion.button
+      variants={subtleHover}
+      initial="rest"
+      whileHover="hover"
+      whileTap={{ scale: 0.995 }}
+      animate="rest"
+      onClick={onClick}
+      disabled={loading}
+      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 disabled:opacity-70 disabled:cursor-not-allowed ${intent === "primary"
+        ? "border-sky-600 bg-sky-600 text-white shadow-sm hover:bg-sky-700 focus-visible:ring-sky-500"
+        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 focus-visible:ring-slate-300"
+        }`}
+    >
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Icon className="h-4 w-4" />
+      )}
+      <span className="flex-1">{label}</span>
+      <ChevronRight className="h-4 w-4 opacity-50" />
+    </motion.button>
+  );
+}
+
+function StatBox({
+  label,
+  value,
+  align = "left",
+}: {
+  label: string;
+  value: string;
+  align?: "left" | "right";
+}) {
+  return (
+    <div
+      className={`rounded-lg bg-white dark:bg-slate-700 p-3 ${align === "right" ? "text-right" : "text-left"
+        }`}
+    >
+      <div className="text-xs text-slate-500 dark:text-slate-400">{label}</div>
+      <div className="mt-1 text-xl font-extrabold tracking-tight dark:text-white">
+        {value}
+      </div>
+    </div>
+  );
+}
