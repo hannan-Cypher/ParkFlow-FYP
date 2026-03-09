@@ -11,7 +11,12 @@ import {
   RefreshCw,
   TrendingUp,
   ParkingCircle,
+  Star,
+  Award,
 } from 'lucide-react'
+
+interface DailyRevenue { day: string; date: string; sessions: number; revenue: number }
+interface TopStaff { name: string; completed: number; avgHours: number | null; avgRating: number }
 
 interface AnalyticsData {
   totalRevenue: number
@@ -38,6 +43,8 @@ interface AnalyticsData {
 
 export default function AnalyticsTab() {
   const [data, setData] = useState<AnalyticsData | null>(null)
+  const [dailyRevenue, setDailyRevenue] = useState<DailyRevenue[]>([])
+  const [topStaff, setTopStaff] = useState<TopStaff[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -46,15 +53,19 @@ export default function AnalyticsTab() {
       if (isRefresh) setRefreshing(true)
       else setLoading(true)
 
-      const [sessionsRes, staffRes, statsRes] = await Promise.all([
+      const [sessionsRes, staffRes, statsRes, analyticsRes] = await Promise.all([
         fetch('/api/sessions?status=all'),
         fetch('/api/staff'),
         fetch('/api/admin/stats'),
+        fetch('/api/admin/analytics'),
       ])
 
       const sessionsData = await sessionsRes.json()
       const staffData = await staffRes.json()
       const statsData = statsRes.ok ? await statsRes.json() : null
+      const analyticsData = analyticsRes.ok ? await analyticsRes.json() : null
+      if (analyticsData?.dailyRevenue) setDailyRevenue(analyticsData.dailyRevenue)
+      if (analyticsData?.topStaff) setTopStaff(analyticsData.topStaff)
       const sessions = sessionsData.sessions ?? []
       const staff = staffData.staff ?? []
       const today = new Date().toDateString()
@@ -356,6 +367,111 @@ export default function AnalyticsTab() {
                         Rs.{v.revenue.toLocaleString()}
                       </p>
                     </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Daily Revenue Trend (last 7 days) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+        >
+          <div className="flex items-center gap-2 mb-5">
+            <Banknote className="w-5 h-5 text-violet-600" />
+            <h2 className="text-lg font-bold text-slate-900">Revenue — Last 7 Days</h2>
+          </div>
+
+          {dailyRevenue.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+              <TrendingUp className="w-10 h-10 mb-2 opacity-30" />
+              <p className="text-sm">No revenue data yet</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(() => {
+                const maxRev = Math.max(...dailyRevenue.map((d) => d.revenue), 1)
+                return dailyRevenue.map((d, i) => (
+                  <motion.div
+                    key={d.date}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-slate-600">{d.day}</span>
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-violet-600">
+                          Rs.{Number(d.revenue).toLocaleString()}
+                        </span>
+                        <span className="ml-2 text-xs text-slate-400">{d.sessions} sessions</span>
+                      </div>
+                    </div>
+                    <div className="relative h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(d.revenue / maxRev) * 100}%` }}
+                        transition={{ delay: i * 0.05 + 0.2, duration: 0.6, ease: 'easeOut' }}
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full"
+                      />
+                    </div>
+                  </motion.div>
+                ))
+              })()}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Top Staff Members */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+        >
+          <div className="flex items-center gap-2 mb-5">
+            <Award className="w-5 h-5 text-amber-500" />
+            <h2 className="text-lg font-bold text-slate-900">Top Performers</h2>
+          </div>
+
+          {topStaff.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+              <Users className="w-10 h-10 mb-2 opacity-30" />
+              <p className="text-sm">No staff data yet</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {topStaff.map((s, i) => (
+                <motion.div
+                  key={s.name}
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.07 }}
+                  className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-700">
+                      {i + 1}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm">{s.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {s.completed} completed
+                        {s.avgHours != null && ` • avg ${s.avgHours}h`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Star className={`w-4 h-4 ${s.avgRating > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}`} />
+                    <span className="text-sm font-bold text-slate-700">
+                      {s.avgRating > 0 ? s.avgRating.toFixed(1) : '—'}
+                    </span>
                   </div>
                 </motion.div>
               ))}

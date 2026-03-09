@@ -10,7 +10,11 @@
   }
   
   body {
-    @apply bg-white text-dark-900 antialiased;
+    @apply bg-white text-dark-900 antialiased transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-slate-900 text-slate-100;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -62,6 +66,15 @@
   .gradient-text {
     @apply bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent;
   }
+
+  /* ── Dashboard Dark Mode Cards ──────────────────────────────────────── */
+  .dark-card {
+    @apply bg-white border-slate-200;
+  }
+
+  .dark .dark-card {
+    @apply bg-slate-800 border-slate-700;
+  }
 }
 
 @layer utilities {
@@ -77,6 +90,10 @@
 
 ::-webkit-scrollbar-track {
   @apply bg-gray-100;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -101,3 +118,9 @@
 ::-moz-selection {
   @apply bg-primary-500 text-white;
 }
+
+/* Dark mode smooth transition */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+

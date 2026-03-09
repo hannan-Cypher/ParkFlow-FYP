@@ -78,6 +78,11 @@ export async function GET(request: NextRequest) {
         ps.customer_notes,
         ps.staff_notes,
         ps.entry_plate_confidence,
+        ps.retrieval_status,
+        ps.retrieval_requested_at,
+        ps.qr_code,
+        ps.rating,
+        ps.rating_comment,
         v.id          AS vehicle_id,
         v.license_plate,
         v.make,
@@ -163,6 +168,11 @@ export async function GET(request: NextRequest) {
                 },
                 staff_name: row.staff_name,
                 customer_name: row.customer_name,
+                retrieval_status: row.retrieval_status || null,
+                retrieval_requested_at: row.retrieval_requested_at || null,
+                qr_code: row.qr_code || null,
+                rating: row.rating != null ? Number(row.rating) : null,
+                rating_comment: row.rating_comment || null,
             };
         });
 

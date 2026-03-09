@@ -5,6 +5,15 @@
 -- ============================================
 
 -- ============================================
+-- PHASE 4 SCHEMA EXTENSIONS
+-- Run these before inserting sample data
+-- ============================================
+
+-- Phase 4: Rating system
+ALTER TABLE parking_sessions ADD COLUMN IF NOT EXISTS rating INTEGER CHECK (rating BETWEEN 1 AND 5);
+ALTER TABLE parking_sessions ADD COLUMN IF NOT EXISTS rating_comment TEXT;
+
+-- ============================================
 -- 1. ADMIN USERS (3)
 -- ============================================
 -- Email Domain: @parkflowpk.com
@@ -342,6 +351,18 @@ UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Lucky One Mall'
 UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Lucky One Mall' LIMIT 1) WHERE email = 'ayesha.khan@parkflowpk.com';
 UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Packages Mall' LIMIT 1) WHERE email = 'saad.iqbal@parkflowpk.com';
 UPDATE users SET venue_id = (SELECT id FROM venues WHERE name = 'Dolmen Mall Clifton' LIMIT 1) WHERE email = 'hira.ahmed@parkflowpk.com';
+
+-- ============================================
+-- 7. SCHEMA EXTENSIONS (Phase 2 — Damage Assessment)
+-- ============================================
+ALTER TABLE parking_sessions ADD COLUMN IF NOT EXISTS damage_photos jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE parking_sessions ADD COLUMN IF NOT EXISTS damage_notes text;
+
+-- ============================================
+-- 8. SCHEMA EXTENSIONS (Phase 3 — Vehicle Retrieval)
+-- ============================================
+ALTER TABLE parking_sessions ADD COLUMN IF NOT EXISTS retrieval_status text;
+ALTER TABLE parking_sessions ADD COLUMN IF NOT EXISTS retrieval_requested_at timestamp with time zone;
 
 -- Summary Report
 DO $$

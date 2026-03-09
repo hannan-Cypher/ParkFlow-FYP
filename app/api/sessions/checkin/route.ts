@@ -13,7 +13,11 @@ import pool from '@/lib/db';
  *   venue_id               (required) — UUID of the parking venue
  *   staff_id               (optional) — manually assign staff; otherwise auto-assigned
  *   customer_id            (optional) — UUID of the customer (if known)
+ *   customer_phone         (optional) — phone number to look up / link the customer
  *   vehicle_type           (optional) — "sedan", "suv", "hatchback", "pickup", "van", "car"
+ *   make                   (optional) — e.g. "Toyota"
+ *   model                  (optional) — e.g. "Corolla"
+ *   color                  (optional) — e.g. "White"
  *   entry_plate_confidence (optional) — ANPR confidence 0-1
  *   customer_notes         (optional) — text
  */
@@ -39,7 +43,11 @@ export async function POST(request: NextRequest) {
             venue_id,
             staff_id,
             customer_id,
+            customer_phone,
             vehicle_type,
+            make,
+            model,
+            color,
             entry_plate_confidence,
             customer_notes,
         } = body;
@@ -83,7 +91,21 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── 3. Find or create vehicle ───────────────────────────────────────────
+        // ── 3. Resolve customer_id ──────────────────────────────────────────────
+        // Priority: explicit customer_id > phone lookup > vehicle owner
+        let resolvedCustomerId: string | null = customer_id || null;
+
+        if (!resolvedCustomerId && customer_phone) {
+            const phoneResult = await client.query(
+                `SELECT id FROM users WHERE phone = $1 AND role = 'customer' LIMIT 1`,
+                [customer_phone.trim()]
+            );
+            if (phoneResult.rows.length > 0) {
+                resolvedCustomerId = phoneResult.rows[0].id;
+            }
+        }
+
+        // ── 4. Find or create vehicle ───────────────────────────────────────────
         let vehicleId: string;
         let resolvedVehicleType = vehicle_type || 'car';
         const vehicleResult = await client.query(
@@ -94,20 +116,49 @@ export async function POST(request: NextRequest) {
         if (vehicleResult.rows.length > 0) {
             vehicleId = vehicleResult.rows[0].id;
             resolvedVehicleType = vehicleResult.rows[0].vehicle_type || resolvedVehicleType;
+
+            // Update make/model/color/owner if new info was provided
+            await client.query(
+                `UPDATE vehicles
+                 SET vehicle_type = COALESCE($1, vehicle_type),
+                     make         = COALESCE($2, make),
+                     model        = COALESCE($3, model),
+                     color        = COALESCE($4, color),
+                     owner_id     = COALESCE($5, owner_id)
+                 WHERE id = $6`,
+                [
+                    vehicle_type || null,
+                    make || null,
+                    model || null,
+                    color || null,
+                    resolvedCustomerId || vehicleResult.rows[0].owner_id || null,
+                    vehicleId,
+                ]
+            );
         } else {
+            // New vehicle — insert with all available details
             const newVehicle = await client.query(
-                `INSERT INTO vehicles (license_plate, vehicle_type)
-         VALUES ($1, $2)
-         RETURNING id`,
-                [plate, resolvedVehicleType]
+                `INSERT INTO vehicles (license_plate, vehicle_type, make, model, color, owner_id)
+                 VALUES ($1, $2, $3, $4, $5, $6)
+                 RETURNING id`,
+                [
+                    plate,
+                    resolvedVehicleType,
+                    make || null,
+                    model || null,
+                    color || null,
+                    resolvedCustomerId,
+                ]
             );
             vehicleId = newVehicle.rows[0].id;
         }
 
-        const resolvedCustomerId =
-            customer_id || vehicleResult.rows[0]?.owner_id || null;
+        // Fall back to vehicle's registered owner if no customer resolved yet
+        if (!resolvedCustomerId) {
+            resolvedCustomerId = vehicleResult.rows[0]?.owner_id || null;
+        }
 
-        // ── 4. SLOT-TYPE PRIORITY ALLOCATION ────────────────────────────────────
+        // ── 5. SLOT-TYPE PRIORITY ALLOCATION ────────────────────────────────────
         //
         // Try each preferred slot type in order. If the preferred type has no
         // available slots, fall back to the next type. Uses FOR UPDATE to lock
@@ -161,13 +212,13 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── 5. Mark slot as occupied ────────────────────────────────────────────
+        // ── 6. Mark slot as occupied ────────────────────────────────────────────
         await client.query(
             `UPDATE parking_slots SET status = 'occupied' WHERE id = $1`,
             [slot.id]
         );
 
-        // ── 6. AUTO STAFF ASSIGNMENT ────────────────────────────────────────────
+        // ── 7. AUTO STAFF ASSIGNMENT ────────────────────────────────────────────
         //
         // If no staff_id was passed, pick the staff member at this venue who
         // currently has the fewest active sessions (least busy).
@@ -203,7 +254,7 @@ export async function POST(request: NextRequest) {
             assignedStaffName = manualStaff.rows[0]?.full_name || null;
         }
 
-        // ── 7. Create parking session ───────────────────────────────────────────
+        // ── 8. Create parking session ───────────────────────────────────────────
         const ratePerHour = 100;
 
         const sessionResult = await client.query(
@@ -226,6 +277,12 @@ export async function POST(request: NextRequest) {
 
         const session = sessionResult.rows[0];
 
+        // ── 9. Set qr_code = session id (for QR display) ────────────────────────
+        await client.query(
+            `UPDATE parking_sessions SET qr_code = $1 WHERE id = $1`,
+            [session.id]
+        );
+
         // ── Commit ──────────────────────────────────────────────────────────────
         await client.query('COMMIT');
 
@@ -238,11 +295,15 @@ export async function POST(request: NextRequest) {
                     status: session.status,
                     entry_time: session.entry_time,
                     rate_per_hour: Number(session.rate_per_hour),
+                    qr_code: session.id,
                     allocation_method: allocationMethod,
                     vehicle: {
                         id: vehicleId,
                         license_plate: plate,
                         vehicle_type: resolvedVehicleType,
+                        make: make || null,
+                        model: model || null,
+                        color: color || null,
                     },
                     slot: {
                         id: slot.id,
@@ -257,6 +318,9 @@ export async function POST(request: NextRequest) {
                     },
                     staff: assignedStaffId
                         ? { id: assignedStaffId, name: assignedStaffName }
+                        : null,
+                    customer: resolvedCustomerId
+                        ? { id: resolvedCustomerId }
                         : null,
                 },
             },

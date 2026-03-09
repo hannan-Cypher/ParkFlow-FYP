@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import ThemeProvider from '@/components/ThemeProvider'
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
@@ -22,25 +23,28 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }
 
   // Hide navbar and footer on dashboard routes
-  const isDashboardRoute = pathname?.startsWith('/dashboard') || 
-                          pathname?.startsWith('/admin') || 
-                          pathname?.startsWith('/staff')
+  const isDashboardRoute = pathname?.startsWith('/dashboard') ||
+    pathname?.startsWith('/admin') ||
+    pathname?.startsWith('/staff') ||
+    pathname?.startsWith('/customer')
 
   if (isDashboardRoute) {
     return (
-      <main className="min-h-screen">
-        {children}
-      </main>
+      <ThemeProvider>
+        <main className="min-h-screen">
+          {children}
+        </main>
+      </ThemeProvider>
     )
   }
 
   return (
-    <>
+    <ThemeProvider>
       <Navbar />
       <main className="min-h-screen">
         {children}
       </main>
       <Footer />
-    </>
+    </ThemeProvider>
   )
 }

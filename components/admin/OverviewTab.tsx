@@ -258,15 +258,15 @@ export default function OverviewTab() {
             key={card.label}
             variants={itemVariants}
             whileHover={{ y: -3, scale: 1.02 }}
-            className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 relative overflow-hidden"
+            className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   {card.label}
                 </p>
-                <p className="text-3xl font-extrabold text-slate-900 mt-1">{card.value}</p>
-                <p className="text-xs text-slate-400 mt-1">{card.sub}</p>
+                <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{card.value}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{card.sub}</p>
               </div>
               <div
                 className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center shadow-lg`}
@@ -283,19 +283,19 @@ export default function OverviewTab() {
         {/* Real-time Activity Feed */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
         >
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Activity className="w-5 h-5 text-sky-600" />
-              <h2 className="text-lg font-bold text-slate-900">Live Activity</h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Live Activity</h2>
             </div>
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => fetchData(true)}
               disabled={refreshing}
-              className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </motion.button>
@@ -317,7 +317,7 @@ export default function OverviewTab() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors"
+                    className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                   >
                     <div
                       className={`mt-1 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${act.type === 'checkin'
@@ -336,8 +336,8 @@ export default function OverviewTab() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">{act.text}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{act.time}</p>
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{act.text}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{act.time}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -349,12 +349,12 @@ export default function OverviewTab() {
         {/* Active Vehicles */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
         >
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <ParkingCircle className="w-5 h-5 text-sky-600" />
-              <h2 className="text-lg font-bold text-slate-900">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Parked Vehicles
                 {activeSessions > 0 && (
                   <span className="ml-2 text-sm font-semibold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
@@ -379,15 +379,15 @@ export default function OverviewTab() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-gradient-to-r from-slate-50 to-white hover:shadow-sm transition-all"
+                  className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/80 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
                       <Car className="w-5 h-5 text-sky-600" />
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900">{s.vehicle.license_plate}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="font-bold text-slate-900 dark:text-white">{s.vehicle.license_plate}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {[s.vehicle.color, s.vehicle.make, s.vehicle.model]
                           .filter(Boolean)
                           .join(' ') || 'Unknown vehicle'}
@@ -396,7 +396,7 @@ export default function OverviewTab() {
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg">
+                      <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-lg">
                         {s.slot?.slot_number ?? '—'}
                       </span>
                     </div>
@@ -415,12 +415,12 @@ export default function OverviewTab() {
       {/* ── Venue Breakdown ─────────────────────────────────────────────────── */}
       <motion.div
         variants={itemVariants}
-        className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
       >
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <BarChart3 className="w-5 h-5 text-sky-600" />
-            <h2 className="text-lg font-bold text-slate-900">Venue Breakdown</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Venue Breakdown</h2>
           </div>
         </div>
 
@@ -437,20 +437,20 @@ export default function OverviewTab() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.08 }}
-                className="p-4 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-100"
+                className="p-4 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 border border-sky-100 dark:border-sky-800"
               >
-                <h3 className="font-bold text-slate-900 mb-3">{venue.name}</h3>
+                <h3 className="font-bold text-slate-900 dark:text-white mb-3">{venue.name}</h3>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <p className="text-xs text-slate-500">Active</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Active</p>
                     <p className="text-xl font-extrabold text-sky-600">{venue.active}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500">Completed</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Completed</p>
                     <p className="text-xl font-extrabold text-emerald-600">{venue.completed}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500">Revenue</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Revenue</p>
                     <p className="text-lg font-extrabold text-violet-600">
                       Rs.{venue.revenue.toLocaleString()}
                     </p>

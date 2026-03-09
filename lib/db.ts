@@ -1,19 +1,25 @@
 import { Pool } from 'pg';
 
 // PostgreSQL connection configuration
+// Use a global singleton in development to prevent connection spam on hot-reloads.
+declare global {
+  // eslint-disable-next-line no-var
+  var _pgPool: Pool | undefined;
+}
 
-const pool = new Pool({
+const pool: Pool = global._pgPool ?? new Pool({
   user: 'Owner',
   password: '1512147296110@Hm',
   host: 'localhost',
   port: 5432,
-  database: 'valet_parking'
+  database: 'valet_parking',
+  max: 5,                // limit pool size to 5 connections
+  idleTimeoutMillis: 30000,  // close idle connections after 30s
 });
 
-// Test database connection
-pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
-});
+if (process.env.NODE_ENV !== 'production') {
+  global._pgPool = pool;
+}
 
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
@@ -23,7 +29,7 @@ pool.on('error', (err) => {
 // Initialize database tables
 export async function initializeDatabase() {
   const client = await pool.connect();
-  
+
   try {
     // Create users table
     await client.query(`
