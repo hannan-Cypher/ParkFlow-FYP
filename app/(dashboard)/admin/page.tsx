@@ -77,38 +77,39 @@ export default function AdminDashboardPage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="container-custom py-8"
+        className="container-custom py-5 sm:py-8"
       >
         {/* Header */}
-        <motion.div variants={itemVariants} className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-3 bg-white dark:bg-slate-800 px-4 py-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-              <User className="w-6 h-6 text-slate-600 dark:text-slate-300" />
-              <span className="font-medium text-slate-700 dark:text-slate-200">Admin</span>
+        <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+          {/* Left: badge + title */}
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 shrink-0">
+              <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+              <span className="font-medium text-slate-700 dark:text-slate-200 text-sm">Admin</span>
             </div>
-            <div>
-              <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-3xl font-display font-bold text-slate-900 dark:text-white leading-tight">
                 Admin Dashboard
               </h1>
-              <p className="text-slate-600 dark:text-slate-400">ParkFlow Management Console</p>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">ParkFlow Management Console</p>
             </div>
           </div>
 
-          {/* Live Indicator, Dark Mode Toggle & Logout Button */}
-          <div className="flex items-center space-x-3">
+          {/* Right: Live + DarkMode + Logout */}
+          <div className="flex items-center gap-2 shrink-0">
             <DarkModeToggle />
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.5 }}
-              className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-lg shadow-lg"
+              className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-lg shadow-lg"
             >
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
                 className="w-2 h-2 bg-white rounded-full"
               />
-              <span className="font-semibold">Live</span>
+              <span className="font-semibold text-sm">Live</span>
             </motion.div>
 
             <motion.button
@@ -116,33 +117,35 @@ export default function AdminDashboardPage() {
               whileTap={{ scale: 0.95 }}
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
               <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
             </motion.button>
           </div>
         </motion.div>
 
-        {/* Tabs Navigation */}
+        {/* Tabs Navigation — scrollable on mobile */}
         <motion.div
           variants={itemVariants}
-          className="flex space-x-2 mb-8 bg-white dark:bg-slate-800 p-2 rounded-xl shadow-md border border-slate-200 dark:border-slate-700"
+          className="mb-6 bg-white dark:bg-slate-800 p-1.5 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 overflow-x-auto scrollbar-none"
         >
-          {tabs.map((tab) => (
-            <motion.button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ${activeTab === tab
-                ? 'bg-sky-600 text-white shadow-lg'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                }`}
-            >
-              {tab}
-            </motion.button>
-          ))}
+          <div className="flex gap-1 min-w-max">
+            {tabs.map((tab) => (
+              <motion.button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`shrink-0 px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-300 ${activeTab === tab
+                  ? 'bg-sky-600 text-white shadow-lg'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+              >
+                {tab}
+              </motion.button>
+            ))}
+          </div>
         </motion.div>
 
         {/* Tab Content */}
@@ -159,19 +162,19 @@ export default function AdminDashboardPage() {
             {activeTab === 'Staff' && <StaffTab />}
             {activeTab === 'Settings' && <SettingsTab />}
             {activeTab === 'Locations' && (
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-6 shadow-sm">
                 <LocationsTab />
               </div>
             )}
             {activeTab === 'Live Feed' && (
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-6 shadow-sm">
                 <LiveFeedWidget />
               </div>
             )}
             {activeTab === 'ANPR' && (
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-sm">
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">License Plate Recognition</h2>
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-6 shadow-sm">
+                <div className="mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">License Plate Recognition</h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     Upload an image or use your camera to detect and read Pakistani license plates using the AI model.
                   </p>

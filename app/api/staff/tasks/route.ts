@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
             `SELECT 
         ps.id,
         ps.status,
+        ps.retrieval_status,
         ps.entry_time,
         ps.exit_time,
         ps.rate_per_hour,
@@ -95,6 +96,7 @@ export async function GET(request: NextRequest) {
                 id: row.id,
                 type: row.status === 'active' ? 'check_in' : 'completed',
                 status: row.status,
+                retrieval_status: row.retrieval_status || null,
                 priority: row.status === 'active' ? 'high' : 'normal',
                 entry_time: row.entry_time,
                 exit_time: row.exit_time,

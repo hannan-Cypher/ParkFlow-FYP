@@ -54,6 +54,29 @@ CREATE TABLE IF NOT EXISTS vehicles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Create gates table
+CREATE TABLE IF NOT EXISTS gates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    venue_id UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(venue_id, name)
+);
+
+-- Create zones table
+CREATE TABLE IF NOT EXISTS zones (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    gate_id UUID REFERENCES gates(id) ON DELETE CASCADE NOT NULL,
+    venue_id UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    total_slots INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(venue_id, name)
+);
+
 -- Create parking_slots table
 CREATE TABLE IF NOT EXISTS parking_slots (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -61,6 +84,8 @@ CREATE TABLE IF NOT EXISTS parking_slots (
     slot_number VARCHAR(50) NOT NULL,
     floor_level VARCHAR(20),
     zone VARCHAR(50),
+    zone_id UUID REFERENCES zones(id) ON DELETE CASCADE,
+    gate_id UUID REFERENCES gates(id) ON DELETE CASCADE,
     slot_type VARCHAR(50) DEFAULT 'standard',
     status VARCHAR(20) DEFAULT 'available',
     camera_id VARCHAR(100),
@@ -172,6 +197,11 @@ CREATE INDEX IF NOT EXISTS idx_vehicles_license_plate ON vehicles(license_plate)
 CREATE INDEX IF NOT EXISTS idx_vehicles_owner ON vehicles(owner_id);
 CREATE INDEX IF NOT EXISTS idx_parking_slots_venue ON parking_slots(venue_id);
 CREATE INDEX IF NOT EXISTS idx_parking_slots_status ON parking_slots(status);
+CREATE INDEX IF NOT EXISTS idx_gates_venue ON gates(venue_id);
+CREATE INDEX IF NOT EXISTS idx_zones_gate ON zones(gate_id);
+CREATE INDEX IF NOT EXISTS idx_zones_venue ON zones(venue_id);
+CREATE INDEX IF NOT EXISTS idx_parking_slots_zone_id ON parking_slots(zone_id);
+CREATE INDEX IF NOT EXISTS idx_parking_slots_gate_id ON parking_slots(gate_id);
 CREATE INDEX IF NOT EXISTS idx_parking_sessions_customer ON parking_sessions(customer_id);
 CREATE INDEX IF NOT EXISTS idx_parking_sessions_vehicle ON parking_sessions(vehicle_id);
 CREATE INDEX IF NOT EXISTS idx_parking_sessions_status ON parking_sessions(status);
@@ -201,6 +231,14 @@ CREATE TRIGGER update_vehicles_updated_at BEFORE UPDATE ON vehicles
 
 DROP TRIGGER IF EXISTS update_parking_slots_updated_at ON parking_slots;
 CREATE TRIGGER update_parking_slots_updated_at BEFORE UPDATE ON parking_slots 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_gates_updated_at ON gates;
+CREATE TRIGGER update_gates_updated_at BEFORE UPDATE ON gates
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_zones_updated_at ON zones;
+CREATE TRIGGER update_zones_updated_at BEFORE UPDATE ON zones
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 DROP TRIGGER IF EXISTS update_parking_sessions_updated_at ON parking_sessions;

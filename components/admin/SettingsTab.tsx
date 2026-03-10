@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   Brain,
-  Camera,
   CreditCard,
   Database,
   Server,
@@ -154,7 +153,7 @@ export default function SettingsTab() {
           whileTap={{ scale: 0.9 }}
           onClick={() => fetchStats(true)}
           disabled={refreshing}
-          className="p-2 rounded-lg text-slate-400 hover:bg-white hover:text-slate-600 transition-colors"
+          className="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
         </motion.button>
@@ -163,9 +162,9 @@ export default function SettingsTab() {
       {/* System Services */}
       <motion.div
         variants={itemVariants}
-        className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
       >
-        <h2 className="text-xl font-bold text-slate-900 mb-6">System Services</h2>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">System Services</h2>
 
         <div className="space-y-4">
           {systemServices.map((service, index) => (
@@ -175,7 +174,7 @@ export default function SettingsTab() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 + 0.3 }}
               whileHover={{ x: 5, scale: 1.01 }}
-              className="flex items-center justify-between p-5 rounded-xl hover:bg-slate-50 transition-all border border-slate-100"
+              className="flex items-center justify-between p-5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all border border-slate-100 dark:border-slate-700"
             >
               <div className="flex items-center space-x-4">
                 <motion.div
@@ -186,8 +185,8 @@ export default function SettingsTab() {
                   <service.icon className="w-6 h-6 text-white" />
                 </motion.div>
                 <div>
-                  <p className="font-bold text-slate-900">{service.title}</p>
-                  <p className="text-sm text-slate-500">{service.description}</p>
+                  <p className="font-bold text-slate-900 dark:text-white">{service.title}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{service.description}</p>
                 </div>
               </div>
 
@@ -205,9 +204,9 @@ export default function SettingsTab() {
       {/* System Metrics */}
       <motion.div
         variants={itemVariants}
-        className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
       >
-        <h2 className="text-xl font-bold text-slate-900 mb-6">System Metrics</h2>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">System Metrics</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {systemMetrics.map((metric, index) => (
@@ -217,14 +216,14 @@ export default function SettingsTab() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 + 0.5 }}
               whileHover={{ y: -3, scale: 1.02 }}
-              className="p-5 rounded-xl border border-slate-100 hover:border-slate-200 transition-all"
+              className="p-5 rounded-xl border border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-all"
             >
               <div className="flex items-center gap-2 mb-3">
                 <metric.icon className={`w-5 h-5 ${metric.color}`} />
-                <span className="text-sm font-medium text-slate-500">{metric.label}</span>
+                <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{metric.label}</span>
               </div>
               <p className={`text-2xl font-extrabold ${metric.color}`}>{metric.value}</p>
-              <p className="text-xs text-slate-400 mt-1">{metric.detail}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{metric.detail}</p>
             </motion.div>
           ))}
         </div>
@@ -233,9 +232,9 @@ export default function SettingsTab() {
       {/* Database Info */}
       <motion.div
         variants={itemVariants}
-        className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
       >
-        <h2 className="text-xl font-bold text-slate-900 mb-6">Database Summary</h2>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Database Summary</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Venues', value: stats.venues.total, active: stats.venues.active },
@@ -248,14 +247,14 @@ export default function SettingsTab() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: i * 0.08 + 0.6 }}
-              className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200"
+              className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-700/50 dark:to-slate-700/30 border border-slate-200 dark:border-slate-600"
             >
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                 {item.label}
               </p>
-              <p className="text-2xl font-extrabold text-slate-900 mt-1">{item.value}</p>
+              <p className="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">{item.value}</p>
               {item.active !== null && (
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
                   {item.active} {item.label === 'Parking Slots' ? 'available' : 'active'}
                 </p>
               )}

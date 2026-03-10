@@ -223,7 +223,7 @@ export default function OverviewTab() {
       className="space-y-6"
     >
       {/* ── Stat Cards ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           {
             label: 'Active Now',
@@ -321,10 +321,10 @@ export default function OverviewTab() {
                   >
                     <div
                       className={`mt-1 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${act.type === 'checkin'
-                        ? 'bg-sky-100'
+                        ? 'bg-sky-100 dark:bg-sky-900/30'
                         : act.type === 'checkout'
-                          ? 'bg-emerald-100'
-                          : 'bg-violet-100'
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30'
+                          : 'bg-violet-100 dark:bg-violet-900/30'
                         }`}
                     >
                       {act.type === 'checkin' ? (
@@ -357,7 +357,7 @@ export default function OverviewTab() {
               <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                 Parked Vehicles
                 {activeSessions > 0 && (
-                  <span className="ml-2 text-sm font-semibold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full">
+                  <span className="ml-2 text-sm font-semibold text-sky-600 bg-sky-50 dark:bg-sky-900/30 px-2 py-0.5 rounded-full">
                     {activeSessions}
                   </span>
                 )}
@@ -382,7 +382,7 @@ export default function OverviewTab() {
                   className="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/80 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
                       <Car className="w-5 h-5 text-sky-600" />
                     </div>
                     <div>

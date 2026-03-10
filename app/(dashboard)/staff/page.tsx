@@ -26,6 +26,11 @@ import {
   MessageSquare,
   Star,
   ArrowRight,
+  Search,
+  Receipt,
+  Truck,
+  CheckCircle2 as CircleCheck,
+  Ban,
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
 
@@ -97,6 +102,8 @@ interface ActiveSession {
   entry_time: string;
   duration: string;
   customer_name: string;
+  retrieval_status: string | null;
+  customer_phone: string | null;
 }
 
 interface VenueOption {
@@ -106,7 +113,7 @@ interface VenueOption {
 }
 
 // ── Tabs ─────────────────────────────────────────────────────────────────
-const tabs = ["Active Vehicles", "Check-In", "Tasks", "Performance"] as const;
+const tabs = ["Active Vehicles", "Check-In", "Check-Out", "Tasks", "Performance"] as const;
 type TabKey = (typeof tabs)[number];
 
 export default function StaffDashboardPage() {
@@ -198,6 +205,8 @@ export default function StaffDashboardPage() {
             duration: s.duration || "0m",
             customer_name:
               (s.customer as Record<string, unknown>)?.name || "Walk-in",
+            retrieval_status: (s as Record<string, unknown>).retrieval_status as string | null ?? null,
+            customer_phone: (s.customer as Record<string, unknown>)?.phone as string | null ?? null,
           }))
         );
       }
@@ -264,7 +273,7 @@ export default function StaffDashboardPage() {
 
   return (
     <motion.main
-      className="mx-auto max-w-6xl px-4 pb-24 pt-10 text-slate-800 dark:text-slate-100 min-h-screen"
+      className="mx-auto max-w-6xl px-4 pb-24 pt-6 text-slate-800 dark:text-slate-100 min-h-screen"
       variants={container}
       initial="hidden"
       animate="show"
@@ -274,34 +283,34 @@ export default function StaffDashboardPage() {
       {/* Header */}
       <motion.header
         variants={item}
-        className="mb-6 flex items-center justify-between"
+        className="mb-5 flex items-start justify-between gap-3"
       >
-        <div>
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="flex items-center space-x-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-              <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center flex-wrap gap-2 mb-1.5">
+            <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2.5 py-1.5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+              <User className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+              <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
                 Valet Staff
               </span>
             </div>
             {staffInfo?.venue && (
-              <div className="flex items-center space-x-1 bg-sky-50 dark:bg-sky-900/30 px-3 py-1.5 rounded-lg border border-sky-200 dark:border-sky-800">
-                <MapPin className="w-3 h-3 text-sky-600 dark:text-sky-400" />
-                <span className="text-sm font-medium text-sky-700 dark:text-sky-300">
+              <div className="flex items-center gap-1 bg-sky-50 dark:bg-sky-900/30 px-2.5 py-1.5 rounded-lg border border-sky-200 dark:border-sky-800 max-w-[160px]">
+                <MapPin className="w-3 h-3 text-sky-600 dark:text-sky-400 shrink-0" />
+                <span className="text-xs font-medium text-sky-700 dark:text-sky-300 truncate">
                   {staffInfo.venue.name}
                 </span>
               </div>
             )}
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight dark:text-white">
             Staff Dashboard
           </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Welcome back, {staffInfo?.full_name || "Valet Attendant"}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <DarkModeToggle />
 
           <motion.button
@@ -309,12 +318,10 @@ export default function StaffDashboardPage() {
             whileTap={{ scale: 0.95 }}
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="flex items-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
             <LogOut className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {isLoggingOut ? "Logging out..." : "Logout"}
-            </span>
+            <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
           </motion.button>
         </div>
       </motion.header>
@@ -322,7 +329,7 @@ export default function StaffDashboardPage() {
       {/* Stats */}
       <motion.section
         variants={item}
-        className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4"
+        className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4"
       >
         <StatCard
           icon={Car}
@@ -369,7 +376,7 @@ export default function StaffDashboardPage() {
             Quick Actions
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <QuickAction
             icon={Car}
             label="Check-in Vehicle"
@@ -377,33 +384,36 @@ export default function StaffDashboardPage() {
             onClick={() => setActiveTab("Check-In")}
           />
           <QuickAction
-            icon={ParkingCircle}
-            label="View Active Vehicles"
-            onClick={() => setActiveTab("Active Vehicles")}
+            icon={Receipt}
+            label="Check-Out Vehicle"
+            intent="checkout"
+            onClick={() => setActiveTab("Check-Out")}
           />
           <QuickAction
-            icon={AlertCircle}
-            label="View Task Queue"
-            onClick={() => setActiveTab("Tasks")}
+            icon={ParkingCircle}
+            label="Active Vehicles"
+            onClick={() => setActiveTab("Active Vehicles")}
           />
         </div>
       </motion.section>
 
       {/* Tabs */}
       <motion.nav variants={item} className="mt-6">
-        <div className="relative flex items-center gap-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
-              className={`relative w-full rounded-xl px-3 py-2 text-sm font-medium transition ${activeTab === t
-                ? "bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 dark:text-white"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="overflow-x-auto scrollbar-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1">
+          <div className="flex gap-1 min-w-max">
+            {tabs.map((t) => (
+              <button
+                key={t}
+                onClick={() => setActiveTab(t)}
+                className={`relative shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition ${activeTab === t
+                  ? "bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 dark:text-white"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </motion.nav>
 
@@ -415,6 +425,11 @@ export default function StaffDashboardPage() {
               vehicles={activeVehicles}
               loading={loadingVehicles}
               onRefresh={fetchActiveVehicles}
+              onRetrievalUpdate={() => {
+                fetchActiveVehicles();
+                fetchTasks();
+                fetchStaffInfo();
+              }}
             />
           )}
           {activeTab === "Check-In" && (
@@ -426,6 +441,15 @@ export default function StaffDashboardPage() {
                 fetchTasks();
                 fetchStaffInfo();
                 setActiveTab("Active Vehicles");
+              }}
+            />
+          )}
+          {activeTab === "Check-Out" && (
+            <CheckOutTab
+              onSuccess={() => {
+                fetchActiveVehicles();
+                fetchTasks();
+                fetchStaffInfo();
               }}
             />
           )}
@@ -453,11 +477,36 @@ function ActiveVehiclesTab({
   vehicles,
   loading,
   onRefresh,
+  onRetrievalUpdate,
 }: {
   vehicles: ActiveSession[];
   loading: boolean;
   onRefresh: () => void;
+  onRetrievalUpdate: () => void;
 }) {
+  const [actionLoading, setActionLoading] = React.useState<string | null>(null);
+
+  const handleRetrievalAction = async (sessionId: string, newStatus: "in_progress" | "ready") => {
+    setActionLoading(sessionId);
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/retrieval`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        onRetrievalUpdate();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Action failed");
+      }
+    } catch {
+      alert("Network error. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   return (
     <motion.div
       key="vehicles"
@@ -492,38 +541,88 @@ function ActiveVehiclesTab({
           {vehicles.map((v) => (
             <motion.div
               key={v.id}
-              className="flex items-center justify-between rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"
+              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"
               variants={subtleHover}
               initial="rest"
               whileHover="hover"
               animate="rest"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50">
-                  <Car className="h-5 w-5 text-sky-600" />
-                </div>
-                <div>
-                  <div className="font-bold font-mono tracking-wider">
-                    {(v.vehicle as { license_plate: string }).license_plate}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                    v.retrieval_status === "in_progress" ? "bg-amber-50" :
+                    v.retrieval_status === "requested" ? "bg-orange-50" : "bg-sky-50"
+                  }`}>
+                    <Car className={`h-5 w-5 ${
+                      v.retrieval_status === "in_progress" ? "text-amber-600" :
+                      v.retrieval_status === "requested" ? "text-orange-600" : "text-sky-600"
+                    }`} />
                   </div>
-                  <div className="text-xs text-slate-500">
-                    {v.customer_name} •{" "}
-                    {new Date(v.entry_time).toLocaleTimeString("en-US", {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
+                  <div>
+                    <div className="font-bold font-mono tracking-wider dark:text-white">
+                      {(v.vehicle as { license_plate: string }).license_plate}
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      {v.customer_name} •{" "}
+                      {new Date(v.entry_time).toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-2">
+                <div className="text-right">
                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-700 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300">
                     <MapPin className="h-3 w-3" />
                     {(v.slot as { slot_number: string }).slot_number}
                   </span>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{v.duration}</div>
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{v.duration}</div>
               </div>
+
+              {/* Retrieval action buttons */}
+              {v.retrieval_status === "requested" && (
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs text-orange-600 font-medium">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-60" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500" />
+                      </span>
+                      Retrieval requested
+                    </div>
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      disabled={actionLoading === v.id}
+                      onClick={() => handleRetrievalAction(v.id, "in_progress")}
+                      className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                    >
+                      {actionLoading === v.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
+                      Start Retrieval
+                    </motion.button>
+                  </div>
+                </div>
+              )}
+
+              {v.retrieval_status === "in_progress" && (
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs text-amber-700 font-medium">
+                      <Loader2 className="h-3 w-3 animate-spin text-amber-600" />
+                      Bringing car to pickup
+                    </div>
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      disabled={actionLoading === v.id}
+                      onClick={() => handleRetrievalAction(v.id, "ready")}
+                      className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                    >
+                      {actionLoading === v.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CircleCheck className="h-3 w-3" />}
+                      Car Delivered
+                    </motion.button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
@@ -827,13 +926,13 @@ function CheckInTab({
           <h4 className="text-lg font-bold text-slate-900 dark:text-white">Step 1 — Scan License Plate</h4>
           <p className="text-sm text-slate-500">Upload a photo or use the camera to auto-detect the plate.</p>
 
-          <div className="flex gap-2 rounded-xl border border-slate-200 bg-slate-50 p-1">
+          <div className="flex gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-1">
             <button onClick={() => { stopCamera(); setAnprImage(null); }}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-white shadow-sm ring-1 ring-slate-200 text-slate-900">
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white">
               <Upload className="h-4 w-4" /> Upload Image
             </button>
             <button onClick={startCamera}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-700">
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
               <Camera className="h-4 w-4" /> Use Camera
             </button>
           </div>
@@ -861,7 +960,7 @@ function CheckInTab({
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-emerald-700">
                   <ScanLine className="h-4 w-4" /> Capture & Detect
                 </motion.button>
-                <button onClick={stopCamera} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                <button onClick={stopCamera} className="rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600">
                   <XCircle className="h-4 w-4" />
                 </button>
               </div>
@@ -872,7 +971,7 @@ function CheckInTab({
             <div className="relative rounded-2xl overflow-hidden border border-slate-200">
               <img src={anprImage} alt="Plate" className="w-full object-contain max-h-48" />
               <button onClick={() => setAnprImage(null)}
-                className="absolute top-2 right-2 rounded-full bg-white/90 p-1.5 shadow hover:bg-white">
+                className="absolute top-2 right-2 rounded-full bg-white/90 dark:bg-slate-700/90 p-1.5 shadow hover:bg-white dark:hover:bg-slate-700">
                 <XCircle className="h-4 w-4 text-slate-600" />
               </button>
             </div>
@@ -886,10 +985,10 @@ function CheckInTab({
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">License Plate</label>
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">License Plate</label>
             <input value={plate} onChange={(e) => setPlate(e.target.value.toUpperCase())}
               placeholder="e.g., LEA-1234"
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-lg font-mono font-bold tracking-widest text-center focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none" />
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 text-lg font-mono font-bold tracking-widest text-center focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
           </div>
 
           <motion.button whileTap={{ scale: 0.98 }} onClick={() => plate && setStep("phone")} disabled={!plate}
@@ -912,7 +1011,7 @@ function CheckInTab({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700">Phone Number</label>
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Phone Number</label>
             <div className="flex gap-2">
               <input
                 value={customerPhone}
@@ -964,7 +1063,7 @@ function CheckInTab({
 
           <div className="flex gap-2">
             <button onClick={() => setStep("scan")}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
               Back
             </button>
             <motion.button whileTap={{ scale: 0.98 }}
@@ -993,24 +1092,24 @@ function CheckInTab({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-semibold text-slate-700">Make</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Make</label>
               <input value={make} onChange={(e) => setMake(e.target.value)} placeholder="e.g. Toyota"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none" />
+                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
             </div>
             <div>
-              <label className="text-sm font-semibold text-slate-700">Model</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Model</label>
               <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. Corolla"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none" />
+                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
             </div>
             <div>
-              <label className="text-sm font-semibold text-slate-700">Color</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Color</label>
               <input value={color} onChange={(e) => setColor(e.target.value)} placeholder="e.g. White"
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none" />
+                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
             </div>
             <div>
-              <label className="text-sm font-semibold text-slate-700">Type</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Type</label>
               <select value={vehicleType} onChange={(e) => setVehicleType(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none">
+                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400">
                 {["car", "sedan", "suv", "hatchback", "pickup", "van"].map((t) => (
                   <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
                 ))}
@@ -1019,9 +1118,9 @@ function CheckInTab({
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">Venue</label>
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Venue</label>
             <select value={selectedVenue} onChange={(e) => setSelectedVenue(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none">
+              className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400">
               <option value="">Select venue…</option>
               {venues.map((v) => (
                 <option key={v.id} value={v.id}>{v.name} ({v.city})</option>
@@ -1031,7 +1130,7 @@ function CheckInTab({
 
           <div className="flex gap-2">
             <button onClick={() => setStep("phone")}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
               Back
             </button>
             <motion.button whileTap={{ scale: 0.98 }} onClick={() => selectedVenue && setStep("confirm")} disabled={!selectedVenue}
@@ -1047,10 +1146,10 @@ function CheckInTab({
         <div className="space-y-4">
           <h4 className="text-lg font-bold text-slate-900 dark:text-white">Step 4 — Review & Confirm</h4>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-3 text-sm">
-            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-3 text-sm">
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
               <Car className="h-5 w-5 text-sky-600" />
-              <span className="text-xl font-bold font-mono tracking-widest">{plate}</span>
+              <span className="text-xl font-bold font-mono tracking-widest text-slate-900 dark:text-white">{plate}</span>
               {customerLookup?.found && (
                 <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 font-medium">
                   ★ {customerLookup.customer?.full_name}
@@ -1058,12 +1157,12 @@ function CheckInTab({
               )}
             </div>
             <div className="grid grid-cols-2 gap-y-3">
-              <div><span className="text-slate-500">Make</span><p className="font-semibold">{make || "—"}</p></div>
-              <div><span className="text-slate-500">Model</span><p className="font-semibold">{model || "—"}</p></div>
-              <div><span className="text-slate-500">Color</span><p className="font-semibold">{color || "—"}</p></div>
-              <div><span className="text-slate-500">Type</span><p className="font-semibold capitalize">{vehicleType}</p></div>
-              <div><span className="text-slate-500">Venue</span><p className="font-semibold">{venues.find((v) => v.id === selectedVenue)?.name || "—"}</p></div>
-              <div><span className="text-slate-500">Customer Phone</span><p className="font-semibold">{customerPhone || "—"}</p></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Make</span><p className="font-semibold dark:text-white">{make || "—"}</p></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Model</span><p className="font-semibold dark:text-white">{model || "—"}</p></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Color</span><p className="font-semibold dark:text-white">{color || "—"}</p></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Type</span><p className="font-semibold capitalize dark:text-white">{vehicleType}</p></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Venue</span><p className="font-semibold dark:text-white">{venues.find((v) => v.id === selectedVenue)?.name || "—"}</p></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Customer Phone</span><p className="font-semibold dark:text-white">{customerPhone || "—"}</p></div>
             </div>
           </div>
 
@@ -1075,7 +1174,7 @@ function CheckInTab({
 
           <div className="flex gap-2">
             <button onClick={() => setStep("details")}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
               Back
             </button>
             <motion.button whileTap={{ scale: 0.98 }} onClick={handleCheckin} disabled={checkinLoading}
@@ -1144,7 +1243,7 @@ function CheckInTab({
             <Camera className="h-4 w-4" /> Take Damage Photos <ArrowRight className="h-4 w-4" />
           </motion.button>
           <button onClick={() => setStep("done")}
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-500 hover:bg-slate-50">
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700">
             Skip Damage Photos
           </button>
         </div>
@@ -1183,15 +1282,15 @@ function CheckInTab({
           </button>
 
           <div>
-            <label className="text-sm font-semibold text-slate-700">Damage Notes (optional)</label>
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Damage Notes (optional)</label>
             <textarea value={damageNotes} onChange={(e) => setDamageNotes(e.target.value)}
               placeholder="Describe any visible damage…" rows={3}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none resize-none" />
+              className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none resize-none dark:placeholder-slate-400" />
           </div>
 
           <div className="flex gap-2">
             <button onClick={() => setStep("slot")}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
               Back
             </button>
             <motion.button whileTap={{ scale: 0.98 }}
@@ -1217,18 +1316,18 @@ function CheckInTab({
               className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <CheckCircle2 className="h-10 w-10 text-emerald-600" />
             </motion.div>
-            <h3 className="text-xl font-bold text-slate-900">All Done!</h3>
-            <p className="text-sm text-slate-500 mt-1">{plate} is parked and documented.</p>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">All Done!</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{plate} is parked and documented.</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-2.5 text-sm">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-2.5 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-500">Plate</span>
-              <span className="font-bold font-mono">{plate}</span>
+              <span className="text-slate-500 dark:text-slate-400">Plate</span>
+              <span className="font-bold font-mono dark:text-white">{plate}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Slot</span>
-              <span className="font-bold">
+              <span className="text-slate-500 dark:text-slate-400">Slot</span>
+              <span className="font-bold dark:text-white">
                 {(checkinResult?.session as Record<string, unknown>)?.slot
                   ? ((checkinResult!.session as Record<string, unknown>).slot as Record<string, string>).slot_number
                   : "—"}
@@ -1236,19 +1335,19 @@ function CheckInTab({
             </div>
             {(make || model) && (
               <div className="flex justify-between">
-                <span className="text-slate-500">Vehicle</span>
-                <span className="font-bold">{[color, make, model].filter(Boolean).join(" ") || "—"}</span>
+                <span className="text-slate-500 dark:text-slate-400">Vehicle</span>
+                <span className="font-bold dark:text-white">{[color, make, model].filter(Boolean).join(" ") || "—"}</span>
               </div>
             )}
             {customerPhone && (
               <div className="flex justify-between">
-                <span className="text-slate-500">SMS sent to</span>
-                <span className="font-bold">{customerPhone}</span>
+                <span className="text-slate-500 dark:text-slate-400">SMS sent to</span>
+                <span className="font-bold dark:text-white">{customerPhone}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-slate-500">Damage Photos</span>
-              <span className="font-bold">{damageUploaded ? `${damagePhotos.length} uploaded` : "Skipped"}</span>
+              <span className="text-slate-500 dark:text-slate-400">Damage Photos</span>
+              <span className="font-bold dark:text-white">{damageUploaded ? `${damagePhotos.length} uploaded` : "Skipped"}</span>
             </div>
           </div>
 
@@ -1258,7 +1357,7 @@ function CheckInTab({
               <Car className="h-4 w-4" /> Check-In Another
             </motion.button>
             <button onClick={onSuccess}
-              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
               Dashboard
             </button>
           </div>
@@ -1298,7 +1397,7 @@ function TasksTab({
         </h4>
         <button
           onClick={onRefresh}
-          className="p-1.5 rounded-lg text-slate-400 hover:bg-white hover:text-slate-600 transition-colors"
+          className="p-1.5 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -1349,7 +1448,7 @@ function TasksTab({
 function TaskCard({ task }: { task: TaskItem }) {
   return (
     <motion.div
-      className="rounded-2xl border border-slate-200 bg-white p-4"
+      className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"
       variants={subtleHover}
       initial="rest"
       whileHover="hover"
@@ -1358,7 +1457,7 @@ function TaskCard({ task }: { task: TaskItem }) {
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div
-            className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${task.status === "active" ? "bg-amber-50" : "bg-emerald-50"
+            className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${task.status === "active" ? "bg-amber-50 dark:bg-amber-950/30" : "bg-emerald-50 dark:bg-emerald-950/30"
               }`}
           >
             <Car
@@ -1382,10 +1481,10 @@ function TaskCard({ task }: { task: TaskItem }) {
                 {task.status === "active" ? "Active" : "Completed"}
               </span>
             </div>
-            <div className="text-xs text-slate-500 mt-0.5">
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {task.venue.name} • {task.slot.slot_number} ({task.slot.zone})
             </div>
-            <div className="text-xs text-slate-400 mt-0.5">
+            <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
               {task.duration} •{" "}
               {new Date(task.entry_time).toLocaleTimeString("en-US", {
                 hour: "numeric",
@@ -1453,7 +1552,7 @@ function PerformanceTab({ stats }: { stats: StaffStats }) {
       exit={{ opacity: 0, y: -8 }}
       transition={{ type: "spring", stiffness: 180, damping: 18 }}
     >
-      <h4 className="mb-3 text-sm font-semibold text-slate-600">
+      <h4 className="mb-3 text-sm font-semibold text-slate-600 dark:text-slate-400">
         Your Performance
       </h4>
 
@@ -1462,11 +1561,11 @@ function PerformanceTab({ stats }: { stats: StaffStats }) {
           {metrics.map((metric, i) => (
             <div
               key={i}
-              className="rounded-2xl border border-slate-200 bg-white p-5"
+              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5"
             >
-              <div className="text-sm text-slate-500">{metric.label}</div>
+              <div className="text-sm text-slate-500 dark:text-slate-400">{metric.label}</div>
               <div className="mt-2 flex items-baseline gap-2">
-                <div className="text-3xl font-bold tracking-tight">
+                <div className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                   {metric.value}
                 </div>
                 <span
@@ -1480,24 +1579,317 @@ function PerformanceTab({ stats }: { stats: StaffStats }) {
           ))}
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-sky-50 to-blue-50 p-6">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 p-6">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-500 shadow-lg">
               <TrendingUp className="h-8 w-8 text-white" />
             </div>
             <div>
-              <div className="text-lg font-bold text-slate-900">
+              <div className="text-lg font-bold text-slate-900 dark:text-white">
                 {stats.total_completed >= 5
                   ? "Great Work!"
                   : "Keep Going!"}
               </div>
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-slate-600 dark:text-slate-300">
                 {stats.total_completed} total sessions handled
               </div>
             </div>
           </div>
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// TAB: Check-Out
+// Flow: search (phone/plate) → session preview → confirm → receipt
+// ══════════════════════════════════════════════════════════════════════════
+
+interface CheckoutSearchResult {
+  id: string;
+  entry_time: string;
+  rate_per_hour: number;
+  retrieval_status: string | null;
+  duration: string;
+  billed_hours: number;
+  estimated_amount: number;
+  vehicle: { license_plate: string; make: string | null; model: string | null; color: string | null; vehicle_type: string };
+  slot: { slot_number: string; floor_level: string | null; zone: string | null };
+  venue: { name: string };
+  customer: { id: string | null; name: string | null; phone: string | null };
+}
+
+interface CheckoutReceipt {
+  id: string;
+  status: string;
+  exit_time: string;
+  duration: string;
+  billed_hours: number;
+  rate_per_hour: number;
+  total_amount: number;
+  vehicle: { license_plate: string; make: string | null; model: string | null; color: string | null };
+  slot: { slot_number: string; floor_level: string | null; zone: string | null } | null;
+  venue: string;
+}
+
+function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
+  const [query, setQuery] = React.useState("");
+  const [searchLoading, setSearchLoading] = React.useState(false);
+  const [sessions, setSessions] = React.useState<CheckoutSearchResult[] | null>(null);
+  const [notFound, setNotFound] = React.useState(false);
+  const [selected, setSelected] = React.useState<CheckoutSearchResult | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = React.useState(false);
+  const [receipt, setReceipt] = React.useState<CheckoutReceipt | null>(null);
+  const [error, setError] = React.useState("");
+
+  const handleSearch = async () => {
+    if (!query.trim()) return;
+    setSearchLoading(true);
+    setSessions(null);
+    setSelected(null);
+    setNotFound(false);
+    setReceipt(null);
+    setError("");
+    try {
+      const res = await fetch(`/api/sessions/checkout/search?q=${encodeURIComponent(query.trim())}`);
+      const data = await res.json();
+      if (data.found && data.sessions.length > 0) {
+        setSessions(data.sessions);
+        if (data.sessions.length === 1) setSelected(data.sessions[0]);
+      } else {
+        setNotFound(true);
+      }
+    } catch {
+      setError("Search failed. Please try again.");
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (!selected) return;
+    setCheckoutLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/sessions/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: selected.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReceipt(data.session);
+        onSuccess();
+      } else {
+        setError(data.error || "Checkout failed");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const reset = () => {
+    setQuery("");
+    setSessions(null);
+    setSelected(null);
+    setNotFound(false);
+    setReceipt(null);
+    setError("");
+  };
+
+  return (
+    <motion.div
+      key="checkout"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ type: "spring", stiffness: 180, damping: 18 }}
+      className="space-y-4"
+    >
+      {/* ── Receipt Screen ────────────────────────────────────────────────── */}
+      {receipt ? (
+        <div className="space-y-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 200, damping: 16 }}
+            className="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-6 text-white text-center shadow-lg"
+          >
+            <CircleCheck className="h-12 w-12 mx-auto mb-2 opacity-90" />
+            <p className="text-sm font-medium opacity-80 mb-1">Checkout Complete</p>
+            <p className="text-2xl font-black font-mono tracking-widest">{receipt.vehicle.license_plate}</p>
+            <p className="text-sm opacity-80 mt-1">Customer has been notified</p>
+          </motion.div>
+
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-3 text-sm">
+            <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-700">
+              <Receipt className="h-4 w-4 text-slate-500" />
+              <span className="font-semibold dark:text-white">Receipt</span>
+            </div>
+            <div className="grid grid-cols-2 gap-y-2.5">
+              <span className="text-slate-500 dark:text-slate-400">Vehicle</span>
+              <span className="font-bold font-mono dark:text-white">{receipt.vehicle.license_plate}</span>
+              {receipt.slot?.slot_number && (
+                <>
+                  <span className="text-slate-500 dark:text-slate-400">Slot</span>
+                  <span className="font-semibold dark:text-white">{receipt.slot.slot_number}</span>
+                </>
+              )}
+              <span className="text-slate-500 dark:text-slate-400">Duration</span>
+              <span className="font-semibold dark:text-white">{receipt.duration}</span>
+              <span className="text-slate-500 dark:text-slate-400">Billed Hours</span>
+              <span className="font-semibold dark:text-white">{receipt.billed_hours}h @ PKR {receipt.rate_per_hour}/hr</span>
+              <span className="text-slate-500 dark:text-slate-400">Exit Time</span>
+              <span className="font-semibold dark:text-white">
+                {new Date(receipt.exit_time).toLocaleTimeString("en-PK", { hour: "numeric", minute: "2-digit" })}
+              </span>
+              <span className="text-slate-600 dark:text-slate-300 font-semibold pt-2 border-t border-slate-100 dark:border-slate-700">Total</span>
+              <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 pt-2 border-t border-slate-100 dark:border-slate-700">
+                PKR {receipt.total_amount}
+              </span>
+            </div>
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={reset}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700"
+          >
+            <Receipt className="h-4 w-4" /> Check-Out Another
+          </motion.button>
+        </div>
+      ) : (
+        <>
+          <h4 className="text-lg font-bold text-slate-900 dark:text-white">Check-Out Vehicle</h4>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Search by customer phone number or license plate.</p>
+
+          {/* Search bar */}
+          <div className="flex gap-2">
+            <input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setNotFound(false); }}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="Phone (+923…) or plate (LEA-1234)"
+              className="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:text-white dark:placeholder-slate-400"
+            />
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSearch}
+              disabled={!query.trim() || searchLoading}
+              className="flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50 transition-colors"
+            >
+              {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            </motion.button>
+          </div>
+
+          {/* Not found */}
+          {notFound && (
+            <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-400">
+              <Ban className="h-4 w-4 shrink-0" />
+              No active parking session found for &quot;{query}&quot;
+            </div>
+          )}
+
+          {/* Multiple results */}
+          {sessions && sessions.length > 1 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                {sessions.length} sessions found — select one
+              </p>
+              {sessions.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setSelected(s)}
+                  className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-sm text-left transition ${
+                    selected?.id === s.id
+                      ? "border-sky-500 bg-sky-50 dark:bg-sky-950/30"
+                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-sky-300"
+                  }`}
+                >
+                  <span className="font-bold font-mono">{s.vehicle.license_plate}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{s.duration} • {s.slot.slot_number}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Session preview */}
+          {selected && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-4"
+            >
+              {/* Vehicle header */}
+              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 dark:bg-sky-900/30 shrink-0">
+                  <Car className="h-5 w-5 text-sky-600" />
+                </div>
+                <div>
+                  <div className="font-black font-mono tracking-widest text-lg dark:text-white">{selected.vehicle.license_plate}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    {[selected.vehicle.color, selected.vehicle.make, selected.vehicle.model].filter(Boolean).join(" ") || selected.vehicle.vehicle_type}
+                  </div>
+                </div>
+                {selected.retrieval_status && (
+                  <span className={`ml-auto text-xs rounded-full px-2 py-0.5 font-medium ${
+                    selected.retrieval_status === "in_progress" ? "bg-amber-100 text-amber-700" :
+                    selected.retrieval_status === "requested" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"
+                  }`}>
+                    {selected.retrieval_status === "in_progress" ? "In Transit" : selected.retrieval_status}
+                  </span>
+                )}
+              </div>
+
+              {/* Details grid */}
+              <div className="grid grid-cols-2 gap-y-2.5 text-sm">
+                <span className="text-slate-500 dark:text-slate-400">Customer</span>
+                <span className="font-semibold dark:text-white">{selected.customer.name || "Walk-in"}</span>
+                {selected.customer.phone && (
+                  <>
+                    <span className="text-slate-500 dark:text-slate-400">Phone</span>
+                    <span className="font-semibold dark:text-white">{selected.customer.phone}</span>
+                  </>
+                )}
+                <span className="text-slate-500 dark:text-slate-400">Venue</span>
+                <span className="font-semibold dark:text-white">{selected.venue.name}</span>
+                <span className="text-slate-500 dark:text-slate-400">Slot</span>
+                <span className="font-semibold dark:text-white">{selected.slot.slot_number}{selected.slot.floor_level ? ` · F${selected.slot.floor_level}` : ""}</span>
+                <span className="text-slate-500 dark:text-slate-400">Duration</span>
+                <span className="font-semibold dark:text-white">{selected.duration}</span>
+                <span className="text-slate-500 dark:text-slate-400">Billed</span>
+                <span className="font-semibold dark:text-white">{selected.billed_hours}h × PKR {selected.rate_per_hour}</span>
+              </div>
+
+              {/* Total callout */}
+              <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-4 py-3 flex items-center justify-between">
+                <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">Total Amount</span>
+                <span className="text-xl font-black text-emerald-700 dark:text-emerald-400">PKR {selected.estimated_amount}</span>
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
+                  <AlertCircle className="h-4 w-4 shrink-0" />{error}
+                </div>
+              )}
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={handleCheckout}
+                disabled={checkoutLoading}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+              >
+                {checkoutLoading
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
+                  : <><CircleCheck className="h-4 w-4" /> Confirm Checkout</>}
+              </motion.button>
+            </motion.div>
+          )}
+        </>
+      )}
     </motion.div>
   );
 }
@@ -1567,7 +1959,7 @@ function QuickAction({
 }: {
   icon: React.ElementType;
   label: string;
-  intent?: "primary" | "neutral";
+  intent?: "primary" | "checkout" | "neutral";
   onClick?: () => void;
 }) {
   return (
@@ -1578,10 +1970,13 @@ function QuickAction({
       whileTap={{ scale: 0.995 }}
       animate="rest"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition ${intent === "primary"
-        ? "border-sky-600 bg-sky-600 text-white shadow-sm hover:bg-sky-700"
-        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
-        }`}
+      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition ${
+        intent === "primary"
+          ? "border-sky-600 bg-sky-600 text-white shadow-sm hover:bg-sky-700"
+          : intent === "checkout"
+          ? "border-emerald-600 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
+      }`}
     >
       <Icon className="h-4 w-4" />
       <span className="flex-1">{label}</span>

@@ -244,7 +244,7 @@ export default function AnalyticsTab() {
           whileTap={{ scale: 0.9 }}
           onClick={() => fetchAnalytics(true)}
           disabled={refreshing}
-          className="p-2 rounded-lg text-slate-400 hover:bg-white hover:text-slate-600 transition-colors"
+          className="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
         </motion.button>
@@ -259,15 +259,15 @@ export default function AnalyticsTab() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.08 }}
             whileHover={{ y: -3, scale: 1.02 }}
-            className="bg-white rounded-2xl shadow-sm p-5 border border-slate-200 relative overflow-hidden"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-5 border border-slate-200 dark:border-slate-700 relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   {metric.label}
                 </p>
-                <p className="text-3xl font-extrabold text-slate-900 mt-1">{metric.value}</p>
-                <p className="text-xs text-slate-400 mt-1">{metric.sub}</p>
+                <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{metric.value}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{metric.sub}</p>
               </div>
               <div
                 className={`w-12 h-12 rounded-xl bg-gradient-to-br ${metric.color} flex items-center justify-center shadow-lg`}
@@ -285,11 +285,11 @@ export default function AnalyticsTab() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
         >
           <div className="flex items-center gap-2 mb-5">
             <TrendingUp className="w-5 h-5 text-sky-600" />
-            <h2 className="text-lg font-bold text-slate-900">Check-in Hours</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Check-in Hours</h2>
           </div>
 
           {data.hourlyBreakdown.length === 0 ? (
@@ -307,10 +307,10 @@ export default function AnalyticsTab() {
                   transition={{ delay: i * 0.05 }}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-slate-600">{h.hour}</span>
-                    <span className="text-sm text-slate-500">{h.count} vehicles</span>
+                    <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{h.hour}</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">{h.count} vehicles</span>
                   </div>
-                  <div className="relative h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="relative h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${(h.count / maxHourCount) * 100}%` }}
@@ -329,11 +329,11 @@ export default function AnalyticsTab() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
         >
           <div className="flex items-center gap-2 mb-5">
             <ParkingCircle className="w-5 h-5 text-sky-600" />
-            <h2 className="text-lg font-bold text-slate-900">Venue Performance</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Venue Performance</h2>
           </div>
 
           {data.venues.length === 0 ? (
@@ -349,20 +349,20 @@ export default function AnalyticsTab() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.08 }}
-                  className="p-4 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-100"
+                  className="p-4 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/30 dark:to-blue-950/30 border border-sky-100 dark:border-sky-900/50"
                 >
-                  <h3 className="font-bold text-slate-900 mb-3">{v.name}</h3>
+                  <h3 className="font-bold text-slate-900 dark:text-white mb-3">{v.name}</h3>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <p className="text-xs text-slate-500">Active</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Active</p>
                       <p className="text-xl font-extrabold text-sky-600">{v.active}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">Completed</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Completed</p>
                       <p className="text-xl font-extrabold text-emerald-600">{v.completed}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500">Revenue</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Revenue</p>
                       <p className="text-lg font-extrabold text-violet-600">
                         Rs.{v.revenue.toLocaleString()}
                       </p>
@@ -381,11 +381,11 @@ export default function AnalyticsTab() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
         >
           <div className="flex items-center gap-2 mb-5">
             <Banknote className="w-5 h-5 text-violet-600" />
-            <h2 className="text-lg font-bold text-slate-900">Revenue — Last 7 Days</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Revenue — Last 7 Days</h2>
           </div>
 
           {dailyRevenue.length === 0 ? (
@@ -405,15 +405,15 @@ export default function AnalyticsTab() {
                     transition={{ delay: i * 0.05 }}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-slate-600">{d.day}</span>
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{d.day}</span>
                       <div className="text-right">
                         <span className="text-sm font-bold text-violet-600">
                           Rs.{Number(d.revenue).toLocaleString()}
                         </span>
-                        <span className="ml-2 text-xs text-slate-400">{d.sessions} sessions</span>
+                        <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">{d.sessions} sessions</span>
                       </div>
                     </div>
-                    <div className="relative h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="relative h-2.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${(d.revenue / maxRev) * 100}%` }}
@@ -433,11 +433,11 @@ export default function AnalyticsTab() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-slate-700"
         >
           <div className="flex items-center gap-2 mb-5">
             <Award className="w-5 h-5 text-amber-500" />
-            <h2 className="text-lg font-bold text-slate-900">Top Performers</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Top Performers</h2>
           </div>
 
           {topStaff.length === 0 ? (
@@ -453,23 +453,23 @@ export default function AnalyticsTab() {
                   initial={{ opacity: 0, scale: 0.97 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.07 }}
-                  className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100"
+                  className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-100 dark:border-amber-900/50"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-700">
+                    <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-sm font-bold text-amber-700 dark:text-amber-400">
                       {i + 1}
                     </div>
                     <div>
-                      <p className="font-semibold text-slate-900 text-sm">{s.name}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="font-semibold text-slate-900 dark:text-white text-sm">{s.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {s.completed} completed
                         {s.avgHours != null && ` • avg ${s.avgHours}h`}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Star className={`w-4 h-4 ${s.avgRating > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-300'}`} />
-                    <span className="text-sm font-bold text-slate-700">
+                    <Star className={`w-4 h-4 ${s.avgRating > 0 ? 'text-amber-400 fill-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">
                       {s.avgRating > 0 ? s.avgRating.toFixed(1) : '—'}
                     </span>
                   </div>

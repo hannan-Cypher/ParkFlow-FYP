@@ -99,6 +99,24 @@ export async function POST(request: NextRequest) {
             [totalHours.toFixed(2), totalAmount.toFixed(2), session.id]
         );
 
+        // ── 5. Notify customer ───────────────────────────────────────────────
+        if (session.customer_id) {
+            const h = Math.floor(totalHours);
+            const m = Math.round((totalHours - h) * 60);
+            const nd = h > 0 ? `${h}h ${m}m` : `${m}m`;
+            await client.query(
+                `INSERT INTO notifications (user_id, title, message, type, related_session_id)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [
+                    session.customer_id,
+                    'Checkout Complete',
+                    `Your ${session.license_plate} has been checked out. Duration: ${nd}. Total: PKR ${totalAmount}.`,
+                    'checkout',
+                    session.id,
+                ]
+            );
+        }
+
         await client.query('COMMIT');
 
         // ── Format duration for display ─────────────────────────────────────────

@@ -4494,5 +4494,306 @@
       498,
       997
     ]
+  },
+  {
+    "plate_id": 129,
+    "timestamp": "2026-03-09T22:07:49.499327",
+    "detection_confidence": 0.8680808544158936,
+    "ocr_text": "RA-1137",
+    "ocr_confidence": 0.9714928269386292,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 870.8,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "RA1137",
+        "cleaned": "RA-1137",
+        "validated": "RA-1137",
+        "confidence": 0.9715,
+        "elapsed_ms": 6.7,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "RPA113",
+        "cleaned": "RPA-113",
+        "validated": "RPA-113",
+        "confidence": 1.2593,
+        "elapsed_ms": 417.0
+      },
+      "split_combined": {
+        "raw": "UTABUO1137",
+        "validated": "ABUO-1137",
+        "confidence": 0.2136,
+        "elapsed_ms": 447.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 870.8
+    },
+    "plate_filename": "plate_129_20260309_220748_RA-1137_conf87%.jpg",
+    "full_frame_filename": "frame_20260309_220748.jpg",
+    "user_info": "staff",
+    "coordinates": [
+      399,
+      869,
+      512,
+      920
+    ]
+  },
+  {
+    "plate_id": 130,
+    "timestamp": "2026-03-09T22:19:27.794230",
+    "detection_confidence": 0.8809311389923096,
+    "ocr_text": "AGT-427",
+    "ocr_confidence": 0.9646937251091003,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1515.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AGT427",
+        "cleaned": "AGT-427",
+        "validated": "AGT-427",
+        "confidence": 0.9647,
+        "elapsed_ms": 6.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AGI421",
+        "cleaned": "AG-421",
+        "validated": "AG-421",
+        "confidence": 0.286,
+        "elapsed_ms": 540.1
+      },
+      "split_combined": {
+        "raw": "AL4LLICIISLAHIAB",
+        "validated": "AL-4",
+        "confidence": 0.148,
+        "elapsed_ms": 968.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1515.6
+    },
+    "plate_filename": "plate_130_20260309_221926_AGT-427_conf88%.jpg",
+    "full_frame_filename": "frame_20260309_221926.jpg",
+    "user_info": "staff",
+    "coordinates": [
+      411,
+      698,
+      554,
+      759
+    ]
+  },
+  {
+    "plate_id": 131,
+    "timestamp": "2026-03-09T22:33:43.505173",
+    "detection_confidence": 0.9103628993034363,
+    "ocr_text": "AGT-427",
+    "ocr_confidence": 0.9653608202934265,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 2931.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AGT427",
+        "cleaned": "AGT-427",
+        "validated": "AGT-427",
+        "confidence": 0.9654,
+        "elapsed_ms": 6.6,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AGT427WUAMAUADICTSLAMARAAN",
+        "cleaned": "AGT-427",
+        "validated": "AGT-427",
+        "confidence": 0.3626,
+        "elapsed_ms": 1711.9
+      },
+      "split_combined": {
+        "raw": "ALMDAD47",
+        "validated": "MDAD-47",
+        "confidence": 0.2625,
+        "elapsed_ms": 1212.3
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 2931.0
+    },
+    "plate_filename": "plate_131_20260309_223340_AGT-427_conf91%.jpg",
+    "full_frame_filename": "frame_20260309_223340.jpg",
+    "user_info": "staff",
+    "coordinates": [
+      324,
+      702,
+      606,
+      835
+    ]
+  },
+  {
+    "plate_id": 132,
+    "timestamp": "2026-03-10T01:07:09.471293",
+    "detection_confidence": 0.8809311389923096,
+    "ocr_text": "AGT-427",
+    "ocr_confidence": 0.9646937251091003,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1137.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AGT427",
+        "cleaned": "AGT-427",
+        "validated": "AGT-427",
+        "confidence": 0.9647,
+        "elapsed_ms": 5.0,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AGI421",
+        "cleaned": "AG-421",
+        "validated": "AG-421",
+        "confidence": 0.286,
+        "elapsed_ms": 427.8
+      },
+      "split_combined": {
+        "raw": "AL4LLICIISLAHIAB",
+        "validated": "AL-4",
+        "confidence": 0.148,
+        "elapsed_ms": 704.6
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1137.5
+    },
+    "plate_filename": "plate_132_20260310_010708_AGT-427_conf88%.jpg",
+    "full_frame_filename": "frame_20260310_010708.jpg",
+    "user_info": "staff",
+    "coordinates": [
+      411,
+      698,
+      554,
+      759
+    ]
+  },
+  {
+    "plate_id": 133,
+    "timestamp": "2026-03-10T13:35:09.430832",
+    "detection_confidence": 0.683584988117218,
+    "ocr_text": "RLA-3588",
+    "ocr_confidence": 0.9768285751342773,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 722.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "RLA3588",
+        "cleaned": "RLA-3588",
+        "validated": "RLA-3588",
+        "confidence": 0.9768,
+        "elapsed_ms": 57.2,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "RLA3588",
+        "cleaned": "RLA-3588",
+        "validated": "RLA-3588",
+        "confidence": 1.3993,
+        "elapsed_ms": 664.7
+      },
+      "split_combined": {
+        "raw": "",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 0.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 722.5
+    },
+    "plate_filename": "plate_133_20260310_133508_RLA-3588_conf68%.jpg",
+    "full_frame_filename": "frame_20260310_133508.jpg",
+    "user_info": "staff",
+    "coordinates": [
+      427,
+      1014,
+      546,
+      1059
+    ]
+  },
+  {
+    "plate_id": 134,
+    "timestamp": "2026-03-10T13:44:25.233177",
+    "detection_confidence": 0.8548784852027893,
+    "ocr_text": "AES-290",
+    "ocr_confidence": 0.9516038298606873,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 422.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AES290",
+        "cleaned": "AES-290",
+        "validated": "AES-290",
+        "confidence": 0.9516,
+        "elapsed_ms": 5.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "GZ",
+        "cleaned": "GZ",
+        "validated": "GZ",
+        "confidence": 0.1595,
+        "elapsed_ms": 165.3
+      },
+      "split_combined": {
+        "raw": "",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 251.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 422.7
+    },
+    "plate_filename": "plate_134_20260310_134424_AES-290_conf85%.jpg",
+    "full_frame_filename": "frame_20260310_134424.jpg",
+    "user_info": "staff",
+    "coordinates": [
+      105,
+      445,
+      144,
+      490
+    ]
+  },
+  {
+    "plate_id": 135,
+    "timestamp": "2026-03-10T13:46:27.005679",
+    "detection_confidence": 0.8519411683082581,
+    "ocr_text": "AES-290",
+    "ocr_confidence": 0.9633578658103943,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 290.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AES290",
+        "cleaned": "AES-290",
+        "validated": "AES-290",
+        "confidence": 0.9634,
+        "elapsed_ms": 4.9,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "",
+        "cleaned": "UNREADABLE",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 98.2
+      },
+      "split_combined": {
+        "raw": "",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 187.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 290.6
+    },
+    "plate_filename": "plate_135_20260310_134626_AES-290_conf85%.jpg",
+    "full_frame_filename": "frame_20260310_134626.jpg",
+    "user_info": "staff",
+    "coordinates": [
+      121,
+      421,
+      155,
+      460
+    ]
   }
 ]

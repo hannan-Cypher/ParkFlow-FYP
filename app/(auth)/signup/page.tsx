@@ -114,7 +114,7 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -123,10 +123,10 @@ export default function Signup() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <h2 className="mt-6 text-3xl font-display font-bold text-dark-900">
+          <h2 className="mt-6 text-3xl font-display font-bold text-slate-900 dark:text-white">
             Create your account
           </h2>
-          <p className="mt-2 text-sm text-dark-600">
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             Start managing your valet service today
           </p>
         </div>
@@ -136,28 +136,28 @@ export default function Signup() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl shadow-xl p-8"
+          className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 border border-transparent dark:border-slate-700"
         >
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3"
+              className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start space-x-3"
             >
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700 whitespace-pre-line">{error}</p>
+              <p className="text-sm text-red-700 dark:text-red-400 whitespace-pre-line">{error}</p>
             </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Full Name */}
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-dark-700 mb-2">
+              <label htmlFor="fullName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Full Name
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-dark-400" />
+                  <User className="h-5 w-5 text-slate-400 dark:text-slate-500" />
                 </div>
                 <input
                   id="fullName"
@@ -166,7 +166,7 @@ export default function Signup() {
                   required
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Hannan Mohsin"
                 />
               </div>
@@ -174,12 +174,12 @@ export default function Signup() {
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-dark-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Email address
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-dark-400" />
+                  <Mail className="h-5 w-5 text-slate-400 dark:text-slate-500" />
                 </div>
                 <input
                   id="email"
@@ -189,7 +189,7 @@ export default function Signup() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="you@example.com"
                 />
               </div>
@@ -197,12 +197,12 @@ export default function Signup() {
 
             {/* Phone */}
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-dark-700 mb-2">
+              <label htmlFor="phone" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Phone Number
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-dark-400" />
+                  <Phone className="h-5 w-5 text-slate-400 dark:text-slate-500" />
                 </div>
                 <input
                   id="phone"
@@ -212,7 +212,7 @@ export default function Signup() {
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="+92 330 0000000"
                 />
               </div>
@@ -220,12 +220,12 @@ export default function Signup() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-dark-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-dark-400" />
+                  <Lock className="h-5 w-5 text-slate-400 dark:text-slate-500" />
                 </div>
                 <input
                   id="password"
@@ -235,7 +235,7 @@ export default function Signup() {
                   required
                   value={formData.password}
                   onChange={(e) => handlePasswordChange(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
                 <button
@@ -244,9 +244,9 @@ export default function Signup() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-dark-400 hover:text-dark-600" />
+                    <EyeOff className="h-5 w-5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                   ) : (
-                    <Eye className="h-5 w-5 text-dark-400 hover:text-dark-600" />
+                    <Eye className="h-5 w-5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                   )}
                 </button>
               </div>
@@ -258,9 +258,9 @@ export default function Signup() {
                     {passwordStrength.hasLength ? (
                       <CheckCircle className="w-4 h-4 text-green-500" />
                     ) : (
-                      <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-slate-600" />
                     )}
-                    <span className={passwordStrength.hasLength ? 'text-green-600' : 'text-dark-500'}>
+                    <span className={passwordStrength.hasLength ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}>
                       At least 8 characters
                     </span>
                   </div>
@@ -268,9 +268,9 @@ export default function Signup() {
                     {passwordStrength.hasUpper ? (
                       <CheckCircle className="w-4 h-4 text-green-500" />
                     ) : (
-                      <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-slate-600" />
                     )}
-                    <span className={passwordStrength.hasUpper ? 'text-green-600' : 'text-dark-500'}>
+                    <span className={passwordStrength.hasUpper ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}>
                       One uppercase letter
                     </span>
                   </div>
@@ -278,9 +278,9 @@ export default function Signup() {
                     {passwordStrength.hasLower ? (
                       <CheckCircle className="w-4 h-4 text-green-500" />
                     ) : (
-                      <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-slate-600" />
                     )}
-                    <span className={passwordStrength.hasLower ? 'text-green-600' : 'text-dark-500'}>
+                    <span className={passwordStrength.hasLower ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}>
                       One lowercase letter
                     </span>
                   </div>
@@ -288,9 +288,9 @@ export default function Signup() {
                     {passwordStrength.hasNumber ? (
                       <CheckCircle className="w-4 h-4 text-green-500" />
                     ) : (
-                      <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                      <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-slate-600" />
                     )}
-                    <span className={passwordStrength.hasNumber ? 'text-green-600' : 'text-dark-500'}>
+                    <span className={passwordStrength.hasNumber ? 'text-green-600 dark:text-green-400' : 'text-slate-500 dark:text-slate-400'}>
                       One number
                     </span>
                   </div>
@@ -300,12 +300,12 @@ export default function Signup() {
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-dark-700 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Confirm Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-dark-400" />
+                  <Lock className="h-5 w-5 text-slate-400 dark:text-slate-500" />
                 </div>
                 <input
                   id="confirmPassword"
@@ -315,7 +315,7 @@ export default function Signup() {
                   required
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
                 <button
@@ -324,9 +324,9 @@ export default function Signup() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5 text-dark-400 hover:text-dark-600" />
+                    <EyeOff className="h-5 w-5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                   ) : (
-                    <Eye className="h-5 w-5 text-dark-400 hover:text-dark-600" />
+                    <Eye className="h-5 w-5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                   )}
                 </button>
               </div>
@@ -353,9 +353,8 @@ export default function Signup() {
 
             {/* Login Link */}
             <div className="text-center pt-4">
-              <p className="text-sm text-dark-600">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
                 Already have an account?{' '}
-                {/* FIXED: Changed link to /login for consistency */}
                 <Link href="/login" className="font-medium text-primary-500 hover:text-primary-600">
                   Sign in
                 </Link>
@@ -365,7 +364,7 @@ export default function Signup() {
         </motion.div>
 
         {/* Additional Links */}
-        <p className="mt-8 text-center text-sm text-dark-600">
+        <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
           <Link href="/" className="text-primary-500 hover:text-primary-600 font-medium">
             ← Back to home
           </Link>

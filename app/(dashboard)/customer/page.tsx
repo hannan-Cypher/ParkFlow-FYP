@@ -30,6 +30,8 @@ import {
   Star,
   QrCode,
   Receipt,
+  X,
+  PartyPopper,
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
 
@@ -150,16 +152,48 @@ export default function CustomerDashboardPage() {
     null
   );
 
+  // ── Checkout detection & receipt/rating ──────────────────────────────────
+  const prevActiveIdsRef = React.useRef<Set<string>>(new Set());
+  const [receiptSession, setReceiptSession] = React.useState<CompletedSession | null>(null);
+  const [showRating, setShowRating] = React.useState(false);
+  const [carArrivedAlert, setCarArrivedAlert] = React.useState(false);
+
   React.useEffect(() => setMounted(true), []);
 
-  // ── Fetch active sessions ─────────────────────────────────────────────────
+  // ── Fetch active sessions (with checkout detection) ──────────────────────
   const fetchActiveSessions = React.useCallback(async () => {
     try {
       setLoadingActive(true);
       const res = await fetch("/api/sessions?status=active");
       if (res.ok) {
         const data = await res.json();
-        setActiveSessions(data.sessions ?? []);
+        const newSessions: ActiveSession[] = data.sessions ?? [];
+        const newIds = new Set(newSessions.map((s) => s.id));
+
+        // Detect sessions that just became inactive (checked out)
+        const removedIds = [...prevActiveIdsRef.current].filter((id) => !newIds.has(id));
+
+        if (removedIds.length > 0 && prevActiveIdsRef.current.size > 0) {
+          // Fetch completed sessions to find the receipt
+          const completedRes = await fetch("/api/sessions?status=completed");
+          if (completedRes.ok) {
+            const completedData = await completedRes.json();
+            const allCompleted: CompletedSession[] = completedData.sessions ?? [];
+            setCompletedSessions(allCompleted);
+
+            // Find the session that just completed and is unrated
+            const justCompleted = allCompleted.find(
+              (s) => removedIds.includes(s.id) && s.rating === null
+            );
+            if (justCompleted) {
+              setReceiptSession(justCompleted);
+              setCarArrivedAlert(true);
+            }
+          }
+        }
+
+        prevActiveIdsRef.current = newIds;
+        setActiveSessions(newSessions);
       }
     } catch (err) {
       console.error("Failed to fetch active sessions:", err);
@@ -189,11 +223,11 @@ export default function CustomerDashboardPage() {
     fetchCompletedSessions();
   }, [fetchActiveSessions, fetchCompletedSessions]);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 15 seconds (faster to detect checkout quickly)
   React.useEffect(() => {
     const interval = setInterval(() => {
       fetchActiveSessions();
-    }, 30000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [fetchActiveSessions]);
 
@@ -260,7 +294,7 @@ export default function CustomerDashboardPage() {
 
   return (
     <motion.main
-      className="mx-auto max-w-6xl px-4 pb-24 pt-10 text-slate-800 dark:text-slate-100 min-h-screen"
+      className="mx-auto max-w-6xl px-4 pb-24 pt-6 text-slate-800 dark:text-slate-100 min-h-screen"
       variants={container}
       initial="hidden"
       animate="show"
@@ -270,23 +304,23 @@ export default function CustomerDashboardPage() {
       {/* Header with User Info and Logout */}
       <motion.header
         variants={item}
-        className="mb-6 flex items-center justify-between"
+        className="mb-5 flex items-center justify-between gap-3"
       >
-        <div>
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="flex items-center space-x-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-              <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2.5 py-1.5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+              <User className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+              <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
                 Customer
               </span>
             </div>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight dark:text-white">
             Customer Dashboard
           </h1>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Welcome back</p>
+          <p className="mt-0.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">Welcome back</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <DarkModeToggle />
 
           <motion.button
@@ -294,12 +328,10 @@ export default function CustomerDashboardPage() {
             whileTap={{ scale: 0.95 }}
             onClick={handleLogout}
             disabled={isLoggingOut}
-            className="flex items-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
             <LogOut className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              {isLoggingOut ? "Logging out..." : "Logout"}
-            </span>
+            <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
           </motion.button>
         </div>
       </motion.header>
@@ -581,19 +613,21 @@ export default function CustomerDashboardPage() {
 
       {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
       <motion.nav variants={item} className="mt-6">
-        <div className="relative flex items-center gap-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
-              className={`relative w-full rounded-xl px-3 py-2 text-sm font-medium transition ${activeTab === t
-                ? "bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 dark:text-white"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                }`}
-            >
-              {t}
-            </button>
-          ))}
+        <div className="overflow-x-auto scrollbar-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1">
+          <div className="flex gap-1 min-w-max">
+            {tabs.map((t) => (
+              <button
+                key={t}
+                onClick={() => setActiveTab(t)}
+                className={`relative shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition ${activeTab === t
+                  ? "bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 dark:text-white"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </motion.nav>
 
@@ -615,7 +649,241 @@ export default function CustomerDashboardPage() {
           {activeTab === "Payment" && <PaymentTab sessions={completedSessions} />}
         </AnimatePresence>
       </section>
+
+      {/* ── Car arrived alert banner ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {carArrivedAlert && receiptSession && (
+          <motion.div
+            initial={{ opacity: 0, y: 60 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 60 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-4"
+          >
+            <div className="flex items-center gap-3 rounded-2xl bg-emerald-600 px-4 py-3 shadow-2xl text-white">
+              <PartyPopper className="h-5 w-5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold leading-tight">Your car has arrived!</p>
+                <p className="text-xs opacity-80 truncate">{receiptSession.vehicle.license_plate} is at the pickup point</p>
+              </div>
+              <button
+                onClick={() => { setCarArrivedAlert(false); setReceiptSession(receiptSession); }}
+                className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30 transition-colors"
+              >
+                View Receipt
+              </button>
+              <button onClick={() => setCarArrivedAlert(false)} className="shrink-0 opacity-70 hover:opacity-100">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Receipt Modal ────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {receiptSession && !carArrivedAlert && !showRating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-800 shadow-2xl overflow-hidden"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-br from-emerald-500 to-emerald-700 px-6 pt-6 pb-8 text-white text-center">
+                <CheckCircle2 className="h-12 w-12 mx-auto mb-2 opacity-90" />
+                <h2 className="text-xl font-black">Checkout Complete</h2>
+                <p className="text-sm opacity-80 mt-0.5">
+                  {receiptSession.vehicle.license_plate}
+                  {[receiptSession.vehicle.color, receiptSession.vehicle.make, receiptSession.vehicle.model]
+                    .filter(Boolean).length > 0 &&
+                    ` · ${[receiptSession.vehicle.color, receiptSession.vehicle.make, receiptSession.vehicle.model].filter(Boolean).join(" ")}`}
+                </p>
+              </div>
+
+              {/* Receipt body */}
+              <div className="px-6 py-5 space-y-3 text-sm -mt-4">
+                <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 space-y-2.5 shadow-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Venue</span>
+                    <span className="font-semibold dark:text-white">{receiptSession.venue.name}</span>
+                  </div>
+                  {receiptSession.slot?.slot_number && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 dark:text-slate-400">Slot</span>
+                      <span className="font-semibold dark:text-white">{receiptSession.slot.slot_number}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Duration</span>
+                    <span className="font-semibold dark:text-white">{receiptSession.duration ?? "—"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500 dark:text-slate-400">Rate</span>
+                    <span className="font-semibold dark:text-white">PKR {receiptSession.rate_per_hour}/hr</span>
+                  </div>
+                  {receiptSession.exit_time && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500 dark:text-slate-400">Checked out</span>
+                      <span className="font-semibold dark:text-white">
+                        {new Date(receiptSession.exit_time).toLocaleTimeString("en-PK", { hour: "numeric", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">Total</span>
+                    <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                      PKR {receiptSession.total_amount?.toFixed(0) ?? "0"}
+                    </span>
+                  </div>
+                </div>
+
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowRating(true)}
+                  className="w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white hover:bg-sky-700 transition-colors"
+                >
+                  Rate Your Experience
+                </motion.button>
+                <button
+                  onClick={() => { setReceiptSession(null); fetchCompletedSessions(); }}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-600 py-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Rating Modal ─────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {receiptSession && showRating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-800 shadow-2xl p-6 space-y-5"
+            >
+              <div className="text-center">
+                <div className="flex justify-center mb-3">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star key={s} className="h-7 w-7 text-amber-400 fill-amber-400" />
+                  ))}
+                </div>
+                <h2 className="text-lg font-bold dark:text-white">How was your experience?</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{receiptSession.vehicle.license_plate} · {receiptSession.venue.name}</p>
+              </div>
+              <InlineRatingForm
+                sessionId={receiptSession.id}
+                onDone={() => {
+                  setReceiptSession(null);
+                  setShowRating(false);
+                  fetchCompletedSessions();
+                }}
+              />
+              <button
+                onClick={() => { setReceiptSession(null); setShowRating(false); fetchCompletedSessions(); }}
+                className="w-full text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                Skip for now
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.main>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Inline Rating Form (used inside the modal)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function InlineRatingForm({ sessionId, onDone }: { sessionId: string; onDone: () => void }) {
+  const [rating, setRating] = React.useState(0);
+  const [hover, setHover] = React.useState(0);
+  const [comment, setComment] = React.useState("");
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const submit = async () => {
+    if (rating === 0 || submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/rate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, rating_comment: comment || undefined }),
+      });
+      if (res.ok) onDone();
+    } catch {
+      // silent — user can skip
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Stars */}
+      <div className="flex justify-center gap-2">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <button
+            key={s}
+            onMouseEnter={() => setHover(s)}
+            onMouseLeave={() => setHover(0)}
+            onClick={() => setRating(s)}
+            className="p-1 transition-transform hover:scale-110"
+          >
+            <Star
+              className={`h-9 w-9 transition-colors ${
+                s <= (hover || rating) ? "text-amber-400 fill-amber-400" : "text-slate-300 dark:text-slate-600"
+              }`}
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* Labels */}
+      {rating > 0 && (
+        <p className="text-center text-sm font-semibold text-slate-600 dark:text-slate-300">
+          {["", "Poor", "Fair", "Good", "Very Good", "Excellent!"][rating]}
+        </p>
+      )}
+
+      {/* Comment */}
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Any comments? (optional)"
+        rows={2}
+        className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-sky-400 resize-none dark:text-white dark:placeholder-slate-400"
+      />
+
+      <motion.button
+        whileTap={{ scale: 0.98 }}
+        onClick={submit}
+        disabled={rating === 0 || submitting}
+        className="w-full rounded-xl bg-amber-500 py-3 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+      >
+        {submitting ? "Submitting…" : "Submit Rating"}
+      </motion.button>
+    </div>
   );
 }
 
