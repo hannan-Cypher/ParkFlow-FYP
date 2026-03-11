@@ -13,6 +13,7 @@ import {
   HardDrive,
   Clock,
 } from 'lucide-react'
+import DynamicPricingCard from './DynamicPricingCard'
 
 interface SystemStats {
   venues: { total: number; active: number }
@@ -227,6 +228,11 @@ export default function SettingsTab() {
             </motion.div>
           ))}
         </div>
+      </motion.div>
+
+      {/* Dynamic Pricing */}
+      <motion.div variants={itemVariants}>
+        <DynamicPricingCard />
       </motion.div>
 
       {/* Database Info */}

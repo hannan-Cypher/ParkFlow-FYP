@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { calculateDynamicRate } from '@/lib/pricingEngine';
 
 /**
  * POST /api/sessions/checkin
@@ -255,13 +256,16 @@ export async function POST(request: NextRequest) {
         }
 
         // ── 8. Create parking session ───────────────────────────────────────────
-        const ratePerHour = 100;
+        // Calculate dynamic rate (uses venue pricing config + current occupancy)
+        const pricingMeta = await calculateDynamicRate(venue_id);
+        const ratePerHour = pricingMeta.applied_rate;
 
         const sessionResult = await client.query(
             `INSERT INTO parking_sessions
          (vehicle_id, customer_id, venue_id, slot_id, valet_staff_id,
-          entry_plate_confidence, rate_per_hour, customer_notes, status, payment_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'pending')
+          entry_plate_confidence, rate_per_hour, customer_notes, status, payment_status,
+          pricing_metadata)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'pending', $9)
        RETURNING *`,
             [
                 vehicleId,
@@ -272,6 +276,7 @@ export async function POST(request: NextRequest) {
                 entry_plate_confidence ?? null,
                 ratePerHour,
                 customer_notes || null,
+                JSON.stringify(pricingMeta),
             ]
         );
 
@@ -322,6 +327,7 @@ export async function POST(request: NextRequest) {
                     customer: resolvedCustomerId
                         ? { id: resolvedCustomerId }
                         : null,
+                    pricing: pricingMeta,
                 },
             },
             { status: 201 }
