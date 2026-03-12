@@ -4,7 +4,7 @@ const nextConfig = {
   output: 'standalone',
 
   // Allow ngrok tunnel origins in dev mode (prevents cross-origin slowness)
-  allowedDevOrigins: ['*.ngrok-free.app', '*.ngrok.io'],
+  allowedDevOrigins: ['*.ngrok-free.app', '*.ngrok.io', '192.168.18.11'],
 
   images: {
     domains: [],

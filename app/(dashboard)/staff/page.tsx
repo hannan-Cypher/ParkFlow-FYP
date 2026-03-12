@@ -31,8 +31,10 @@ import {
   Truck,
   CheckCircle2 as CircleCheck,
   Ban,
+  Radio,
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import LiveFeedWidget, { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
 
 // ── Animation Presets ────────────────────────────────────────────────────
 const container = {
@@ -549,14 +551,12 @@ function ActiveVehiclesTab({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                    v.retrieval_status === "in_progress" ? "bg-amber-50" :
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${v.retrieval_status === "in_progress" ? "bg-amber-50" :
                     v.retrieval_status === "requested" ? "bg-orange-50" : "bg-sky-50"
-                  }`}>
-                    <Car className={`h-5 w-5 ${
-                      v.retrieval_status === "in_progress" ? "text-amber-600" :
+                    }`}>
+                    <Car className={`h-5 w-5 ${v.retrieval_status === "in_progress" ? "text-amber-600" :
                       v.retrieval_status === "requested" ? "text-orange-600" : "text-sky-600"
-                    }`} />
+                      }`} />
                   </div>
                   <div>
                     <div className="font-bold font-mono tracking-wider dark:text-white">
@@ -681,6 +681,7 @@ function CheckInTab({
   const [anprLoading, setAnprLoading] = React.useState(false);
   const [anprImage, setAnprImage] = React.useState<string | null>(null);
   const [cameraActive, setCameraActive] = React.useState(false);
+  const [scanMode, setScanMode] = React.useState<'livefeed' | 'upload' | 'camera'>('livefeed');
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -871,7 +872,7 @@ function CheckInTab({
 
   // ── Reset ────────────────────────────────────────────────────────────────
   const resetFlow = () => {
-    setStep("scan"); setPlate(""); setAnprImage(null); setErrorMsg("");
+    setStep("scan"); setPlate(""); setAnprImage(null); setErrorMsg(""); setScanMode("livefeed");
     setCustomerPhone(""); setCustomerLookup(null); setSmsSent(false);
     setMake(""); setModel(""); setColor(""); setVehicleType("car");
     setCheckinResult(null); setDamagePhotos([]); setDamageNotes("");
@@ -898,13 +899,12 @@ function CheckInTab({
             <React.Fragment key={s}>
               <div className="flex flex-col items-center gap-1">
                 <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${
-                    i < stepIdx
-                      ? "bg-emerald-500 text-white"
-                      : i === stepIdx
+                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${i < stepIdx
+                    ? "bg-emerald-500 text-white"
+                    : i === stepIdx
                       ? "bg-sky-600 text-white shadow-md ring-2 ring-sky-300"
                       : "bg-slate-200 text-slate-400"
-                  }`}
+                    }`}
                 >
                   {i < stepIdx ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
                 </div>
@@ -924,22 +924,56 @@ function CheckInTab({
       {step === "scan" && (
         <div className="space-y-4">
           <h4 className="text-lg font-bold text-slate-900 dark:text-white">Step 1 — Scan License Plate</h4>
-          <p className="text-sm text-slate-500">Upload a photo or use the camera to auto-detect the plate.</p>
 
-          <div className="flex gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-1">
-            <button onClick={() => { stopCamera(); setAnprImage(null); }}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white">
-              <Upload className="h-4 w-4" /> Upload Image
+          {/* Mode selector */}
+          <div className="flex gap-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-1">
+            <button
+              onClick={() => { stopCamera(); setAnprImage(null); setScanMode('livefeed'); }}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                scanMode === 'livefeed'
+                  ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}>
+              <Radio className="h-3.5 w-3.5" /> Live Feed
             </button>
-            <button onClick={startCamera}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
-              <Camera className="h-4 w-4" /> Use Camera
+            <button
+              onClick={() => { stopCamera(); setAnprImage(null); setScanMode('upload'); }}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                scanMode === 'upload'
+                  ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}>
+              <Upload className="h-3.5 w-3.5" /> Upload
+            </button>
+            <button
+              onClick={() => { setAnprImage(null); setScanMode('camera'); startCamera(); }}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+                scanMode === 'camera'
+                  ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}>
+              <Camera className="h-3.5 w-3.5" /> Camera
             </button>
           </div>
 
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
 
-          {!cameraActive && !anprImage && (
+          {/* ── Live Feed — phone streams via WebRTC, ANPR auto-fills plate ───── */}
+          {scanMode === 'livefeed' && staffVenue?.id && (
+            <WebRTCViewer
+              compact={true}
+              venueId={staffVenue.id}
+              onPlateDetected={(p) => setPlate(p)}
+            />
+          )}
+          {scanMode === 'livefeed' && !staffVenue?.id && (
+            <p className="text-sm text-slate-400 text-center py-8">
+              No venue assigned — cannot start live feed.
+            </p>
+          )}
+
+          {/* ── Upload ───────────────────────────────────────────────────────── */}
+          {scanMode === 'upload' && !anprImage && (
             <button onClick={() => fileInputRef.current?.click()}
               className="flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 py-12 text-slate-500 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-600">
               <ImageIcon className="h-10 w-10" />
@@ -948,10 +982,11 @@ function CheckInTab({
             </button>
           )}
 
-          {cameraActive && (
+          {/* ── Local camera ─────────────────────────────────────────────────── */}
+          {scanMode === 'camera' && cameraActive && (
             <div className="space-y-3">
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900">
-                <video ref={videoRef} className="w-full" playsInline muted autoPlay />
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 aspect-[9/16]">
+                <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay />
                 <div className="absolute inset-0 pointer-events-none border-2 border-sky-400/50 rounded-2xl" />
               </div>
               <canvas ref={canvasRef} className="hidden" />
@@ -1093,17 +1128,17 @@ function CheckInTab({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Make</label>
-              <input value={make} onChange={(e) => setMake(e.target.value)} placeholder="e.g. Toyota"
+              <input value={make} onChange={(e) => setMake(e.target.value)} placeholder="e.g. Mercedes"
                 className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
             </div>
             <div>
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Model</label>
-              <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. Corolla"
+              <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. C-Class"
                 className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
             </div>
             <div>
               <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Color</label>
-              <input value={color} onChange={(e) => setColor(e.target.value)} placeholder="e.g. White"
+              <input value={color} onChange={(e) => setColor(e.target.value)} placeholder="e.g. Black"
                 className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
             </div>
             <div>
@@ -1300,8 +1335,8 @@ function CheckInTab({
               {uploadingDamage
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</>
                 : damagePhotos.length > 0
-                ? <><CheckCircle2 className="h-4 w-4" /> Save {damagePhotos.length} Photo{damagePhotos.length > 1 ? "s" : ""}</>
-                : <>Done — No Damage</>}
+                  ? <><CheckCircle2 className="h-4 w-4" /> Save {damagePhotos.length} Photo{damagePhotos.length > 1 ? "s" : ""}</>
+                  : <>Done — No Damage</>}
             </motion.button>
           </div>
         </div>
@@ -1803,11 +1838,10 @@ function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
                 <button
                   key={s.id}
                   onClick={() => setSelected(s)}
-                  className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-sm text-left transition ${
-                    selected?.id === s.id
-                      ? "border-sky-500 bg-sky-50 dark:bg-sky-950/30"
-                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-sky-300"
-                  }`}
+                  className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-sm text-left transition ${selected?.id === s.id
+                    ? "border-sky-500 bg-sky-50 dark:bg-sky-950/30"
+                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-sky-300"
+                    }`}
                 >
                   <span className="font-bold font-mono">{s.vehicle.license_plate}</span>
                   <span className="text-slate-500 dark:text-slate-400">{s.duration} • {s.slot.slot_number}</span>
@@ -1835,10 +1869,9 @@ function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
                   </div>
                 </div>
                 {selected.retrieval_status && (
-                  <span className={`ml-auto text-xs rounded-full px-2 py-0.5 font-medium ${
-                    selected.retrieval_status === "in_progress" ? "bg-amber-100 text-amber-700" :
+                  <span className={`ml-auto text-xs rounded-full px-2 py-0.5 font-medium ${selected.retrieval_status === "in_progress" ? "bg-amber-100 text-amber-700" :
                     selected.retrieval_status === "requested" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"
-                  }`}>
+                    }`}>
                     {selected.retrieval_status === "in_progress" ? "In Transit" : selected.retrieval_status}
                   </span>
                 )}
@@ -1970,13 +2003,12 @@ function QuickAction({
       whileTap={{ scale: 0.995 }}
       animate="rest"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition ${
-        intent === "primary"
-          ? "border-sky-600 bg-sky-600 text-white shadow-sm hover:bg-sky-700"
-          : intent === "checkout"
+      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-2.5 text-left text-sm font-medium transition ${intent === "primary"
+        ? "border-sky-600 bg-sky-600 text-white shadow-sm hover:bg-sky-700"
+        : intent === "checkout"
           ? "border-emerald-600 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
           : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
-      }`}
+        }`}
     >
       <Icon className="h-4 w-4" />
       <span className="flex-1">{label}</span>

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     // Check if session is valid and get actual role from database
     const result = await pool.query(
-      `SELECT u.id, u.email, u.full_name, u.phone, u.role 
+      `SELECT u.id, u.email, u.full_name, u.phone, u.role, u.venue_id
        FROM users u
        INNER JOIN sessions s ON u.id = s.user_id
        WHERE s.token = $1 AND s.expires_at > NOW()`,
@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
           email: user.email,
           fullName: user.full_name,
           phone: user.phone,
-          role: user.role, // Use actual role from database, no default
+          role: user.role,
+          venueId: user.venue_id ?? null,
         },
       },
       { status: 200 }
