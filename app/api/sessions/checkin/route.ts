@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { calculateDynamicRate } from '@/lib/pricingEngine';
 
+// ── SMS Code Generation ─────────────────────────────────────────────────────
+// 4-char alphanumeric, uppercase, avoids ambiguous characters (0/O, 1/I/L, 5/S, 8/B)
+const SAFE_CHARS = '2346799ACDEFGHJKMNPQRTUVWXYZ';
+
+function generateSmsCode(): string {
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    code += SAFE_CHARS[Math.floor(Math.random() * SAFE_CHARS.length)];
+  }
+  return code;
+}
+
 /**
  * POST /api/sessions/checkin
  *
@@ -68,7 +80,7 @@ export async function POST(request: NextRequest) {
 
         // ── 1. Check venue exists ───────────────────────────────────────────────
         const venueResult = await client.query(
-            'SELECT id, name FROM venues WHERE id = $1',
+            'SELECT id, name, address, contact_phone FROM venues WHERE id = $1',
             [venue_id]
         );
         const venue = venueResult.rows[0];
@@ -260,12 +272,23 @@ export async function POST(request: NextRequest) {
         const pricingMeta = await calculateDynamicRate(venue_id);
         const ratePerHour = pricingMeta.applied_rate;
 
+        // Generate a unique 4-char SMS code (retry up to 3 times on collision)
+        let smsCode = generateSmsCode();
+        for (let attempt = 0; attempt < 3; attempt++) {
+            const collision = await client.query(
+                `SELECT 1 FROM parking_sessions WHERE sms_code = $1 AND status = 'active' LIMIT 1`,
+                [smsCode]
+            );
+            if (collision.rows.length === 0) break;
+            smsCode = generateSmsCode();
+        }
+
         const sessionResult = await client.query(
             `INSERT INTO parking_sessions
          (vehicle_id, customer_id, venue_id, slot_id, valet_staff_id,
           entry_plate_confidence, rate_per_hour, customer_notes, status, payment_status,
-          pricing_metadata)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'pending', $9)
+          pricing_metadata, sms_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'pending', $9, $10)
        RETURNING *`,
             [
                 vehicleId,
@@ -277,10 +300,25 @@ export async function POST(request: NextRequest) {
                 ratePerHour,
                 customer_notes || null,
                 JSON.stringify(pricingMeta),
+                smsCode,
             ]
         );
 
         const session = sessionResult.rows[0];
+
+        // ── Fetch customer name/phone for the response ──────────────────────────
+        let customerName: string | null = null;
+        let customerPhone: string | null = customer_phone || null;
+        if (resolvedCustomerId) {
+            const custResult = await client.query(
+                'SELECT full_name, phone FROM users WHERE id = $1',
+                [resolvedCustomerId]
+            );
+            if (custResult.rows.length > 0) {
+                customerName = custResult.rows[0].full_name ?? null;
+                customerPhone = customerPhone ?? custResult.rows[0].phone ?? null;
+            }
+        }
 
         // ── 9. Set qr_code = session id (for QR display) ────────────────────────
         await client.query(
@@ -297,11 +335,27 @@ export async function POST(request: NextRequest) {
                 message: 'Vehicle checked in successfully',
                 session: {
                     id: session.id,
+                    qr_code: session.id,
+                    license_plate: plate,
                     status: session.status,
+                    payment_status: session.payment_status,
                     entry_time: session.entry_time,
                     rate_per_hour: Number(session.rate_per_hour),
-                    qr_code: session.id,
+                    sms_code: session.sms_code,
                     allocation_method: allocationMethod,
+                    // Flat fields for easy access in the success screen
+                    venue_name: venue.name,
+                    venue_address: venue.address ?? null,
+                    venue_phone: venue.contact_phone ?? null,
+                    slot_number: slot.slot_number,
+                    floor_level: slot.floor_level ?? null,
+                    zone: slot.zone ?? null,
+                    customer_id: resolvedCustomerId,
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
+                    valet_staff_id: assignedStaffId,
+                    valet_staff_name: assignedStaffName,
+                    // Nested objects (kept for backward compatibility)
                     vehicle: {
                         id: vehicleId,
                         license_plate: plate,
@@ -320,14 +374,21 @@ export async function POST(request: NextRequest) {
                     venue: {
                         id: venue.id,
                         name: venue.name,
+                        address: venue.address ?? null,
+                        phone: venue.contact_phone ?? null,
                     },
                     staff: assignedStaffId
                         ? { id: assignedStaffId, name: assignedStaffName }
                         : null,
                     customer: resolvedCustomerId
-                        ? { id: resolvedCustomerId }
+                        ? {
+                              id: resolvedCustomerId,
+                              name: customerName,
+                              phone: customerPhone,
+                          }
                         : null,
                     pricing: pricingMeta,
+                    pricing_metadata: pricingMeta,
                 },
             },
             { status: 201 }

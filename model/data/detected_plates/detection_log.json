@@ -26983,5 +26983,48 @@
       429,
       925
     ]
+  },
+  {
+    "plate_id": 652,
+    "timestamp": "2026-03-12T16:08:20.075932",
+    "detection_confidence": 0.5078742504119873,
+    "ocr_text": "KB-291",
+    "ocr_confidence": 0.41240930557250977,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 841.8,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "KB291",
+        "cleaned": "KB-291",
+        "validated": "KB-291",
+        "confidence": 0.4124,
+        "elapsed_ms": 6.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "",
+        "cleaned": "UNREADABLE",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 835.4
+      },
+      "split_combined": {
+        "raw": "",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 0.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 841.8
+    },
+    "plate_filename": "plate_652_20260312_160819_KB-291_conf51%.jpg",
+    "full_frame_filename": "frame_20260312_160819.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      212,
+      0,
+      464,
+      70
+    ]
   }
 ]

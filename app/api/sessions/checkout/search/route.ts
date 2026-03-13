@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Normalise plate: uppercase, strip spaces
-        const normalizedPlate = q.toUpperCase().replace(/\s+/g, '');
+        // Normalise query: uppercase, strip spaces
+        const normalizedQ = q.toUpperCase().replace(/\s+/g, '');
 
         const result = await pool.query(
             `SELECT
@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
                 ps.entry_time,
                 ps.rate_per_hour,
                 ps.retrieval_status,
+                ps.sms_code,
                 v.license_plate,
                 v.make,
                 v.model,
@@ -50,10 +51,11 @@ export async function GET(request: NextRequest) {
                AND (
                  UPPER(REPLACE(v.license_plate, ' ', '')) = $1
                  OR cu.phone = $2
+                 OR UPPER(ps.sms_code) = $1
                )
              ORDER BY ps.entry_time DESC
              LIMIT 5`,
-            [normalizedPlate, q]
+            [normalizedQ, q]
         );
 
         if (result.rows.length === 0) {
@@ -73,6 +75,7 @@ export async function GET(request: NextRequest) {
                 entry_time: row.entry_time,
                 rate_per_hour: Number(row.rate_per_hour),
                 retrieval_status: row.retrieval_status || null,
+                sms_code: row.sms_code || null,
                 duration: durationDisplay,
                 duration_hours: Number(durationHours.toFixed(2)),
                 billed_hours: billedHours,

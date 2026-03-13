@@ -481,8 +481,8 @@ export default function LocationsTab() {
                                     {[
                                         { icon: Hash, label: 'Total Slots', value: loc.total_slots, color: 'text-sky-600' },
                                         { icon: DoorOpen, label: 'Gates', value: loc.gate_count ?? loc.gates, color: 'text-violet-600' },
-                                        { icon: Phone, label: 'Phone', value: loc.contact_phone || '—', color: 'text-slate-700' },
-                                        { icon: Mail, label: 'Email', value: loc.contact_email || '—', color: 'text-slate-700' },
+                                        { icon: Phone, label: 'Phone', value: loc.contact_phone || '—', color: 'text-black dark:text-white' },
+                                        { icon: Mail, label: 'Email', value: loc.contact_email || '—', color: 'text-black dark:text-white' },
                                     ].map(({ icon: Icon, label, value, color }) => (
                                         <div key={label} className="flex flex-col gap-0.5 px-6 py-4">
                                             <div className={`flex items-center gap-1.5 ${color}`}><Icon className="w-3.5 h-3.5 shrink-0" /><span className="text-xs font-semibold uppercase tracking-wide opacity-70">{label}</span></div>

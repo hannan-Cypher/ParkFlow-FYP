@@ -174,7 +174,78 @@ export default function CameraPage() {
         }
     }, [stopAnpr])
 
-    // ── Start streaming ──────────────────────────────────────────────────────
+    // ── WebRTC connect ────────────────────────────────────────────────────────
+    const connectWebRTC = useCallback(async () => {
+        const vid = venueIdRef.current
+        if (!vid || !streamRef.current) return
+
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+        if (pcRef.current) { pcRef.current.close(); pcRef.current = null }
+
+        await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, { method: 'DELETE' }).catch(() => { })
+
+        const pc = new RTCPeerConnection(RTC_CONFIG)
+        pcRef.current = pc
+        streamRef.current.getTracks().forEach(track => pc.addTrack(track, streamRef.current!))
+
+        pc.onicecandidate = async ({ candidate }) => {
+            if (candidate) {
+                await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'phone-ice', candidate: candidate.toJSON() }),
+                }).catch(() => { })
+            }
+        }
+
+        pc.onconnectionstatechange = () => {
+            const s = pc.connectionState
+            if (s === 'connected') setStatus('streaming')
+            if (s === 'disconnected' || s === 'failed' || s === 'closed') {
+                setStatus('connecting')
+                // Reconnect WebRTC automatically in the background
+                setTimeout(connectWebRTC, 2000)
+            }
+        }
+
+        try {
+            const offer = await pc.createOffer()
+            await pc.setLocalDescription(offer)
+            await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'offer', sdp: pc.localDescription }),
+            })
+        } catch (e) {
+            console.error('Failed to create offer', e)
+        }
+
+        const appliedIce = new Set<string>()
+        pollRef.current = setInterval(async () => {
+            if (!pcRef.current) return
+            try {
+                const res = await fetch(
+                    `/api/signal?role=phone&venueId=${encodeURIComponent(vid)}`
+                )
+                const data = await res.json()
+
+                if (data.answer && pcRef.current.remoteDescription === null) {
+                    await pcRef.current.setRemoteDescription(data.answer)
+                }
+                for (const ice of data.ice ?? []) {
+                    const key = JSON.stringify(ice)
+                    if (!appliedIce.has(key)) {
+                        appliedIce.add(key)
+                        await pcRef.current.addIceCandidate(ice).catch(() => { })
+                    }
+                }
+            } catch {
+                // Network hiccup — keep polling
+            }
+        }, 500)
+    }, [])
+
+    // ── Start streaming (Camera + WebRTC) ────────────────────────────────────
     const startStreaming = useCallback(async () => {
         try {
             setStatus('connecting')
@@ -194,9 +265,6 @@ export default function CameraPage() {
                     !['localhost', '127.0.0.1'].includes(window.location.hostname)
                 throw new Error(isHttp ? 'HTTPS_REQUIRED' : 'Camera API not supported in this browser.')
             }
-
-            // Reset signaling for this venue
-            await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, { method: 'DELETE' })
 
             // Access rear camera
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -231,66 +299,18 @@ export default function CameraPage() {
                 // Zoom constraints not supported on this browser/device — ignore
             }
 
-            // Start ANPR as soon as the camera is live (before WebRTC connects)
+            // Start ANPR as soon as the camera is live
             startAnpr()
 
-            const pc = new RTCPeerConnection(RTC_CONFIG)
-            pcRef.current = pc
-            stream.getTracks().forEach(track => pc.addTrack(track, stream))
+            // Establish the WebRTC connection
+            connectWebRTC()
 
-            pc.onicecandidate = async ({ candidate }) => {
-                if (candidate) {
-                    await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type: 'phone-ice', candidate: candidate.toJSON() }),
-                    }).catch(() => { })
-                }
-            }
-
-            pc.onconnectionstatechange = () => {
-                const s = pc.connectionState
-                if (s === 'connected') setStatus('streaming')
-                if (s === 'disconnected' || s === 'failed' || s === 'closed') setStatus('idle')
-            }
-
-            const offer = await pc.createOffer()
-            await pc.setLocalDescription(offer)
-            await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: 'offer', sdp: pc.localDescription }),
-            })
-
-            const appliedIce = new Set<string>()
-            pollRef.current = setInterval(async () => {
-                if (!pcRef.current) return
-                try {
-                    const res = await fetch(
-                        `/api/signal?role=phone&venueId=${encodeURIComponent(vid)}`
-                    )
-                    const data = await res.json()
-
-                    if (data.answer && pcRef.current.remoteDescription === null) {
-                        await pcRef.current.setRemoteDescription(data.answer)
-                    }
-                    for (const ice of data.ice ?? []) {
-                        const key = JSON.stringify(ice)
-                        if (!appliedIce.has(key)) {
-                            appliedIce.add(key)
-                            await pcRef.current.addIceCandidate(ice).catch(() => { })
-                        }
-                    }
-                } catch {
-                    // Network hiccup — keep polling
-                }
-            }, 500)
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Failed to access camera'
             setError(msg)
             setStatus('error')
         }
-    }, [startAnpr])
+    }, [startAnpr, connectWebRTC])
 
     const stopStreaming = useCallback(async () => {
         await cleanup()
@@ -369,8 +389,8 @@ export default function CameraPage() {
                                 >
                                     <div
                                         className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${selectedVenueId === venue.id
-                                                ? 'border-sky-500 bg-sky-500'
-                                                : 'border-slate-600'
+                                            ? 'border-sky-500 bg-sky-500'
+                                            : 'border-slate-600'
                                             }`}
                                     >
                                         {selectedVenueId === venue.id && (
@@ -463,11 +483,10 @@ export default function CameraPage() {
                                 <button
                                     key={z}
                                     onClick={() => switchZoom(z)}
-                                    className={`w-11 h-11 rounded-full font-bold text-sm transition-all active:scale-90 ${
-                                        selectedZoom === z
+                                    className={`w-11 h-11 rounded-full font-bold text-sm transition-all active:scale-90 ${selectedZoom === z
                                             ? 'bg-white text-black shadow-lg'
                                             : 'bg-black/60 text-white border border-white/30 backdrop-blur-sm'
-                                    }`}
+                                        }`}
                                 >
                                     {z}x
                                 </button>

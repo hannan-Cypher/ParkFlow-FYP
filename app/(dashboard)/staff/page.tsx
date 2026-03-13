@@ -35,6 +35,14 @@ import {
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import LiveFeedWidget, { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
+import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
+import PhoneInput from "@/components/staff/PhoneInput";
+import CustomerLookupResult from "@/components/staff/CustomerLookupResult";
+import CheckInStepIndicator from "@/components/staff/CheckInStepIndicator";
+import {
+  buildWhatsAppTicketLink,
+  buildWhatsAppReturningLink,
+} from "@/lib/whatsapp";
 
 // ── Animation Presets ────────────────────────────────────────────────────
 const container = {
@@ -113,6 +121,30 @@ interface VenueOption {
   name: string;
   city: string;
 }
+
+// ── Check-In Step type (shared with components) ────────────────────────────
+type CheckInWizardStep =
+  | "scan"
+  | "phone"
+  | "details"
+  | "confirm"
+  | "slot"
+  | "damage"
+  | "done";
+
+// Maps wizard steps to the CheckInStepIndicator steps
+const WIZARD_TO_INDICATOR: Record<
+  CheckInWizardStep,
+  "scan" | "customer" | "vehicle" | "confirm" | "success"
+> = {
+  scan: "scan",
+  phone: "customer",
+  details: "vehicle",
+  confirm: "confirm",
+  slot: "success",
+  damage: "success",
+  done: "success",
+};
 
 // ── Tabs ─────────────────────────────────────────────────────────────────
 const tabs = ["Active Vehicles", "Check-In", "Check-Out", "Tasks", "Performance"] as const;
@@ -647,21 +679,25 @@ type CheckInStep =
 
 interface CustomerLookup {
   found: boolean;
-  customer?: {
+  isReturning: boolean;
+  customer: {
     id: string;
     full_name: string;
     phone: string;
-    session_count: number;
-    last_visit: string | null;
-    vehicles: Array<{
-      id: string;
-      license_plate: string;
-      make: string | null;
-      model: string | null;
-      color: string | null;
-      vehicle_type: string;
-    }>;
-  };
+    email?: string;
+    total_visits: number;
+    active_sessions?: number;
+    last_visit?: string | null;
+  } | null;
+  vehicle: {
+    id?: string;
+    license_plate: string;
+    make: string | null;
+    model: string | null;
+    color: string | null;
+    year?: number | null;
+    vehicle_type: string;
+  } | null;
 }
 
 function CheckInTab({
@@ -688,8 +724,14 @@ function CheckInTab({
 
   // Step 2 — Phone lookup
   const [customerPhone, setCustomerPhone] = React.useState("");
+  const [normalizedPhone, setNormalizedPhone] = React.useState("");
   const [lookupLoading, setLookupLoading] = React.useState(false);
   const [customerLookup, setCustomerLookup] = React.useState<CustomerLookup | null>(null);
+  const [isReturning, setIsReturning] = React.useState(false);
+  const lookupAbortRef = React.useRef<AbortController | null>(null);
+
+  // WhatsApp
+  const [whatsappSent, setWhatsappSent] = React.useState(false);
 
   // Step 3 — Vehicle details
   const [make, setMake] = React.useState("");
@@ -774,31 +816,47 @@ function CheckInTab({
     reader.readAsDataURL(file);
   }, [runAnpr]);
 
-  // ── Phone lookup ────────────────────────────────────────────────────────
-  const handlePhoneLookup = React.useCallback(async () => {
-    const phone = customerPhone.trim();
-    if (!phone) return;
+  // ── Phone lookup (called when PhoneInput fires onValidNumber) ────────────
+  const handleValidPhone = React.useCallback(async (normalized: string) => {
+    setNormalizedPhone(normalized);
     setLookupLoading(true);
     setCustomerLookup(null);
+
+    // Cancel any in-flight request
+    if (lookupAbortRef.current) lookupAbortRef.current.abort();
+    lookupAbortRef.current = new AbortController();
+
     try {
-      const res = await fetch(`/api/customers/lookup?phone=${encodeURIComponent(phone)}`);
+      const params = new URLSearchParams({ phone: normalized });
+      if (plate) params.set("plate", plate);
+      const res = await fetch(`/api/customers/lookup?${params}`, {
+        signal: lookupAbortRef.current.signal,
+      });
       const data: CustomerLookup = await res.json();
       setCustomerLookup(data);
-      // If returning customer with vehicle matching detected plate, pre-fill details
-      if (data.found && data.customer) {
-        const matchingVehicle = data.customer.vehicles.find(
-          (v) => v.license_plate === plate
-        );
-        if (matchingVehicle) {
-          if (matchingVehicle.make) setMake(matchingVehicle.make);
-          if (matchingVehicle.model) setModel(matchingVehicle.model);
-          if (matchingVehicle.color) setColor(matchingVehicle.color);
-          setVehicleType(matchingVehicle.vehicle_type || "car");
-        }
+      setIsReturning(data.isReturning ?? false);
+
+      // Auto-fill vehicle details from plate lookup or customer vehicle
+      if (data.vehicle) {
+        if (data.vehicle.make) setMake(data.vehicle.make);
+        if (data.vehicle.model) setModel(data.vehicle.model);
+        if (data.vehicle.color) setColor(data.vehicle.color);
+        setVehicleType(data.vehicle.vehicle_type || "car");
       }
-    } catch { console.error("Phone lookup failed"); }
-    finally { setLookupLoading(false); }
-  }, [customerPhone, plate]);
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== "AbortError") {
+        console.error("Phone lookup failed", e);
+      }
+    } finally {
+      setLookupLoading(false);
+    }
+  }, [plate]);
+
+  // Kept for the manual lookup button (backward compat)
+  const handlePhoneLookup = React.useCallback(async () => {
+    if (!customerPhone.trim()) return;
+    handleValidPhone(customerPhone.trim());
+  }, [customerPhone, handleValidPhone]);
 
   // ── Check-in submit ─────────────────────────────────────────────────────
   const handleCheckin = React.useCallback(async () => {
@@ -873,16 +931,12 @@ function CheckInTab({
   // ── Reset ────────────────────────────────────────────────────────────────
   const resetFlow = () => {
     setStep("scan"); setPlate(""); setAnprImage(null); setErrorMsg(""); setScanMode("livefeed");
-    setCustomerPhone(""); setCustomerLookup(null); setSmsSent(false);
+    setCustomerPhone(""); setNormalizedPhone(""); setCustomerLookup(null); setSmsSent(false);
+    setIsReturning(false); setWhatsappSent(false);
     setMake(""); setModel(""); setColor(""); setVehicleType("car");
     setCheckinResult(null); setDamagePhotos([]); setDamageNotes("");
     setDamageUploaded(false); stopCamera();
   };
-
-  // ── Progress bar (steps 1-4 only, pre-submission) ───────────────────────
-  const PRE_STEPS: CheckInStep[] = ["scan", "phone", "details", "confirm"];
-  const stepIdx = PRE_STEPS.indexOf(step);
-  const STEP_LABELS = ["Scan", "Customer", "Details", "Confirm"];
 
   return (
     <motion.div
@@ -892,32 +946,14 @@ function CheckInTab({
       exit={{ opacity: 0, y: -8 }}
       transition={{ type: "spring", stiffness: 180, damping: 18 }}
     >
-      {/* Progress bar — only during pre-submission steps */}
-      {["scan", "phone", "details", "confirm"].includes(step) && (
-        <div className="mb-6 flex items-center justify-center gap-1">
-          {PRE_STEPS.map((s, i) => (
-            <React.Fragment key={s}>
-              <div className="flex flex-col items-center gap-1">
-                <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all ${i < stepIdx
-                    ? "bg-emerald-500 text-white"
-                    : i === stepIdx
-                      ? "bg-sky-600 text-white shadow-md ring-2 ring-sky-300"
-                      : "bg-slate-200 text-slate-400"
-                    }`}
-                >
-                  {i < stepIdx ? <CheckCircle2 className="h-3.5 w-3.5" /> : i + 1}
-                </div>
-                <span className={`text-[10px] font-medium ${i === stepIdx ? "text-sky-600" : "text-slate-400"}`}>
-                  {STEP_LABELS[i]}
-                </span>
-              </div>
-              {i < 3 && (
-                <div className={`mb-4 h-0.5 w-8 transition-all ${i < stepIdx ? "bg-emerald-400" : "bg-slate-200"}`} />
-              )}
-            </React.Fragment>
-          ))}
-        </div>
+      {/* Step indicator — shown for all steps except damage/done */}
+      {!["damage", "done"].includes(step) && (
+        <CheckInStepIndicator
+          currentStep={WIZARD_TO_INDICATOR[step as CheckInWizardStep]}
+          skippedSteps={
+            isReturning && customerLookup?.vehicle ? ["vehicle"] : []
+          }
+        />
       )}
 
       {/* ══ STEP 1: ANPR Scan ══════════════════════════════════════════════ */}
@@ -1037,74 +1073,80 @@ function CheckInTab({
       {step === "phone" && (
         <div className="space-y-4">
           <h4 className="text-lg font-bold text-slate-900 dark:text-white">Step 2 — Customer Phone</h4>
-          <p className="text-sm text-slate-500">Ask the customer for their phone number to send the QR code and identify returning customers.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Ask the customer for their phone number to identify them and send the WhatsApp ticket.
+          </p>
 
           {/* Plate badge */}
-          <div className="rounded-2xl bg-sky-50 border border-sky-200 p-3 flex items-center gap-3">
-            <Car className="h-5 w-5 text-sky-600 shrink-0" />
-            <span className="text-lg font-bold font-mono tracking-widest text-sky-900">{plate}</span>
+          <div className="rounded-2xl bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 p-3 flex items-center gap-3">
+            <Car className="h-5 w-5 text-sky-600 dark:text-sky-400 shrink-0" />
+            <span className="text-lg font-bold font-mono tracking-widest text-sky-900 dark:text-sky-300">{plate}</span>
+            <button
+              onClick={() => setStep("scan")}
+              className="ml-auto text-xs text-sky-600 dark:text-sky-400 hover:underline"
+            >
+              Edit
+            </button>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Phone Number</label>
-            <div className="flex gap-2">
-              <input
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Customer Phone Number
+            </label>
+            <div className="relative">
+              <PhoneInput
                 value={customerPhone}
-                onChange={(e) => { setCustomerPhone(e.target.value); setCustomerLookup(null); }}
-                onKeyDown={(e) => e.key === "Enter" && handlePhoneLookup()}
-                placeholder="+92 300 1234567"
-                type="tel"
-                className="flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none"
+                onChange={(v) => {
+                  setCustomerPhone(v);
+                  setCustomerLookup(null);
+                  setIsReturning(false);
+                }}
+                onValidNumber={handleValidPhone}
+                autoFocus
               />
-              <motion.button whileTap={{ scale: 0.97 }} onClick={handlePhoneLookup} disabled={!customerPhone.trim() || lookupLoading}
-                className="flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50">
-                {lookupLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
-                {lookupLoading ? "" : "Lookup"}
-              </motion.button>
             </div>
           </div>
 
-          {/* Lookup result */}
-          {customerLookup && (
-            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-              className={`rounded-2xl border p-4 space-y-2 ${customerLookup.found ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
-              {customerLookup.found && customerLookup.customer ? (
-                <>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-emerald-600" />
-                    <span className="text-sm font-bold text-emerald-800">Returning Customer</span>
-                    <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 font-medium">
-                      {customerLookup.customer.session_count} visit{customerLookup.customer.session_count !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <p className="text-sm font-semibold text-emerald-900">{customerLookup.customer.full_name}</p>
-                  {customerLookup.customer.last_visit && (
-                    <p className="text-xs text-emerald-700">
-                      Last visit: {new Date(customerLookup.customer.last_visit).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" })}
-                    </p>
-                  )}
-                  {customerLookup.customer.vehicles.some((v) => v.license_plate === plate) && (
-                    <p className="text-xs text-emerald-600 font-medium">✓ Vehicle {plate} recognised — details pre-filled</p>
-                  )}
-                </>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm font-medium text-amber-800">Walk-in customer — no account found for this number</span>
-                </div>
-              )}
-            </motion.div>
-          )}
+          {/* Live lookup result */}
+          <CustomerLookupResult
+            isLoading={lookupLoading}
+            result={customerLookup}
+            onNewCustomerNameChange={() => {/* name collected via lookup */}}
+          />
 
           <div className="flex gap-2">
-            <button onClick={() => setStep("scan")}
-              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+            <button
+              onClick={() => setStep("scan")}
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            >
               Back
             </button>
-            <motion.button whileTap={{ scale: 0.98 }}
-              onClick={() => setStep("details")}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700">
-              {customerPhone.trim() ? "Next: Vehicle Details" : "Skip →"} <ChevronRight className="h-4 w-4" />
+            <button
+              onClick={() => {
+                // Skip phone — guest check-in
+                setCustomerPhone("");
+                setNormalizedPhone("");
+                setCustomerLookup(null);
+                setIsReturning(false);
+                setStep("confirm");
+              }}
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 shrink-0"
+            >
+              Skip
+            </button>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                // If returning customer with vehicle info, skip to confirm
+                if (isReturning && customerLookup?.vehicle) {
+                  setStep("confirm");
+                } else {
+                  setStep("details");
+                }
+              }}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700"
+            >
+              Continue <ChevronRight className="h-4 w-4" />
             </motion.button>
           </div>
         </div>
@@ -1263,20 +1305,106 @@ function CheckInTab({
             </p>
           </div>
 
-          {/* SMS confirmation */}
-          {customerPhone && (
-            <div className={`flex items-center gap-3 p-3 rounded-xl text-sm ${smsSent ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-slate-50 border border-slate-200 text-slate-500"}`}>
-              <MessageSquare className="h-4 w-4 shrink-0" />
-              {smsSent
-                ? `SMS with slot info sent to ${customerPhone}`
-                : `Sending SMS to ${customerPhone}…`}
+          {/* QR Ticket */}
+          <AnimatePresence>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
+            >
+              <QRCodeDisplay
+                sessionId={(checkinResult.session as Record<string, unknown>)?.id as string}
+                licensePlate={plate}
+                venueName={((checkinResult.session as Record<string, unknown>)?.venue as Record<string, string>)?.name}
+                entryTime={(checkinResult.session as Record<string, unknown>)?.entry_time as string}
+                slotNumber={((checkinResult.session as Record<string, unknown>)?.slot as Record<string, string>)?.slot_number}
+                size="lg"
+                variant="ticket"
+                showActions={true}
+              />
+              <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-2">
+                Show this QR code to the customer or download and send via SMS
+              </p>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* SMS Code card */}
+          {(checkinResult?.session as Record<string, unknown>)?.sms_code && (
+            <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 text-center">
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">SMS Code (offline backup)</p>
+              <p className="text-2xl font-bold font-mono tracking-[0.3em] text-amber-900 dark:text-amber-200">
+                {(checkinResult!.session as Record<string, unknown>).sms_code as string}
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                Show this code to the valet if you can&apos;t scan the QR
+              </p>
             </div>
           )}
 
-          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setStep("damage")}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700">
-            <Camera className="h-4 w-4" /> Take Damage Photos <ArrowRight className="h-4 w-4" />
-          </motion.button>
+          {/* WhatsApp button */}
+          {normalizedPhone ? (
+            <div className="space-y-2">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  const sess = checkinResult!.session as Record<string, unknown>;
+                  const baseUrl = window.location.origin;
+                  const ticketData = {
+                    sessionId: sess.id as string,
+                    licensePlate: plate,
+                    venueName: (sess.venue_name as string) || ((sess.venue as Record<string, string>)?.name ?? ""),
+                    slotNumber: (sess.slot_number as string) || ((sess.slot as Record<string, string>)?.slot_number),
+                    entryTime: sess.entry_time as string,
+                    ratePerHour: sess.rate_per_hour as number,
+                    smsCode: sess.sms_code as string,
+                    venuePhone: (sess.venue_phone as string) || ((sess.venue as Record<string, string>)?.phone),
+                  };
+                  const link = isReturning
+                    ? buildWhatsAppReturningLink(normalizedPhone, ticketData, baseUrl)
+                    : buildWhatsAppTicketLink(normalizedPhone, ticketData, baseUrl);
+                  window.open(link, "_blank");
+                  setWhatsappSent(true);
+                }}
+                className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 px-6 text-base font-semibold transition-colors ${
+                  whatsappSent
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                    : "bg-green-500 hover:bg-green-600 text-white"
+                }`}
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                {whatsappSent ? "✓ WhatsApp Opened" : "Send Ticket via WhatsApp"}
+              </motion.button>
+              {whatsappSent && (
+                <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                  WhatsApp opened — send the message to the customer.{" "}
+                  <button
+                    onClick={() => setWhatsappSent(false)}
+                    className="text-sky-600 dark:text-sky-400 hover:underline"
+                  >
+                    Send again
+                  </button>
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-sm text-slate-500 dark:text-slate-400">
+              <MessageSquare className="h-4 w-4 shrink-0" />
+              No phone number — hand the QR ticket to the customer directly
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <motion.button whileTap={{ scale: 0.98 }} onClick={() => setStep("damage")}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700">
+              <Camera className="h-4 w-4" /> Damage Photos
+            </motion.button>
+            <button onClick={() => window.print()}
+              className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+              <Receipt className="h-4 w-4" /> Print
+            </button>
+          </div>
           <button onClick={() => setStep("done")}
             className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700">
             Skip Damage Photos
@@ -1895,6 +2023,17 @@ function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
                 <span className="font-semibold dark:text-white">{selected.duration}</span>
                 <span className="text-slate-500 dark:text-slate-400">Billed</span>
                 <span className="font-semibold dark:text-white">{selected.billed_hours}h × PKR {selected.rate_per_hour}</span>
+              </div>
+
+              {/* Compact QR for visual confirmation */}
+              <div className="flex justify-center py-1">
+                <QRCodeDisplay
+                  sessionId={selected.id}
+                  licensePlate={selected.vehicle.license_plate}
+                  size="sm"
+                  variant="compact"
+                  showActions={false}
+                />
               </div>
 
               {/* Total callout */}

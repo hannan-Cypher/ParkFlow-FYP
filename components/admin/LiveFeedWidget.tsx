@@ -90,7 +90,7 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected }: { compact: b
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ type: 'admin-ice', candidate: candidate.toJSON() }),
-                }).catch(() => {})
+                }).catch(() => { })
             }
         }
 
@@ -125,7 +125,7 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected }: { compact: b
                     const key = JSON.stringify(ice)
                     if (!appliedIce.has(key)) {
                         appliedIce.add(key)
-                        await pcRef.current.addIceCandidate(ice).catch(() => {})
+                        await pcRef.current.addIceCandidate(ice).catch(() => { })
                     }
                 }
 
@@ -153,13 +153,13 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected }: { compact: b
 
     const stateLabel =
         connState === 'connected' ? 'Connected' :
-        connState === 'connecting' ? 'Connecting…' :
-        'Waiting for phone'
+            connState === 'connecting' ? 'Connecting…' :
+                'Waiting for phone'
 
     const stateDot =
         connState === 'connected' ? 'bg-emerald-500' :
-        connState === 'connecting' ? 'bg-amber-400 animate-pulse' :
-        'bg-slate-400 animate-pulse'
+            connState === 'connecting' ? 'bg-amber-400 animate-pulse' :
+                'bg-slate-400 animate-pulse'
 
     return (
         <div className="space-y-3">
@@ -190,9 +190,8 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected }: { compact: b
 
             {/* Video + status */}
             <div
-                className={`rounded-2xl border border-slate-200 bg-black overflow-hidden relative min-h-[240px] ${
-                    compact ? 'max-h-[60vh]' : 'max-h-[75vh]'
-                }`}
+                className={`rounded-2xl border border-slate-200 bg-black overflow-hidden relative min-h-[240px] ${compact ? 'max-h-[60vh]' : 'max-h-[75vh]'
+                    }`}
             >
                 {/* Status badge */}
                 <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
@@ -254,11 +253,10 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected }: { compact: b
                                     Open the URL above on your phone, then tap{' '}
                                     <strong className="text-slate-300">Start Streaming</strong>.
                                 </p>
-                                <div className={`mt-3 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full ${
-                                    isListening
+                                <div className={`mt-3 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full ${isListening
                                         ? 'bg-emerald-900/60 text-emerald-400 border border-emerald-700'
                                         : 'bg-slate-800 text-slate-500 border border-slate-700'
-                                }`}>
+                                    }`}>
                                     <div className={`w-1.5 h-1.5 rounded-full ${isListening ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
                                     {isListening ? `Listening · ${pollCount} polls` : 'Not listening'}
                                 </div>
@@ -391,9 +389,8 @@ function MJPEGViewer({ compact }: { compact: boolean }) {
             {/* Feed viewer */}
             {savedUrl ? (
                 <div
-                    className={`rounded-2xl border border-slate-200 bg-black overflow-hidden relative ${
-                        compact ? 'max-h-[300px]' : 'max-h-[500px]'
-                    }`}
+                    className={`rounded-2xl border border-slate-200 bg-black overflow-hidden relative ${compact ? 'max-h-[300px]' : 'max-h-[500px]'
+                        }`}
                 >
                     {/* LIVE badge */}
                     <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
@@ -526,10 +523,20 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                     </h2>
                     {/* Venue pill */}
                     {venueName && (
-                        <span className="flex items-center gap-1 bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 text-xs font-medium px-2 py-1 rounded-full border border-sky-200 dark:border-sky-700">
-                            <MapPin className="w-3 h-3" />
-                            {venueName}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="flex items-center gap-1 bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 text-xs font-medium px-2 py-1 rounded-full border border-sky-200 dark:border-sky-700">
+                                <MapPin className="w-3 h-3" />
+                                {venueName}
+                            </span>
+                            {venues.length > 0 && !needsPicker && (
+                                <button
+                                    onClick={() => { setNeedsPicker(true); setVenueId(''); setVenueName(''); }}
+                                    className="text-xs font-semibold text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 transition-colors underline-offset-2 hover:underline"
+                                >
+                                    Change Location
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -537,22 +544,20 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
                     <button
                         onClick={() => setMode('webrtc')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                            mode === 'webrtc'
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'webrtc'
                                 ? 'bg-white dark:bg-slate-700 text-sky-700 dark:text-sky-400 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                            }`}
                     >
                         <Radio className="w-3 h-3" />
                         WebRTC
                     </button>
                     <button
                         onClick={() => setMode('mjpeg')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                            mode === 'mjpeg'
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'mjpeg'
                                 ? 'bg-white dark:bg-slate-700 text-sky-700 dark:text-sky-400 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700'
-                        }`}
+                            }`}
                     >
                         <Wifi className="w-3 h-3" />
                         MJPEG

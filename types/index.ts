@@ -41,6 +41,7 @@ export interface ParkingSession {
   customer_id: number
   valet_staff_id?: number
   slot_number?: string
+  venue_name?: string
   entry_time: string
   exit_time?: string
   total_hours: number
@@ -49,6 +50,9 @@ export interface ParkingSession {
   cleaning_completed: boolean
   status: "active" | "completed" | "cancelled"
   entry_image_url?: string
+  qr_code?: string
+  retrieval_status?: string | null
+  retrieval_requested_at?: string | null
 }
 
 export interface ANPRResult {

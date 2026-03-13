@@ -34,6 +34,7 @@ import {
   PartyPopper,
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
 
 // ── Animation Presets ───────────────────────────────────────────────────────
 const container = {
@@ -157,6 +158,7 @@ export default function CustomerDashboardPage() {
   const [receiptSession, setReceiptSession] = React.useState<CompletedSession | null>(null);
   const [showRating, setShowRating] = React.useState(false);
   const [carArrivedAlert, setCarArrivedAlert] = React.useState(false);
+  const [showQR, setShowQR] = React.useState<string | null>(null);
 
   React.useEffect(() => setMounted(true), []);
 
@@ -444,20 +446,43 @@ export default function CustomerDashboardPage() {
                       </div>
                     )}
                   </div>
-                  {/* QR Code */}
+                  {/* QR Code toggle */}
                   {currentSession.qr_code && (
-                    <div className="flex flex-col items-center gap-1 shrink-0">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=PARKFLOW:${currentSession.qr_code}&margin=4`}
-                        alt="Session QR Code"
-                        className="w-20 h-20 rounded-lg border border-slate-200"
-                      />
-                      <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                        <QrCode className="w-2.5 h-2.5" /> Retrieval QR
-                      </span>
-                    </div>
+                    <button
+                      onClick={() =>
+                        setShowQR(showQR === currentSession.id ? null : currentSession.id)
+                      }
+                      className="flex flex-col items-center gap-1 shrink-0 text-xs text-slate-500 hover:text-blue-600 transition-colors"
+                    >
+                      <QrCode className="w-6 h-6" />
+                      <span>{showQR === currentSession.id ? "Hide QR" : "Show QR"}</span>
+                    </button>
                   )}
                 </div>
+
+                {/* Expandable QR ticket */}
+                <AnimatePresence>
+                  {showQR === currentSession.id && currentSession.qr_code && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="overflow-hidden pt-4"
+                    >
+                      <QRCodeDisplay
+                        sessionId={currentSession.qr_code}
+                        licensePlate={currentSession.vehicle.license_plate}
+                        venueName={currentSession.venue.name}
+                        entryTime={currentSession.entry_time}
+                        slotNumber={currentSession.slot?.slot_number}
+                        size="md"
+                        variant="ticket"
+                        showActions={true}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
 
