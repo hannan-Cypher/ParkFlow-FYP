@@ -22,11 +22,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     )
   }
 
-  // Hide navbar and footer on dashboard routes
+  // Hide navbar and footer on dashboard, auth, and ticket routes
   const isDashboardRoute = pathname?.startsWith('/dashboard') ||
     pathname?.startsWith('/admin') ||
     pathname?.startsWith('/staff') ||
-    pathname?.startsWith('/customer')
+    pathname?.startsWith('/customer') ||
+    pathname?.startsWith('/login') ||
+    pathname?.startsWith('/register') ||
+    pathname?.startsWith('/signup') ||
+    pathname?.startsWith('/ticket')
 
   if (isDashboardRoute) {
     return (

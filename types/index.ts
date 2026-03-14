@@ -4,24 +4,11 @@ export interface User {
   phone: string
   full_name: string
   role: "customer" | "valet_staff" | "admin" | "super_admin"
-  tenant_id?: number
   loyalty_points?: number
   is_active: boolean
   created_at: string
 }
 
-export interface Tenant {
-  id: number
-  name: string
-  subdomain: string
-  address: string
-  phone: string
-  email: string
-  subscription_plan: "basic" | "premium" | "enterprise"
-  subscription_status: "trial" | "active" | "suspended"
-  total_slots: number
-  is_active: boolean
-}
 
 export interface Vehicle {
   id: number

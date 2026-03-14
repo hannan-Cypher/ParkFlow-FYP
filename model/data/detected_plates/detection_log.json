@@ -27026,5 +27026,349 @@
       464,
       70
     ]
+  },
+  {
+    "plate_id": 653,
+    "timestamp": "2026-03-13T19:58:24.825869",
+    "detection_confidence": 0.8691766262054443,
+    "ocr_text": "AEK-694",
+    "ocr_confidence": 0.9666067957878113,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 2256.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AEK694",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.9666,
+        "elapsed_ms": 72.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AEK894E",
+        "cleaned": "AEK-894",
+        "validated": "AEK-894",
+        "confidence": 0.1606,
+        "elapsed_ms": 1247.4
+      },
+      "split_combined": {
+        "raw": "EAFL2",
+        "validated": "EAFL-2",
+        "confidence": 0.0981,
+        "elapsed_ms": 935.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 2256.9
+    },
+    "plate_filename": "plate_653_20260313_195822_AEK-694_conf87%.jpg",
+    "full_frame_filename": "frame_20260313_195822.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      317,
+      640,
+      472,
+      741
+    ]
+  },
+  {
+    "plate_id": 654,
+    "timestamp": "2026-03-13T19:58:27.083207",
+    "detection_confidence": 0.85936439037323,
+    "ocr_text": "AEK-694",
+    "ocr_confidence": 0.9649443030357361,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1811.8,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AEK694",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.9649,
+        "elapsed_ms": 7.6,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AEK6941STN",
+        "cleaned": "AEK-6941",
+        "validated": "AEK-6941",
+        "confidence": 0.2158,
+        "elapsed_ms": 926.8
+      },
+      "split_combined": {
+        "raw": "EHACH33",
+        "validated": "HACH-33",
+        "confidence": 0.055,
+        "elapsed_ms": 877.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1811.8
+    },
+    "plate_filename": "plate_654_20260313_195825_AEK-694_conf86%.jpg",
+    "full_frame_filename": "frame_20260313_195825.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      382,
+      674,
+      535,
+      777
+    ]
+  },
+  {
+    "plate_id": 655,
+    "timestamp": "2026-03-13T19:58:29.304916",
+    "detection_confidence": 0.8687582612037659,
+    "ocr_text": "AEK-694",
+    "ocr_confidence": 0.963013231754303,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1765.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AEK694",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.963,
+        "elapsed_ms": 7.2,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AEK0941",
+        "cleaned": "AEK-0941",
+        "validated": "AEK-0941",
+        "confidence": 0.4724,
+        "elapsed_ms": 871.1
+      },
+      "split_combined": {
+        "raw": "HAEMHAEHI331",
+        "validated": "AEHI-331",
+        "confidence": 0.0118,
+        "elapsed_ms": 887.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1765.7
+    },
+    "plate_filename": "plate_655_20260313_195827_AEK-694_conf87%.jpg",
+    "full_frame_filename": "frame_20260313_195827.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      349,
+      678,
+      503,
+      784
+    ]
+  },
+  {
+    "plate_id": 656,
+    "timestamp": "2026-03-13T20:20:49.406255",
+    "detection_confidence": 0.9003041386604309,
+    "ocr_text": "LEE-909",
+    "ocr_confidence": 0.8709896206855774,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 514.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LEE9091",
+        "cleaned": "LEE-909",
+        "validated": "LEE-909",
+        "confidence": 0.871,
+        "elapsed_ms": 6.2,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LEE9691",
+        "cleaned": "LEE-969",
+        "validated": "LEE-969",
+        "confidence": 0.881,
+        "elapsed_ms": 248.3
+      },
+      "split_combined": {
+        "raw": "LL9091",
+        "validated": "LL-909",
+        "confidence": 0.4391,
+        "elapsed_ms": 259.8
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 514.5
+    },
+    "plate_filename": "plate_656_20260313_202048_LEE-909_conf90%.jpg",
+    "full_frame_filename": "frame_20260313_202048.jpg",
+    "user_info": "staff",
+    "coordinates": [
+      114,
+      254,
+      176,
+      296
+    ]
+  },
+  {
+    "plate_id": 657,
+    "timestamp": "2026-03-14T20:58:25.133563",
+    "detection_confidence": 0.9019241333007812,
+    "ocr_text": "AEK-694",
+    "ocr_confidence": 0.969106912612915,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 6118.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AEK694",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.9691,
+        "elapsed_ms": 43.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AEK6941S",
+        "cleaned": "AEK-6941",
+        "validated": "AEK-6941",
+        "confidence": 0.3325,
+        "elapsed_ms": 2572.2
+      },
+      "split_combined": {
+        "raw": "AEIAALOUALL3",
+        "validated": "UALL-3",
+        "confidence": 0.0165,
+        "elapsed_ms": 3500.3
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 6118.2
+    },
+    "plate_filename": "plate_657_20260314_205818_AEK-694_conf90%.jpg",
+    "full_frame_filename": "frame_20260314_205818.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      226,
+      544,
+      458,
+      705
+    ]
+  },
+  {
+    "plate_id": 658,
+    "timestamp": "2026-03-14T20:58:27.298283",
+    "detection_confidence": 0.8902923464775085,
+    "ocr_text": "AEK-694",
+    "ocr_confidence": 0.9681746959686279,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 5533.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AEK694",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.9682,
+        "elapsed_ms": 8.0,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AEK6941SNDA",
+        "cleaned": "AEK-6941",
+        "validated": "AEK-6941",
+        "confidence": 0.3499,
+        "elapsed_ms": 2747.5
+      },
+      "split_combined": {
+        "raw": "LAFEKAOUL5",
+        "validated": "AOUL-5",
+        "confidence": 0.0957,
+        "elapsed_ms": 2778.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 5533.7
+    },
+    "plate_filename": "plate_658_20260314_205821_AEK-694_conf89%.jpg",
+    "full_frame_filename": "frame_20260314_205821.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      215,
+      568,
+      441,
+      720
+    ]
+  },
+  {
+    "plate_id": 659,
+    "timestamp": "2026-03-14T20:58:29.535678",
+    "detection_confidence": 0.8990943431854248,
+    "ocr_text": "AEK-694",
+    "ocr_confidence": 0.9701936841011047,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 5049.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AEK694",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.9702,
+        "elapsed_ms": 8.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AEK694SOL",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 1.0331,
+        "elapsed_ms": 2614.9
+      },
+      "split_combined": {
+        "raw": "AEKEAL3",
+        "validated": "KEAL-3",
+        "confidence": 0.1653,
+        "elapsed_ms": 2425.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 5049.4
+    },
+    "plate_filename": "plate_659_20260314_205824_AEK-694_conf90%.jpg",
+    "full_frame_filename": "frame_20260314_205824.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      220,
+      560,
+      442,
+      709
+    ]
+  },
+  {
+    "plate_id": 660,
+    "timestamp": "2026-03-14T20:58:30.760371",
+    "detection_confidence": 0.896275520324707,
+    "ocr_text": "AEK-694",
+    "ocr_confidence": 0.9712914824485779,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 3854.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AEK694",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.9713,
+        "elapsed_ms": 11.2,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AEK1694ID",
+        "cleaned": "AEK-1694",
+        "validated": "AEK-1694",
+        "confidence": 0.7692,
+        "elapsed_ms": 2492.9
+      },
+      "split_combined": {
+        "raw": "AEKA3",
+        "validated": "AEKA-3",
+        "confidence": 0.0304,
+        "elapsed_ms": 1350.3
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 3854.6
+    },
+    "plate_filename": "plate_660_20260314_205826_AEK-694_conf90%.jpg",
+    "full_frame_filename": "frame_20260314_205826.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      192,
+      524,
+      408,
+      669
+    ]
   }
 ]

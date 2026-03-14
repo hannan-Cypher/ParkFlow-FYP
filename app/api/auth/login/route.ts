@@ -1,91 +1,108 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { verifyPassword, generateToken, getTokenExpiration, isValidEmail } from '@/lib/auth';
+import {
+  verifyPassword,
+  generateToken,
+  getTokenExpiration,
+  detectIdentifierType,
+  normalizePhone,
+} from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    // Accept both { identifier, password } (new) and { email, password } (backward compat)
+    const identifier: string = (body.identifier || body.email || '').trim();
+    const { password } = body;
 
-    // Validation
-    if (!email || !password) {
+    if (!identifier || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Phone/email and password are required' },
         { status: 400 }
       );
     }
 
-    if (!isValidEmail(email)) {
+    const idType = detectIdentifierType(identifier);
+
+    let userResult;
+
+    if (idType === 'email') {
+      userResult = await pool.query(
+        'SELECT id, email, phone, password, full_name, role, is_active FROM users WHERE email = $1',
+        [identifier.toLowerCase()]
+      );
+    } else if (idType === 'phone') {
+      // Try all common normalizations so format mismatches don't block login
+      const normalized = normalizePhone(identifier);
+      // Build variants: normalized (0300...), international (9230...), raw
+      const stripped = identifier.replace(/[\s\-\+\(\)]/g, '');
+      const variants = Array.from(new Set([normalized, stripped, identifier]));
+
+      for (const variant of variants) {
+        userResult = await pool.query(
+          'SELECT id, email, phone, password, full_name, role, is_active FROM users WHERE phone = $1',
+          [variant]
+        );
+        if (userResult.rows.length > 0) break;
+      }
+    } else {
       return NextResponse.json(
-        { error: 'Invalid email format' },
+        { error: 'Please enter a valid email address or phone number' },
         { status: 400 }
       );
     }
 
-    // Find user
-    const result = await pool.query(
-      'SELECT id, email, password, full_name, phone, role FROM users WHERE email = $1',
-      [email.toLowerCase()]
-    );
-
-    if (result.rows.length === 0) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
+    if (!userResult || userResult.rows.length === 0) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    const user = result.rows[0];
+    const user = userResult.rows[0];
 
-    // Verify password
+    if (user.is_active === false) {
+      return NextResponse.json({ error: 'Account is deactivated' }, { status: 403 });
+    }
+
     const isValid = await verifyPassword(password, user.password);
-
     if (!isValid) {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
+
+    // Clear any existing sessions for this user before creating a new one
+    await pool.query('DELETE FROM sessions WHERE user_id = $1', [user.id]);
 
     // Create new session
     const token = generateToken();
     const expiresAt = getTokenExpiration();
-
     await pool.query(
       'INSERT INTO sessions (user_id, token, expires_at) VALUES ($1, $2, $3)',
       [user.id, token, expiresAt]
     );
 
-    // Create response
     const response = NextResponse.json(
       {
         message: 'Login successful',
         user: {
           id: user.id,
           email: user.email,
-          fullName: user.full_name,
           phone: user.phone,
-          role: user.role, // Use actual role from database, no default
+          fullName: user.full_name,
+          role: user.role,
         },
       },
       { status: 200 }
     );
 
-    // Set auth cookie
     response.cookies.set('auth_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 7 * 24 * 60 * 60,
       path: '/',
     });
 
     return response;
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

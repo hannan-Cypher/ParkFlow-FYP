@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
 
         if (user) {
             if (user.role === 'customer') {
-                // Customer: only their vehicles (via vehicle owner_id)
-                whereConditions += ` AND v.owner_id = $${paramIndex}`;
+                // Customer: sessions where they are the registered vehicle owner OR the session customer
+                whereConditions += ` AND (v.owner_id = $${paramIndex} OR ps.customer_id = $${paramIndex})`;
                 params.push(user.id);
                 paramIndex++;
             } else if (user.role === 'valet_staff') {
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
         staff.full_name AS staff_name,
         cust.full_name  AS customer_name
       FROM parking_sessions ps
-      JOIN vehicles v      ON v.id  = ps.vehicle_id
+      LEFT JOIN vehicles v ON v.id  = ps.vehicle_id
       LEFT JOIN parking_slots sl ON sl.id = ps.slot_id
       LEFT JOIN venues ve  ON ve.id = ps.venue_id
       LEFT JOIN users staff ON staff.id = ps.valet_staff_id

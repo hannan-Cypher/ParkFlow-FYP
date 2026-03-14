@@ -76,7 +76,8 @@ export default function PhoneInput({
   }, []);
 
   return (
-    <div className={`flex items-stretch ${className}`}>
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+    <div className="flex items-stretch">
       {/* Country code prefix */}
       <div className="flex items-center gap-1 rounded-l-xl border border-r-0 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 px-3 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 select-none shrink-0">
         <span>🇵🇰</span>
@@ -117,9 +118,11 @@ export default function PhoneInput({
         )}
       </div>
 
-      {/* Error message below — rendered as sibling via parent layout */}
+    </div>
+
+      {/* Error message */}
       {showValidation && !isValid && validation?.error && (
-        <p className="absolute mt-12 text-xs text-red-600 dark:text-red-400">
+        <p className="text-xs text-red-600 dark:text-red-400">
           {validation.error}
         </p>
       )}

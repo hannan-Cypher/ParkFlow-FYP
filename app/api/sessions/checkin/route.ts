@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { calculateDynamicRate } from '@/lib/pricingEngine';
+import { generateMagicToken, normalizePhone } from '@/lib/auth';
 
 // ── SMS Code Generation ─────────────────────────────────────────────────────
 // 4-char alphanumeric, uppercase, avoids ambiguous characters (0/O, 1/I/L, 5/S, 8/B)
@@ -109,12 +110,17 @@ export async function POST(request: NextRequest) {
         let resolvedCustomerId: string | null = customer_id || null;
 
         if (!resolvedCustomerId && customer_phone) {
+            const normalizedCustomerPhone = normalizePhone(customer_phone.trim());
             const phoneResult = await client.query(
                 `SELECT id FROM users WHERE phone = $1 AND role = 'customer' LIMIT 1`,
-                [customer_phone.trim()]
+                [normalizedCustomerPhone]
             );
             if (phoneResult.rows.length > 0) {
                 resolvedCustomerId = phoneResult.rows[0].id;
+            } else {
+                // New customer — leave customer_id as NULL
+                // Account will be created when customer registers via the ticket page magic link
+                resolvedCustomerId = null;
             }
         }
 
@@ -326,6 +332,22 @@ export async function POST(request: NextRequest) {
             [session.id]
         );
 
+        // ── 10. Generate magic link token for returning customers ────────────────
+        // Only for customers who already have an account (not guest/walk-ins)
+        let magicToken: string | null = null;
+        if (resolvedCustomerId) {
+            magicToken = generateMagicToken();
+            await client.query(
+                `INSERT INTO magic_links (token, user_id, session_id, expires_at)
+                 VALUES ($1, $2, $3, NOW() + INTERVAL '24 hours')`,
+                [magicToken, resolvedCustomerId, session.id]
+            );
+            // Opportunistic cleanup of stale expired tokens (older than 7 days)
+            await client.query(
+                `DELETE FROM magic_links WHERE expires_at < NOW() - INTERVAL '7 days'`
+            );
+        }
+
         // ── Commit ──────────────────────────────────────────────────────────────
         await client.query('COMMIT');
 
@@ -353,6 +375,7 @@ export async function POST(request: NextRequest) {
                     customer_id: resolvedCustomerId,
                     customer_name: customerName,
                     customer_phone: customerPhone,
+                    magic_token: magicToken,
                     valet_staff_id: assignedStaffId,
                     valet_staff_name: assignedStaffName,
                     // Nested objects (kept for backward compatibility)

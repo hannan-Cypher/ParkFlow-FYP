@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 
 export interface AuthUser {
     id: string;
-    email: string;
+    email: string | null;
     full_name: string;
     phone: string;
     role: 'admin' | 'valet_staff' | 'customer';

@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
 
     let customerRow: Record<string, unknown> | null = null;
     let vehicleRow: Record<string, unknown> | null = null;
+    let matchedByPhone = false; // true only when phone directly matched a user
 
     // ── Phone lookup ──────────────────────────────────────────────────────
     if (rawPhone) {
@@ -86,12 +87,14 @@ export async function GET(request: NextRequest) {
 
       if (phoneResult.rows.length > 0) {
         customerRow = phoneResult.rows[0];
+        matchedByPhone = true;
       }
     }
 
     // ── Plate lookup ──────────────────────────────────────────────────────
     if (rawPlate) {
-      const plate = rawPlate.toUpperCase();
+      // Normalize: uppercase + replace spaces with hyphens
+      const plate = rawPlate.toUpperCase().replace(/\s+/g, "-").trim();
 
       const plateResult = await pool.query(
         `SELECT
@@ -109,10 +112,10 @@ export async function GET(request: NextRequest) {
           (SELECT COUNT(*)
            FROM parking_sessions ps
            JOIN vehicles veh ON ps.vehicle_id = veh.id
-           WHERE veh.license_plate = $1) AS plate_visit_count
+           WHERE UPPER(veh.license_plate) = $1) AS plate_visit_count
          FROM vehicles v
          LEFT JOIN users u ON v.owner_id = u.id
-         WHERE v.license_plate = $1
+         WHERE UPPER(v.license_plate) = $1
          LIMIT 1`,
         [plate]
       );
@@ -121,7 +124,7 @@ export async function GET(request: NextRequest) {
         vehicleRow = plateResult.rows[0];
 
         // If no customer found via phone, try to use the vehicle owner
-        if (!customerRow && vehicleRow.customer_id) {
+        if (!customerRow && vehicleRow && vehicleRow.customer_id) {
           const ownerResult = await pool.query(
             `SELECT
               u.id,
@@ -142,7 +145,7 @@ export async function GET(request: NextRequest) {
              FROM users u
              WHERE u.id = $1 AND u.role = 'customer'
              LIMIT 1`,
-            [vehicleRow.owner_id]
+            [vehicleRow!.owner_id]
           );
           if (ownerResult.rows.length > 0) {
             customerRow = ownerResult.rows[0];
@@ -161,6 +164,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       found,
       isReturning,
+      matchedByPhone,
       customer: customerRow
         ? {
             id: customerRow.id,

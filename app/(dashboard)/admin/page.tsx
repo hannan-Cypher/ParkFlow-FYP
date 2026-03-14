@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, User } from 'lucide-react'
@@ -17,6 +17,47 @@ export default function AdminDashboardPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('Overview')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
+
+  // Guard: only allow admin role to access this page
+  useEffect(() => {
+    let cancelled = false
+
+    const checkRole = async () => {
+      try {
+        const res = await fetch('/api/staff/me')
+
+        if (!res.ok) {
+          if (!cancelled) {
+            router.push('/login')
+          }
+          return
+        }
+
+        const data = await res.json()
+        const role = data.staff?.role
+
+        if (!cancelled) {
+          if (role !== 'admin') {
+            router.push('/staff')
+            return
+          }
+          setAuthChecked(true)
+        }
+      } catch (error) {
+        console.error('Admin auth check failed:', error)
+        if (!cancelled) {
+          router.push('/login')
+        }
+      }
+    }
+
+    checkRole()
+
+    return () => {
+      cancelled = true
+    }
+  }, [router])
 
   const tabs = ['Overview', 'Analytics', 'Staff', 'Locations', 'Live Feed', 'ANPR', 'Settings']
 
@@ -69,6 +110,16 @@ export default function AdminDashboardPage() {
       x: 20,
       transition: { duration: 0.3 },
     },
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950">
+        <div className="text-slate-500 dark:text-slate-400 text-sm">
+          Checking admin access…
+        </div>
+      </div>
+    )
   }
 
   return (

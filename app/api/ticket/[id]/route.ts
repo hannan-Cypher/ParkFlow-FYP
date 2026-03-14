@@ -5,8 +5,14 @@ import pool from '@/lib/db';
  * GET /api/ticket/[id]
  *
  * Public endpoint — no auth required.
- * Returns limited session data for the QR scan landing page.
- * Does NOT expose: customer phone, staff info, pricing metadata.
+ * Returns session data for the QR scan landing page.
+ *
+ * Includes:
+ *   - has_account: boolean (customer_id IS NOT NULL)
+ *   - customer_phone: string | null (for pre-filling the register form)
+ *   - sms_code: string (for display on ticket)
+ *
+ * Does NOT expose: staff info, pricing_metadata, customer full name.
  */
 export async function GET(
   _request: NextRequest,
@@ -17,7 +23,9 @@ export async function GET(
       `SELECT
         ps.id, ps.entry_time, ps.exit_time, ps.status, ps.qr_code,
         ps.rate_per_hour, ps.total_hours, ps.total_amount,
-        ps.retrieval_status,
+        ps.retrieval_status, ps.sms_code,
+        ps.customer_id IS NOT NULL AS has_account,
+        u.phone AS customer_phone,
         v.license_plate, v.make, v.model, v.color,
         ven.name AS venue_name, ven.address AS venue_address,
         pk.slot_number, pk.floor_level, pk.zone
@@ -25,6 +33,7 @@ export async function GET(
       LEFT JOIN vehicles v ON ps.vehicle_id = v.id
       LEFT JOIN venues ven ON ps.venue_id = ven.id
       LEFT JOIN parking_slots pk ON ps.slot_id = pk.id
+      LEFT JOIN users u ON ps.customer_id = u.id
       WHERE ps.id = $1`,
       [params.id]
     );

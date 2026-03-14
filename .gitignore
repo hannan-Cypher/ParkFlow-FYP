@@ -67,3 +67,9 @@ certificates/
 .claude/
 __MACOSX/
 .DS_Store
+dashboard_logic_bugs_report.md
+stubs_and_mocks_report.md
+npm_run_dev_errors.md
+CLAUDE.md
+ARCHITECTURE.md
+CHANGELOG.md

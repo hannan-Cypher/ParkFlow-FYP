@@ -130,11 +130,15 @@ export function buildWhatsAppTicketLink(
     ratePerHour: number;
     smsCode: string;
     venuePhone?: string;
+    magicToken?: string | null;
   },
   baseUrl: string = ''
 ): string {
   const normalized = normalizePhoneForWhatsApp(phone);
-  const ticketUrl = `${baseUrl}/ticket/${ticket.sessionId}`;
+  const safeSessionId = ticket.sessionId.replace(/-/g, '');
+  const ticketUrl = ticket.magicToken
+    ? `${baseUrl}/ticket/${safeSessionId}?token=${ticket.magicToken}`
+    : `${baseUrl}/ticket/${safeSessionId}`;
 
   const lines: string[] = [
     'Assalam-o-Alaikum! 👋',
@@ -151,9 +155,41 @@ export function buildWhatsAppTicketLink(
     '',
     '📲 View ticket & request car retrieval:',
     ticketUrl,
+    '',
     ...(ticket.venuePhone ? [`📞 Venue helpline: ${ticket.venuePhone}`] : []),
     '',
     'Apni gaari lene ke liye upar ticket link use karein ya SMS code valet ko dikhayein. Shukriya! 🙏',
+  ];
+
+  const message = lines.join('\n');
+  return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Build a WhatsApp deep link to invite a new STAFF member.
+ * Admin clicks this link → WhatsApp opens with pre-filled invitation message.
+ */
+export function buildWhatsAppStaffInviteLink(
+  phone: string,
+  name: string | null,
+  magicLink: string
+): string {
+  const normalized = normalizePhoneForWhatsApp(phone);
+  const greeting = name ? `Hi ${name}` : 'Hi there';
+
+  const lines: string[] = [
+    `${greeting}! 👋`,
+    '',
+    "You've been invited to join *ParkFlow* as a staff member.",
+    '',
+    '🅿️ ParkFlow — AI-Powered Valet Parking',
+    '',
+    'Click the link below to set up your account and get started:',
+    magicLink,
+    '',
+    '⚠️ This link expires in 48 hours.',
+    '',
+    'If you have any questions, contact your manager. Shukriya! 🙏',
   ];
 
   const message = lines.join('\n');
@@ -176,11 +212,15 @@ export function buildWhatsAppReturningLink(
     ratePerHour: number;
     smsCode: string;
     venuePhone?: string;
+    magicToken?: string | null;
   },
   baseUrl: string = ''
 ): string {
   const normalized = normalizePhoneForWhatsApp(phone);
-  const ticketUrl = `${baseUrl}/ticket/${ticket.sessionId}`;
+  const safeSessionId = ticket.sessionId.replace(/-/g, '');
+  const ticketUrl = ticket.magicToken
+    ? `${baseUrl}/ticket/${safeSessionId}?token=${ticket.magicToken}`
+    : `${baseUrl}/ticket/${safeSessionId}`;
 
   const venueSlot = [ticket.venueName, ticket.slotNumber ? `Slot ${ticket.slotNumber}` : '']
     .filter(Boolean)
@@ -195,6 +235,7 @@ export function buildWhatsAppReturningLink(
     `🔑 SMS Code: ${ticket.smsCode}`,
     '',
     `📲 Ticket: ${ticketUrl}`,
+    '',
     ...(ticket.venuePhone ? [`📞 Helpline: ${ticket.venuePhone}`] : []),
   ];
 

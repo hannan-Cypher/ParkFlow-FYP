@@ -22,10 +22,7 @@ import {
   Send,
   ChevronRight,
   ParkingCircle,
-  Phone,
   MessageSquare,
-  Star,
-  ArrowRight,
   Search,
   Receipt,
   Truck,
@@ -34,7 +31,7 @@ import {
   Radio,
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import LiveFeedWidget, { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
+import { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
 import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
 import PhoneInput from "@/components/staff/PhoneInput";
 import CustomerLookupResult from "@/components/staff/CustomerLookupResult";
@@ -126,7 +123,7 @@ interface VenueOption {
 type CheckInWizardStep =
   | "scan"
   | "phone"
-  | "details"
+  | "vehicle"
   | "confirm"
   | "slot"
   | "damage"
@@ -139,7 +136,7 @@ const WIZARD_TO_INDICATOR: Record<
 > = {
   scan: "scan",
   phone: "customer",
-  details: "vehicle",
+  vehicle: "vehicle",
   confirm: "confirm",
   slot: "success",
   damage: "success",
@@ -279,6 +276,13 @@ export default function StaffDashboardPage() {
   React.useEffect(() => {
     if (staffInfo?.id) fetchTasks();
   }, [staffInfo?.id, fetchTasks]);
+
+  // Refresh active vehicles whenever the tab is switched to "Active Vehicles"
+  React.useEffect(() => {
+    if (activeTab === "Active Vehicles") {
+      fetchActiveVehicles();
+    }
+  }, [activeTab, fetchActiveVehicles]);
 
   // Auto-refresh every 60s
   React.useEffect(() => {
@@ -671,15 +675,34 @@ function ActiveVehiclesTab({
 type CheckInStep =
   | "scan"
   | "phone"
-  | "details"
+  | "vehicle"
   | "confirm"
   | "slot"
   | "damage"
   | "done";
 
+interface CheckinSlot {
+  id: string;
+  slot_number: string;
+  floor_level: string | null;
+  zone: string | null;
+  slot_type: string;
+}
+interface CheckinVenue { id: string; name: string; address: string | null; phone: string | null; }
+interface CheckinSession {
+  id: string; qr_code: string; license_plate: string; status: string;
+  sms_code?: string | null; rate_per_hour: number; entry_time: string;
+  venue_name: string; venue_address?: string | null; venue_phone?: string | null;
+  slot_number: string; customer_id?: string | null; customer_name?: string | null;
+  customer_phone?: string | null; magic_token?: string | null;
+  valet_staff_id?: string | null; valet_staff_name?: string | null;
+  slot: CheckinSlot | null; venue: CheckinVenue | null; pricing_metadata?: unknown;
+}
+
 interface CustomerLookup {
   found: boolean;
   isReturning: boolean;
+  matchedByPhone: boolean;
   customer: {
     id: string;
     full_name: string;
@@ -741,11 +764,14 @@ function CheckInTab({
   const [venues, setVenues] = React.useState<VenueOption[]>([]);
   const [selectedVenue, setSelectedVenue] = React.useState(staffVenue?.id || "");
 
+  // Plate lookup (after scan step)
+  const [isKnownPlate, setIsKnownPlate] = React.useState(false);
+  const [plateLookupLoading, setPlateLookupLoading] = React.useState(false);
+
   // Submit / result
   const [checkinLoading, setCheckinLoading] = React.useState(false);
-  const [checkinResult, setCheckinResult] = React.useState<Record<string, unknown> | null>(null);
+  const [checkinResult, setCheckinResult] = React.useState<{ session: CheckinSession } | null>(null);
   const [errorMsg, setErrorMsg] = React.useState("");
-  const [smsSent, setSmsSent] = React.useState(false);
 
   // Damage photos (post-slot step)
   const [damagePhotos, setDamagePhotos] = React.useState<Array<{ data: string; label: string }>>([]);
@@ -834,7 +860,8 @@ function CheckInTab({
       });
       const data: CustomerLookup = await res.json();
       setCustomerLookup(data);
-      setIsReturning(data.isReturning ?? false);
+      // Only treat as "returning" when the phone directly matched an account
+      setIsReturning((data.isReturning && data.matchedByPhone) ?? false);
 
       // Auto-fill vehicle details from plate lookup or customer vehicle
       if (data.vehicle) {
@@ -852,11 +879,70 @@ function CheckInTab({
     }
   }, [plate]);
 
-  // Kept for the manual lookup button (backward compat)
-  const handlePhoneLookup = React.useCallback(async () => {
-    if (!customerPhone.trim()) return;
-    handleValidPhone(customerPhone.trim());
-  }, [customerPhone, handleValidPhone]);
+  // ── Plate lookup — decides whether to skip phone step ──────────────────
+  const handlePlateNext = React.useCallback(async () => {
+    if (!plate) return;
+
+    // BUG 1: Clear stale data from previous check-in before every lookup
+    setMake("");
+    setModel("");
+    setColor("");
+    setVehicleType("car");
+    setCustomerPhone("");
+    setNormalizedPhone("");
+    setCustomerLookup(null);
+    setIsReturning(false);
+    setIsKnownPlate(false);
+
+    setPlateLookupLoading(true);
+    try {
+      // BUG 8: Normalize plate before sending to API
+      const normalizedPlate = plate.toUpperCase().replace(/\s+/g, "-").trim();
+      const res = await fetch(`/api/customers/lookup?plate=${encodeURIComponent(normalizedPlate)}`);
+      if (res.ok) {
+        const data: CustomerLookup = await res.json();
+
+        // BUG 2: A plate is "known" if the VEHICLE exists, regardless of owner
+        const vehicleFound = data.vehicle !== null && data.vehicle !== undefined;
+
+        if (vehicleFound) {
+          // Known plate — auto-fill whatever we have from DB
+          if (data.vehicle) {
+            if (data.vehicle.make) setMake(data.vehicle.make);
+            if (data.vehicle.model) setModel(data.vehicle.model);
+            if (data.vehicle.color) setColor(data.vehicle.color);
+            setVehicleType(data.vehicle.vehicle_type || "car");
+          }
+          if (data.customer && data.customer.phone) {
+            setCustomerLookup(data);
+            setIsReturning(true);
+            setCustomerPhone(data.customer.phone);
+            setNormalizedPhone(data.customer.phone);
+          }
+          setIsKnownPlate(true);
+
+          // Skip to confirm if we have a linked customer, else ask for phone
+          if (data.customer && data.customer.id) {
+            setStep("confirm");
+          } else {
+            setStep("phone");
+          }
+        } else {
+          // Completely new plate — need phone and vehicle details
+          setIsKnownPlate(false);
+          setStep("phone");
+        }
+      } else {
+        setIsKnownPlate(false);
+        setStep("phone");
+      }
+    } catch {
+      setIsKnownPlate(false);
+      setStep("phone");
+    } finally {
+      setPlateLookupLoading(false);
+    }
+  }, [plate]);
 
   // ── Check-in submit ─────────────────────────────────────────────────────
   const handleCheckin = React.useCallback(async () => {
@@ -882,17 +968,6 @@ function CheckInTab({
       if (!res.ok) { setErrorMsg(data.error || "Check-in failed"); return; }
       setCheckinResult(data);
 
-      // Fire SMS stub if phone was entered
-      if (customerPhone && data.session?.id) {
-        fetch("/api/notify/sms", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: customerPhone, session_id: data.session.id }),
-        })
-          .then(() => setSmsSent(true))
-          .catch(console.error);
-      }
-
       setStep("slot");
     } catch { setErrorMsg("Network error. Please try again."); }
     finally { setCheckinLoading(false); }
@@ -913,7 +988,7 @@ function CheckInTab({
   }, []);
 
   const handleDamageUpload = React.useCallback(async () => {
-    const sessionId = (checkinResult?.session as Record<string, unknown>)?.id as string;
+    const sessionId = checkinResult?.session?.id;
     if (!sessionId) return;
     setUploadingDamage(true);
     try {
@@ -931,8 +1006,9 @@ function CheckInTab({
   // ── Reset ────────────────────────────────────────────────────────────────
   const resetFlow = () => {
     setStep("scan"); setPlate(""); setAnprImage(null); setErrorMsg(""); setScanMode("livefeed");
-    setCustomerPhone(""); setNormalizedPhone(""); setCustomerLookup(null); setSmsSent(false);
+    setCustomerPhone(""); setNormalizedPhone(""); setCustomerLookup(null);
     setIsReturning(false); setWhatsappSent(false);
+    setIsKnownPlate(false); setPlateLookupLoading(false);
     setMake(""); setModel(""); setColor(""); setVehicleType("car");
     setCheckinResult(null); setDamagePhotos([]); setDamageNotes("");
     setDamageUploaded(false); stopCamera();
@@ -951,7 +1027,11 @@ function CheckInTab({
         <CheckInStepIndicator
           currentStep={WIZARD_TO_INDICATOR[step as CheckInWizardStep]}
           skippedSteps={
-            isReturning && customerLookup?.vehicle ? ["vehicle"] : []
+            isKnownPlate && customerLookup?.customer?.id
+              ? ["customer", "vehicle"]
+              : isKnownPlate
+                ? ["vehicle"]
+                : []
           }
         />
       )}
@@ -965,29 +1045,26 @@ function CheckInTab({
           <div className="flex gap-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-1">
             <button
               onClick={() => { stopCamera(); setAnprImage(null); setScanMode('livefeed'); }}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                scanMode === 'livefeed'
-                  ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}>
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${scanMode === 'livefeed'
+                ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}>
               <Radio className="h-3.5 w-3.5" /> Live Feed
             </button>
             <button
               onClick={() => { stopCamera(); setAnprImage(null); setScanMode('upload'); }}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                scanMode === 'upload'
-                  ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}>
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${scanMode === 'upload'
+                ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}>
               <Upload className="h-3.5 w-3.5" /> Upload
             </button>
             <button
               onClick={() => { setAnprImage(null); setScanMode('camera'); startCamera(); }}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
-                scanMode === 'camera'
-                  ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}>
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${scanMode === 'camera'
+                ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}>
               <Camera className="h-3.5 w-3.5" /> Camera
             </button>
           </div>
@@ -1062,9 +1139,11 @@ function CheckInTab({
               className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 text-lg font-mono font-bold tracking-widest text-center focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
           </div>
 
-          <motion.button whileTap={{ scale: 0.98 }} onClick={() => plate && setStep("phone")} disabled={!plate}
+          <motion.button whileTap={{ scale: 0.98 }} onClick={handlePlateNext} disabled={!plate || plateLookupLoading}
             className="w-full flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed">
-            Next: Customer Info <ChevronRight className="h-4 w-4" />
+            {plateLookupLoading
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Checking plate…</>
+              : <>Next <ChevronRight className="h-4 w-4" /></>}
           </motion.button>
         </div>
       )}
@@ -1111,7 +1190,7 @@ function CheckInTab({
           <CustomerLookupResult
             isLoading={lookupLoading}
             result={customerLookup}
-            onNewCustomerNameChange={() => {/* name collected via lookup */}}
+            onNewCustomerNameChange={() => {/* name collected via lookup */ }}
           />
 
           <div className="flex gap-2">
@@ -1121,29 +1200,103 @@ function CheckInTab({
             >
               Back
             </button>
-            <button
-              onClick={() => {
-                // Skip phone — guest check-in
-                setCustomerPhone("");
-                setNormalizedPhone("");
-                setCustomerLookup(null);
-                setIsReturning(false);
-                setStep("confirm");
-              }}
-              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-3 text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 shrink-0"
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              disabled={!normalizedPhone}
+              onClick={() => setStep(isKnownPlate ? "confirm" : "vehicle")}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Skip
+              Continue <ChevronRight className="h-4 w-4" />
+            </motion.button>
+          </div>
+
+          {/* Bug 5: Skip button */}
+          <button
+            type="button"
+            onClick={() => {
+              setCustomerPhone("");
+              setNormalizedPhone("");
+              setStep(isKnownPlate ? "confirm" : "vehicle");
+            }}
+            className="w-full py-2.5 text-sm text-zinc-400 hover:text-zinc-300 dark:text-zinc-500 dark:hover:text-zinc-400 transition-colors"
+          >
+            Skip — Customer didn&apos;t share phone number
+          </button>
+        </div>
+      )}
+
+      {/* ══ STEP 2.5: Vehicle Details (new plates only) ══════════════════════ */}
+      {step === "vehicle" && (
+        <div className="space-y-4">
+          <h4 className="text-lg font-bold text-slate-900 dark:text-white">Step — Vehicle Details</h4>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Optional — fill in what you can. These help the valet locate the car.
+          </p>
+
+          {/* Plate badge */}
+          <div className="rounded-2xl bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800 p-3 flex items-center gap-3">
+            <Car className="h-5 w-5 text-sky-600 dark:text-sky-400 shrink-0" />
+            <span className="text-lg font-bold font-mono tracking-widest text-sky-900 dark:text-sky-300">{plate}</span>
+            <span className="ml-auto text-xs bg-blue-100 text-blue-700 rounded-full px-2 py-0.5 font-medium">New Vehicle</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Make</label>
+              <input
+                value={make}
+                onChange={(e) => setMake(e.target.value)}
+                placeholder="e.g. Toyota"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Model</label>
+              <input
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                placeholder="e.g. Corolla"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Color</label>
+              <input
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="e.g. White"
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Type</label>
+              <select
+                value={vehicleType}
+                onChange={(e) => setVehicleType(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none"
+              >
+                <option value="car">Car</option>
+                <option value="sedan">Sedan</option>
+                <option value="suv">SUV</option>
+                <option value="hatchback">Hatchback</option>
+                <option value="pickup">Pickup</option>
+                <option value="van">Van</option>
+              </select>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-400 dark:text-slate-500">All fields optional — staff can proceed without filling in any details.</p>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setStep("phone")}
+              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            >
+              Back
             </button>
             <motion.button
               whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                // If returning customer with vehicle info, skip to confirm
-                if (isReturning && customerLookup?.vehicle) {
-                  setStep("confirm");
-                } else {
-                  setStep("details");
-                }
-              }}
+              onClick={() => setStep("confirm")}
               className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700"
             >
               Continue <ChevronRight className="h-4 w-4" />
@@ -1152,86 +1305,28 @@ function CheckInTab({
         </div>
       )}
 
-      {/* ══ STEP 3: Vehicle Details ═════════════════════════════════════════ */}
-      {step === "details" && (
-        <div className="space-y-4">
-          <h4 className="text-lg font-bold text-slate-900 dark:text-white">Step 3 — Vehicle Details</h4>
-
-          <div className="rounded-2xl bg-sky-50 border border-sky-200 p-3 flex items-center gap-3">
-            <Car className="h-5 w-5 text-sky-600 shrink-0" />
-            <span className="text-lg font-bold font-mono tracking-widest text-sky-900">{plate}</span>
-            {customerLookup?.found && (
-              <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 font-medium flex items-center gap-1">
-                <Star className="h-3 w-3" /> Returning
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Make</label>
-              <input value={make} onChange={(e) => setMake(e.target.value)} placeholder="e.g. Mercedes"
-                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Model</label>
-              <input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. C-Class"
-                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Color</label>
-              <input value={color} onChange={(e) => setColor(e.target.value)} placeholder="e.g. Black"
-                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400" />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Type</label>
-              <select value={vehicleType} onChange={(e) => setVehicleType(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400">
-                {["car", "sedan", "suv", "hatchback", "pickup", "van"].map((t) => (
-                  <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Venue</label>
-            <select value={selectedVenue} onChange={(e) => setSelectedVenue(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:placeholder-slate-400">
-              <option value="">Select venue…</option>
-              {venues.map((v) => (
-                <option key={v.id} value={v.id}>{v.name} ({v.city})</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex gap-2">
-            <button onClick={() => setStep("phone")}
-              className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
-              Back
-            </button>
-            <motion.button whileTap={{ scale: 0.98 }} onClick={() => selectedVenue && setStep("confirm")} disabled={!selectedVenue}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700 disabled:opacity-50">
-              Review & Confirm <ChevronRight className="h-4 w-4" />
-            </motion.button>
-          </div>
-        </div>
-      )}
-
-      {/* ══ STEP 4: Confirm ════════════════════════════════════════════════ */}
+      {/* ══ STEP 3: Confirm ════════════════════════════════════════════════ */}
       {step === "confirm" && (
         <div className="space-y-4">
-          <h4 className="text-lg font-bold text-slate-900 dark:text-white">Step 4 — Review & Confirm</h4>
+          <h4 className="text-lg font-bold text-slate-900 dark:text-white">Confirm Check-In</h4>
+
+          {/* Returning car banner */}
+          {isKnownPlate && customerLookup?.customer && (
+            <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-3 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                Returning — {customerLookup.customer.full_name} · {customerLookup.customer.total_visits} visit{customerLookup.customer.total_visits !== 1 ? "s" : ""}
+              </span>
+            </div>
+          )}
 
           <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-3 text-sm">
             <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
               <Car className="h-5 w-5 text-sky-600" />
               <span className="text-xl font-bold font-mono tracking-widest text-slate-900 dark:text-white">{plate}</span>
-              {customerLookup?.found && (
-                <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5 font-medium">
-                  ★ {customerLookup.customer?.full_name}
-                </span>
-              )}
+              <span className={`ml-auto text-xs rounded-full px-2 py-0.5 font-medium ${isKnownPlate ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                {isKnownPlate ? "Returning" : "New"}
+              </span>
             </div>
             <div className="grid grid-cols-2 gap-y-3">
               <div><span className="text-slate-500 dark:text-slate-400">Make</span><p className="font-semibold dark:text-white">{make || "—"}</p></div>
@@ -1239,9 +1334,23 @@ function CheckInTab({
               <div><span className="text-slate-500 dark:text-slate-400">Color</span><p className="font-semibold dark:text-white">{color || "—"}</p></div>
               <div><span className="text-slate-500 dark:text-slate-400">Type</span><p className="font-semibold capitalize dark:text-white">{vehicleType}</p></div>
               <div><span className="text-slate-500 dark:text-slate-400">Venue</span><p className="font-semibold dark:text-white">{venues.find((v) => v.id === selectedVenue)?.name || "—"}</p></div>
-              <div><span className="text-slate-500 dark:text-slate-400">Customer Phone</span><p className="font-semibold dark:text-white">{customerPhone || "—"}</p></div>
+              <div><span className="text-slate-500 dark:text-slate-400">Phone</span><p className="font-semibold dark:text-white">{customerPhone || "—"}</p></div>
             </div>
           </div>
+
+          {/* Venue selector — only shown if no venue auto-assigned */}
+          {!selectedVenue && (
+            <div>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Select Venue</label>
+              <select value={selectedVenue} onChange={(e) => setSelectedVenue(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none">
+                <option value="">Select venue…</option>
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name} ({v.city})</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {errorMsg && (
             <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
@@ -1250,7 +1359,13 @@ function CheckInTab({
           )}
 
           <div className="flex gap-2">
-            <button onClick={() => setStep("details")}
+            <button onClick={() => {
+              if (isKnownPlate && customerLookup?.customer?.id) {
+                setStep("scan"); // skipped phone + vehicle
+              } else {
+                setStep(isKnownPlate ? "phone" : "vehicle"); // skipped vehicle / new plate
+              }
+            }}
               className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
               Back
             </button>
@@ -1282,27 +1397,13 @@ function CheckInTab({
           {/* Slot instruction card */}
           <div className="rounded-2xl border-2 border-sky-300 bg-sky-50 p-5 text-center">
             <p className="text-xs font-bold uppercase tracking-wider text-sky-500 mb-2">Park the vehicle at</p>
-            <p className="text-5xl font-black text-sky-700">
-              {(checkinResult.session as Record<string, unknown>)?.slot
-                ? ((checkinResult.session as Record<string, unknown>).slot as Record<string, string>).slot_number
-                : "—"}
-            </p>
+            <p className="text-5xl font-black text-sky-700">{checkinResult.session.slot?.slot_number ?? "—"}</p>
             <div className="mt-2 flex items-center justify-center gap-3 text-xs text-sky-600 font-medium">
-              {((checkinResult.session as Record<string, unknown>)?.slot as Record<string, string>)?.floor_level && (
-                <span>Floor {((checkinResult.session as Record<string, unknown>).slot as Record<string, string>).floor_level}</span>
-              )}
-              {((checkinResult.session as Record<string, unknown>)?.slot as Record<string, string>)?.zone && (
-                <><span>·</span><span>Zone {((checkinResult.session as Record<string, unknown>).slot as Record<string, string>).zone}</span></>
-              )}
-              {((checkinResult.session as Record<string, unknown>)?.slot as Record<string, string>)?.slot_type && (
-                <><span>·</span><span className="capitalize">{((checkinResult.session as Record<string, unknown>).slot as Record<string, string>).slot_type}</span></>
-              )}
+              {checkinResult.session.slot?.floor_level && <span>Floor {checkinResult.session.slot.floor_level}</span>}
+              {checkinResult.session.slot?.zone && <><span>·</span><span>Zone {checkinResult.session.slot.zone}</span></>}
+              {checkinResult.session.slot?.slot_type && <><span>·</span><span className="capitalize">{checkinResult.session.slot.slot_type}</span></>}
             </div>
-            <p className="mt-1 text-xs text-sky-500">
-              {(checkinResult.session as Record<string, unknown>)?.venue
-                ? ((checkinResult.session as Record<string, unknown>).venue as Record<string, string>).name
-                : ""}
-            </p>
+            <p className="mt-1 text-xs text-sky-500">{checkinResult.session.venue?.name ?? checkinResult.session.venue_name}</p>
           </div>
 
           {/* QR Ticket */}
@@ -1313,11 +1414,11 @@ function CheckInTab({
               transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
             >
               <QRCodeDisplay
-                sessionId={(checkinResult.session as Record<string, unknown>)?.id as string}
+                sessionId={checkinResult.session.id}
                 licensePlate={plate}
-                venueName={((checkinResult.session as Record<string, unknown>)?.venue as Record<string, string>)?.name}
-                entryTime={(checkinResult.session as Record<string, unknown>)?.entry_time as string}
-                slotNumber={((checkinResult.session as Record<string, unknown>)?.slot as Record<string, string>)?.slot_number}
+                venueName={checkinResult.session.venue?.name ?? checkinResult.session.venue_name}
+                entryTime={checkinResult.session.entry_time}
+                slotNumber={checkinResult.session.slot?.slot_number ?? checkinResult.session.slot_number}
                 size="lg"
                 variant="ticket"
                 showActions={true}
@@ -1329,11 +1430,11 @@ function CheckInTab({
           </AnimatePresence>
 
           {/* SMS Code card */}
-          {(checkinResult?.session as Record<string, unknown>)?.sms_code && (
+          {checkinResult.session.sms_code && (
             <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 text-center">
               <p className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">SMS Code (offline backup)</p>
               <p className="text-2xl font-bold font-mono tracking-[0.3em] text-amber-900 dark:text-amber-200">
-                {(checkinResult!.session as Record<string, unknown>).sms_code as string}
+                {checkinResult.session.sms_code}
               </p>
               <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                 Show this code to the valet if you can&apos;t scan the QR
@@ -1347,17 +1448,23 @@ function CheckInTab({
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
-                  const sess = checkinResult!.session as Record<string, unknown>;
-                  const baseUrl = window.location.origin;
+                  const sess = checkinResult!.session;
+                  let baseUrl = window.location.origin;
+                  if (baseUrl.includes("localhost")) {
+                    // Injecting Ngrok URL so WhatsApp treats it as a clickable 
+                    // hyperlink instead of plain text that requires messy copy-pasting
+                    baseUrl = "https://98c4-2407-d000-d-e659-1090-6c77-99cf-a170.ngrok-free.app";
+                  }
                   const ticketData = {
-                    sessionId: sess.id as string,
+                    sessionId: sess.id,
                     licensePlate: plate,
-                    venueName: (sess.venue_name as string) || ((sess.venue as Record<string, string>)?.name ?? ""),
-                    slotNumber: (sess.slot_number as string) || ((sess.slot as Record<string, string>)?.slot_number),
-                    entryTime: sess.entry_time as string,
-                    ratePerHour: sess.rate_per_hour as number,
-                    smsCode: sess.sms_code as string,
-                    venuePhone: (sess.venue_phone as string) || ((sess.venue as Record<string, string>)?.phone),
+                    venueName: sess.venue_name || sess.venue?.name || "",
+                    slotNumber: sess.slot_number || sess.slot?.slot_number || "",
+                    entryTime: sess.entry_time,
+                    ratePerHour: sess.rate_per_hour,
+                    smsCode: sess.sms_code ?? "",
+                    venuePhone: sess.venue_phone || sess.venue?.phone || undefined,
+                    magicToken: sess.magic_token || undefined,
                   };
                   const link = isReturning
                     ? buildWhatsAppReturningLink(normalizedPhone, ticketData, baseUrl)
@@ -1365,14 +1472,13 @@ function CheckInTab({
                   window.open(link, "_blank");
                   setWhatsappSent(true);
                 }}
-                className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 px-6 text-base font-semibold transition-colors ${
-                  whatsappSent
-                    ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-                    : "bg-green-500 hover:bg-green-600 text-white"
-                }`}
+                className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 px-6 text-base font-semibold transition-colors ${whatsappSent
+                  ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                  : "bg-green-500 hover:bg-green-600 text-white"
+                  }`}
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
                 {whatsappSent ? "✓ WhatsApp Opened" : "Send Ticket via WhatsApp"}
               </motion.button>
@@ -1491,9 +1597,7 @@ function CheckInTab({
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-400">Slot</span>
               <span className="font-bold dark:text-white">
-                {(checkinResult?.session as Record<string, unknown>)?.slot
-                  ? ((checkinResult!.session as Record<string, unknown>).slot as Record<string, string>).slot_number
-                  : "—"}
+                {checkinResult?.session?.slot?.slot_number ?? "—"}
               </span>
             </div>
             {(make || model) && (

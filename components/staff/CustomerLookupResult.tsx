@@ -7,6 +7,7 @@ import { CheckCircle2, User, Car, Star } from "lucide-react";
 interface LookupResult {
   found: boolean;
   isReturning: boolean;
+  matchedByPhone: boolean;
   customer: {
     id: string;
     full_name: string;
@@ -67,7 +68,7 @@ export default function CustomerLookupResult({
         </motion.div>
       )}
 
-      {!isLoading && result?.found && result.customer && (
+      {!isLoading && result?.matchedByPhone && result.customer && (
         <motion.div
           key="returning"
           initial={{ opacity: 0, y: 8 }}
@@ -113,7 +114,7 @@ export default function CustomerLookupResult({
         </motion.div>
       )}
 
-      {!isLoading && result && !result.found && (
+      {!isLoading && result && !result.matchedByPhone && (
         <motion.div
           key="new"
           initial={{ opacity: 0, y: 8 }}
