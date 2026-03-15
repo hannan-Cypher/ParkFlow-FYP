@@ -3,6 +3,9 @@ import pool from '@/lib/db';
 import { calculateDynamicRate } from '@/lib/pricingEngine';
 import { generateMagicToken, normalizePhone } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
+
 // ── SMS Code Generation ─────────────────────────────────────────────────────
 // 4-char alphanumeric, uppercase, avoids ambiguous characters (0/O, 1/I/L, 5/S, 8/B)
 const SAFE_CHARS = '2346799ACDEFGHJKMNPQRTUVWXYZ';
@@ -251,7 +254,7 @@ export async function POST(request: NextRequest) {
                 COUNT(ps.id) FILTER (WHERE ps.status = 'active') AS active_tasks
          FROM users u
          LEFT JOIN parking_sessions ps ON ps.valet_staff_id = u.id AND ps.status = 'active'
-         WHERE u.role = 'valet_staff'
+         WHERE u.role = 'driver'
            AND u.venue_id = $1
            AND u.is_active = true
          GROUP BY u.id, u.full_name

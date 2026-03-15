@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { isStaffRole } from '@/lib/roles';
+
+export const dynamic = 'force-dynamic';
+
 
 /**
  * POST /api/staff/assign
@@ -35,9 +39,9 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (staffCheck.rows[0].role !== 'valet_staff') {
+        if (!isStaffRole(staffCheck.rows[0].role)) {
             return NextResponse.json(
-                { error: 'User is not a valet staff member' },
+                { error: 'User is not a staff member' },
                 { status: 400 }
             );
         }

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { generateToken, getTokenExpiration } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * POST /api/auth/magic
  *

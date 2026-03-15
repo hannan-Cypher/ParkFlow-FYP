@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { calculateDynamicRate } from '@/lib/pricingEngine';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * GET /api/venues/[id]/current-rate
  * Returns the live dynamic rate for a venue along with occupancy info.

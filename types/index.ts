@@ -3,7 +3,7 @@ export interface User {
   email: string
   phone: string
   full_name: string
-  role: "customer" | "valet_staff" | "admin" | "super_admin"
+  role: "customer" | "driver" | "washer" | "supervisor" | "admin"
   loyalty_points?: number
   is_active: boolean
   created_at: string
@@ -26,7 +26,7 @@ export interface ParkingSession {
   license_plate: string
   vehicle_id?: number
   customer_id: number
-  valet_staff_id?: number
+  driver_id?: number
   slot_number?: string
   venue_name?: string
   entry_time: string
@@ -53,4 +53,24 @@ export interface ANPRResult {
     x2: number
     y2: number
   }
+}
+
+export interface ServiceRequest {
+  id: string
+  session_id: string
+  customer_id: string
+  service_type: string
+  service_status: "pending" | "in_progress" | "completed" | "cancelled"
+  assigned_to: string | null
+  service_cost: number | null
+  notes: string | null
+  wash_type: "basic" | "full" | "premium" | null
+  before_photos: string[]
+  after_photos: string[]
+  vehicle_id: string | null
+  venue_id: string | null
+  slot_id: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
 }

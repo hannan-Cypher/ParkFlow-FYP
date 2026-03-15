@@ -27,6 +27,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     pathname?.startsWith('/admin') ||
     pathname?.startsWith('/staff') ||
     pathname?.startsWith('/customer') ||
+    pathname?.startsWith('/washer') ||
+    pathname?.startsWith('/auth') ||
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/register') ||
     pathname?.startsWith('/signup') ||

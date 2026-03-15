@@ -73,3 +73,5 @@ npm_run_dev_errors.md
 CLAUDE.md
 ARCHITECTURE.md
 CHANGELOG.md
+__tests__
+.claude/commands 

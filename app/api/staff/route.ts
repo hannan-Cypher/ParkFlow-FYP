@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * GET /api/staff
  *
@@ -14,7 +17,7 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const venueId = searchParams.get('venue_id');
 
-        let whereClause = "WHERE u.role = 'valet_staff'";
+        let whereClause = "WHERE u.role IN ('driver', 'washer', 'supervisor')";
         const params: string[] = [];
         if (venueId) {
             params.push(venueId);

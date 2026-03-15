@@ -6,7 +6,7 @@ export interface AuthUser {
     email: string | null;
     full_name: string;
     phone: string;
-    role: 'admin' | 'valet_staff' | 'customer';
+    role: 'customer' | 'driver' | 'washer' | 'supervisor' | 'admin';
     venue_id: string | null;
 }
 

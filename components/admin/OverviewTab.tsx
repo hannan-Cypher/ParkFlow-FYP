@@ -98,7 +98,7 @@ function formatDate(iso: string): string {
 // Component
 // ──────────────────────────────────────────────────────────────────────────────
 
-export default function OverviewTab() {
+export default function OverviewTab({ hideRevenue = false }: { hideRevenue?: boolean } = {}) {
   const [sessions, setSessions] = useState<Session[]>([])
   const [allSessions, setAllSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
@@ -133,8 +133,8 @@ export default function OverviewTab() {
 
   useEffect(() => {
     fetchData()
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => fetchData(true), 30000)
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(() => fetchData(true), 5000)
     return () => clearInterval(interval)
   }, [fetchData])
 
@@ -223,7 +223,7 @@ export default function OverviewTab() {
       className="space-y-6"
     >
       {/* ── Stat Cards ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {[
           {
             label: 'Active Now',
@@ -239,20 +239,18 @@ export default function OverviewTab() {
             color: 'from-emerald-500 to-green-600',
             sub: 'Sessions closed today',
           },
-          {
-            label: "Today's Revenue",
-            value: `Rs.${todayRevenue.toLocaleString()}`,
-            icon: Banknote,
-            color: 'from-violet-500 to-purple-600',
-            sub: 'Earned today',
-          },
-          {
-            label: 'Total Revenue',
-            value: `Rs.${totalRevenue.toLocaleString()}`,
-            icon: TrendingUp,
-            color: 'from-amber-500 to-orange-600',
-            sub: 'All time',
-          },
+          ...(!hideRevenue
+            ? [
+                {
+                  label: "Today's Revenue",
+                  value: `Rs.${todayRevenue.toLocaleString()}`,
+                  icon: Banknote,
+                  color: 'from-violet-500 to-purple-600',
+                  sub: 'Earned today',
+                },
+              ]
+            : []),
+
         ].map((card, i) => (
           <motion.div
             key={card.label}
@@ -440,7 +438,7 @@ export default function OverviewTab() {
                 className="p-4 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 border border-sky-100 dark:border-sky-800"
               >
                 <h3 className="font-bold text-slate-900 dark:text-white mb-3">{venue.name}</h3>
-                <div className="grid grid-cols-3 gap-2">
+                <div className={`grid ${hideRevenue ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
                   <div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">Active</p>
                     <p className="text-xl font-extrabold text-sky-600">{venue.active}</p>
@@ -449,12 +447,14 @@ export default function OverviewTab() {
                     <p className="text-xs text-slate-500 dark:text-slate-400">Completed</p>
                     <p className="text-xl font-extrabold text-emerald-600">{venue.completed}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Revenue</p>
-                    <p className="text-lg font-extrabold text-violet-600">
-                      Rs.{venue.revenue.toLocaleString()}
-                    </p>
-                  </div>
+                  {!hideRevenue && (
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Revenue</p>
+                      <p className="text-lg font-extrabold text-violet-600">
+                        Rs.{venue.revenue.toLocaleString()}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}

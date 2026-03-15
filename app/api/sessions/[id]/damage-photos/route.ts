@@ -3,6 +3,9 @@ import pool from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * POST /api/sessions/[id]/damage-photos
  *

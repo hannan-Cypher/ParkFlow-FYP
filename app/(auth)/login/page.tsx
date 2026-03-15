@@ -54,10 +54,12 @@ export default function LoginPage() {
 
       // Prefer UUID-based dashboard URLs when we have an id,
       // but fall back to legacy routes if anything is missing.
-      if (userRole === 'admin') {
+      if (userRole === 'admin' || userRole === 'supervisor') {
         window.location.href = userId ? `/admin/${userId}` : '/admin'
-      } else if (userRole === 'valet_staff') {
+      } else if (userRole === 'driver' || userRole === 'valet_staff') {
         window.location.href = userId ? `/staff/${userId}` : '/staff'
+      } else if (userRole === 'washer') {
+        window.location.href = '/washer'
       } else {
         window.location.href = userId ? `/customer/${userId}` : '/customer'
       }

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getAuthUser } from '@/lib/getUser';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { code: string } }
@@ -52,7 +55,7 @@ export async function GET(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const session: Record<string, any> = { ...row };
 
-    if (user.role === 'valet_staff') {
+    if (user.role === 'driver' || user.role === 'washer') {
       delete session.pricing_metadata;
       delete session.customer_phone;
     } else if (user.role === 'customer') {

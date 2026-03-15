@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate — admin only
@@ -26,15 +29,22 @@ export async function POST(request: NextRequest) {
     const adminId = adminUser.id;
 
     // 2. Parse and validate input
-    const { email, name, venue_id } = await request.json();
+    const { email, name, phone, venue_id, staff_role: requestedRole } = await request.json();
+    const staffRole = ['driver', 'washer', 'supervisor'].includes(requestedRole) ? requestedRole : 'driver';
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    }
+    if (!phone) {
+      return NextResponse.json({ error: 'WhatsApp phone number is required' }, { status: 400 });
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
     const cleanEmail = email.trim().toLowerCase();
+
+    // Normalize phone formatting locally since lib/auth requires import
+    const cleanPhone = phone.replace(/[\s\-\+\(\)]/g, '');
 
     // 3. Check if email already exists in users table
     const existingUser = await pool.query(
@@ -48,19 +58,28 @@ export async function POST(request: NextRequest) {
       const u = existingUser.rows[0];
       existingUserRow = u;
 
-      if (u.role === 'valet_staff' && u.status === 'active') {
+      if (['driver', 'washer', 'supervisor'].includes(u.role) && u.status === 'active') {
         return NextResponse.json(
           { error: 'This email is already registered as active staff' },
           { status: 409 }
         );
       }
-      if (u.role !== 'valet_staff') {
+      if (!['driver', 'washer', 'supervisor'].includes(u.role)) {
         return NextResponse.json(
           { error: 'This email is registered with a different role' },
           { status: 409 }
         );
       }
-      // valet_staff + deactivated or pending → allow, continue
+      // staff + deactivated or pending → allow, continue
+    }
+
+    // Check phone uniqueness against other active users
+    const existingPhone = await pool.query(
+      `SELECT email FROM users WHERE phone = $1 OR phone = $2 LIMIT 1`,
+      [cleanPhone, phone]
+    );
+    if (existingPhone.rows.length > 0 && existingPhone.rows[0].email !== cleanEmail) {
+      return NextResponse.json({ error: 'This phone number is already registered to another user' }, { status: 409 });
     }
 
     // 4. Validate venue_id if provided
@@ -83,19 +102,22 @@ export async function POST(request: NextRequest) {
 
     // 7. Insert the invitation
     const inviteResult = await pool.query(
-      `INSERT INTO staff_invitations (email, name, token, venue_id, invited_by, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [cleanEmail, name || null, token, venue_id || null, adminId, expiresAt]
+      `INSERT INTO staff_invitations (email, name, token, venue_id, invited_by, expires_at, staff_role)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [cleanEmail, name || null, token, venue_id || null, adminId, expiresAt, staffRole]
     );
 
     // 8. Pre-create or update user
     if (!existingUserRow) {
+      const defaultPassword = crypto.randomBytes(16).toString('hex'); // Fills the NOT NULL password requirement until user registers securely
+      const defaultName = name || 'Pending Invite';
+
       await pool.query(
-        `INSERT INTO users (email, full_name, role, status) VALUES ($1, $2, 'valet_staff', 'pending')`,
-        [cleanEmail, name || null]
+        `INSERT INTO users (email, full_name, role, status, phone, password) VALUES ($1, $2, $3, 'pending', $4, $5)`,
+        [cleanEmail, defaultName, staffRole, cleanPhone, defaultPassword]
       );
     } else if (existingUserRow.status === 'deactivated') {
-      await pool.query(`UPDATE users SET status = 'pending' WHERE email = $1`, [cleanEmail]);
+      await pool.query(`UPDATE users SET status = 'pending', phone = COALESCE(NULLIF(phone, ''), $2) WHERE email = $1`, [cleanEmail, cleanPhone]);
     }
     // status = 'pending' → do nothing
 

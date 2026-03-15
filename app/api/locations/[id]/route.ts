@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+
 // ── Zone Auto-Naming Algorithm ─────────────────────────────────────────────
 function generateZonePrefix(gateName: string): string {
     const words = gateName.trim().split(/\s+/);
@@ -34,6 +37,10 @@ export async function PUT(
             contact_email,
             status,
             gates: gatesPayload,
+            shift_start_time,
+            shift_end_time,
+            max_break_minutes,
+            enforce_shift_start_window,
         } = body;
 
         if (!name || !address || !city) {
@@ -92,16 +99,28 @@ export async function PUT(
             return NextResponse.json({ error: 'Location not found' }, { status: 404 });
         }
 
-        // 1. Update venue basic info
+        // 1. Update venue basic info (including shift config)
         const venueResult = await client.query(
             `UPDATE venues
              SET name = $1, address = $2, city = $3, country = $4, total_slots = $5,
-                 gates = $6, contact_phone = $7, contact_email = $8, status = $9, updated_at = NOW()
-             WHERE id = $10
-             RETURNING id, name, address, city, country, total_slots, gates, contact_phone, contact_email, status, created_at, updated_at`,
+                 gates = $6, contact_phone = $7, contact_email = $8, status = $9,
+                 shift_start_time           = COALESCE($10, shift_start_time),
+                 shift_end_time             = COALESCE($11, shift_end_time),
+                 max_break_minutes          = COALESCE($12, max_break_minutes),
+                 enforce_shift_start_window = COALESCE($13, enforce_shift_start_window),
+                 updated_at = NOW()
+             WHERE id = $14
+             RETURNING id, name, address, city, country, total_slots, gates,
+                       contact_phone, contact_email, status,
+                       shift_start_time::text, shift_end_time::text, max_break_minutes,
+                       enforce_shift_start_window, created_at, updated_at`,
             [
                 name, address, city, country || 'Pakistan', totalSlots, totalGates,
-                contact_phone || null, contact_email || null, status || 'active', id,
+                contact_phone || null, contact_email || null, status || 'active',
+                shift_start_time || null, shift_end_time || null,
+                max_break_minutes != null ? parseInt(max_break_minutes, 10) : null,
+                enforce_shift_start_window != null ? Boolean(enforce_shift_start_window) : null,
+                id,
             ]
         );
         const venue = venueResult.rows[0];

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * GET /api/sessions/checkout/search?q=<phone_or_plate>
  *

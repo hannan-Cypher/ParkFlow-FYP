@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * GET /api/admin/stats
  *
@@ -69,8 +72,8 @@ export async function GET(_request: NextRequest) {
                     COUNT(*) as total_staff,
                     COUNT(*) FILTER (WHERE is_active = true) as active_staff,
                     COUNT(*) FILTER (WHERE venue_id IS NOT NULL) as assigned_staff
-                FROM users 
-                WHERE role = 'valet_staff'
+                FROM users
+                WHERE role IN ('driver', 'washer', 'supervisor')
             `),
 
             // Customer count

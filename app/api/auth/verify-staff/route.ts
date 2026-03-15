@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { hashPassword, generateToken } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
+
 // GET — validate token, return invitation info
 export async function GET(request: NextRequest) {
   try {
@@ -123,11 +126,13 @@ export async function POST(request: NextRequest) {
       user = updateResult.rows[0];
     } else {
       // Edge case — pre-created user was deleted, insert fresh
+      // Use role from invitation if available, default to 'driver'
+      const staffRole = invitation.staff_role || 'driver';
       const insertResult = await pool.query(
         `INSERT INTO users (email, full_name, phone, password, role, status)
-         VALUES ($1, $2, $3, $4, 'valet_staff', 'active')
+         VALUES ($1, $2, $3, $4, $5, 'active')
          RETURNING id, email, full_name, phone, role`,
-        [invitation.email, full_name.trim(), phone.trim(), hashedPassword]
+        [invitation.email, full_name.trim(), phone.trim(), hashedPassword, staffRole]
       );
       user = insertResult.rows[0];
     }

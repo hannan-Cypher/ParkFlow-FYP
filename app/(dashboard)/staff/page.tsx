@@ -27,8 +27,13 @@ import {
   Receipt,
   Truck,
   CheckCircle2 as CircleCheck,
-  Ban,
   Radio,
+  Sunrise,
+  Coffee,
+  Play,
+  Square,
+  Info,
+  Timer,
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
@@ -119,6 +124,455 @@ interface VenueOption {
   city: string;
 }
 
+// ── Shift Types ──────────────────────────────────────────────────────────
+
+type ShiftStatus = "loading" | "none" | "active" | "on_break" | "pending_approval" | "rejected";
+
+interface ActiveShift {
+  id: string;
+  shift_start: string;
+  status: "active" | "on_break" | "pending_approval" | "rejected";
+  break_start?: string | null;
+  total_break_minutes: number;
+  is_late?: boolean;
+  late_minutes?: number;
+  admin_approval?: string | null;
+  admin_approval_at?: string | null;
+}
+
+interface VenueShiftConfig {
+  max_break_minutes: number;
+  shift_start_time: string; // "09:00"
+  shift_end_time: string;   // "18:00"
+  enforce_shift_start_window: boolean;
+}
+
+interface ShiftSummary {
+  shift_start: string;
+  shift_end: string;
+  total_minutes: number;
+  total_break_minutes: number;
+  net_minutes: number;
+}
+
+// ── Shift helpers ─────────────────────────────────────────────────────────
+
+function fmtDuration(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+  return `${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+}
+
+function fmtMinutes(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function fmt12(time24: string): string {
+  const [hStr, mStr] = time24.split(":");
+  const h = parseInt(hStr, 10);
+  const suffix = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${mStr} ${suffix}`;
+}
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good Morning";
+  if (h < 17) return "Good Afternoon";
+  return "Good Evening";
+}
+
+// ── ShiftStartGate Component ──────────────────────────────────────────────
+
+function ShiftStartGate({
+  staffName,
+  venueName,
+  venueCity,
+  config,
+  onStart,
+  starting,
+}: {
+  staffName: string;
+  venueName: string;
+  venueCity: string;
+  config: VenueShiftConfig;
+  onStart: () => void;
+  starting: boolean;
+}) {
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 280, damping: 26 }}
+        className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden"
+      >
+        {/* Gradient header */}
+        <div className="bg-gradient-to-br from-sky-500 to-blue-600 px-8 pt-8 pb-6 text-white">
+          <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-4">
+            <Sunrise className="w-7 h-7 text-white" />
+          </div>
+          <h2 className="text-2xl font-extrabold leading-tight">
+            {getGreeting()}, {staffName.split(" ")[0]}!
+          </h2>
+          <p className="text-sky-100 text-sm mt-1">{today}</p>
+        </div>
+
+        {/* Info section */}
+        <div className="px-8 py-6 space-y-4">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-sm">
+            <MapPin className="w-4 h-4 text-sky-500 shrink-0" />
+            <span className="font-medium">{venueName}</span>
+            {venueCity && <span className="text-slate-400">· {venueCity}</span>}
+          </div>
+
+          {(() => {
+            const [h, m] = config.shift_start_time.split(":").map(Number);
+            const deadlineMinutes = h * 60 + m + 60;
+            const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+            const remaining = deadlineMinutes - nowMinutes;
+            const isLockedOut = config.enforce_shift_start_window && remaining <= 0;
+            const dH = Math.floor(deadlineMinutes / 60);
+            const dM = deadlineMinutes % 60;
+            const deadline12 = `${dH % 12 || 12}:${String(dM).padStart(2, "0")} ${dH >= 12 ? "PM" : "AM"}`;
+
+            return (
+              <>
+                <div className="rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600 p-4 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                      <Clock className="w-4 h-4" /> Standard Shift
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-white">
+                      {fmt12(config.shift_start_time)} – {fmt12(config.shift_end_time)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                      <Coffee className="w-4 h-4" /> Max Break
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-white">
+                      {config.max_break_minutes} minutes
+                    </span>
+                  </div>
+
+                  {/* Clock-in window status badge */}
+                  {config.enforce_shift_start_window && (
+                    isLockedOut ? (
+                      <div className="flex items-center gap-2 text-xs font-medium rounded-xl px-3 py-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                        <XCircle className="w-3.5 h-3.5 shrink-0" />
+                        Clock-in window closed at {deadline12}. Contact your admin.
+                      </div>
+                    ) : remaining <= 15 ? (
+                      <div className="flex items-center gap-2 text-xs font-medium rounded-xl px-3 py-2 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
+                        Only {remaining} min left to clock in (deadline: {deadline12})
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs font-medium rounded-xl px-3 py-2 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
+                        Clock-in deadline: {deadline12} ({remaining} min remaining)
+                      </div>
+                    )
+                  )}
+                </div>
+
+                {isLockedOut ? (
+                  <div className="space-y-3">
+                    <div className="w-full py-3 rounded-2xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 text-center">
+                      <p className="text-xs text-red-500 dark:text-red-400">
+                        The clock-in window has passed. Your manager will be notified.
+                      </p>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={onStart}
+                      disabled={starting}
+                      className="w-full py-3.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {starting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Timer className="w-5 h-5" />}
+                      {starting ? "Requesting…" : "Clock In Late — Request Approval"}
+                    </motion.button>
+                  </div>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={onStart}
+                    disabled={starting}
+                    className="w-full py-3.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {starting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+                    {starting ? "Starting…" : "Start My Shift"}
+                  </motion.button>
+                )}
+              </>
+            );
+          })()}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ── ShiftStatusBar Component ──────────────────────────────────────────────
+
+function ShiftStatusBar({
+  shift,
+  config,
+  onBreakStart,
+  onBreakEnd,
+  onEndShift,
+  actionLoading,
+}: {
+  shift: ActiveShift;
+  config: VenueShiftConfig;
+  onBreakStart: () => void;
+  onBreakEnd: () => void;
+  onEndShift: () => void;
+  actionLoading: string | null;
+}) {
+  const [elapsed, setElapsed] = React.useState(0); // seconds since shift_start
+  const [breakElapsed, setBreakElapsed] = React.useState(0); // seconds since break_start
+
+  React.useEffect(() => {
+    const tick = () => {
+      setElapsed(Math.floor((Date.now() - new Date(shift.shift_start).getTime()) / 1000));
+      if (shift.status === "on_break" && shift.break_start) {
+        setBreakElapsed(Math.floor((Date.now() - new Date(shift.break_start).getTime()) / 1000));
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [shift.shift_start, shift.status, shift.break_start]);
+
+  const breakUsed = shift.total_break_minutes + Math.floor(breakElapsed / 60);
+  const breakPct = Math.min((breakUsed / config.max_break_minutes) * 100, 100);
+  const remainingBreakSec =
+    (config.max_break_minutes - shift.total_break_minutes) * 60 - breakElapsed;
+
+  const barColor =
+    breakPct >= 100
+      ? "bg-red-500"
+      : breakPct >= 80
+      ? "bg-amber-500"
+      : "bg-emerald-500";
+
+  const isOnBreak = shift.status === "on_break";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm"
+    >
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        {/* Left: status + timer */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset ${
+                isOnBreak
+                  ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-700"
+                  : "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-700"
+              }`}
+            >
+              <span className="relative flex h-2 w-2">
+                <span
+                  className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
+                    isOnBreak ? "bg-amber-400" : "bg-emerald-400"
+                  }`}
+                />
+                <span
+                  className={`relative inline-flex h-2 w-2 rounded-full ${
+                    isOnBreak ? "bg-amber-500" : "bg-emerald-500"
+                  }`}
+                />
+              </span>
+              {isOnBreak ? "On Break" : "Shift Active"}
+            </span>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              Started {new Date(shift.shift_start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-extrabold tracking-tight tabular-nums dark:text-white">
+              {fmtDuration(elapsed)}
+            </span>
+            {isOnBreak && remainingBreakSec > 0 && (
+              <span className="text-sm font-mono text-amber-600 dark:text-amber-400 font-bold">
+                · Break ends in{" "}
+                {Math.floor(remainingBreakSec / 60)}:{String(remainingBreakSec % 60).padStart(2, "0")}
+              </span>
+            )}
+            {isOnBreak && remainingBreakSec <= 0 && (
+              <span className="text-sm font-semibold text-red-500">· Break limit reached</span>
+            )}
+          </div>
+        </div>
+
+        {/* Right: actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          {!isOnBreak ? (
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onBreakStart}
+              disabled={!!actionLoading || breakUsed >= config.max_break_minutes}
+              className="flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {actionLoading === "break_start" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Coffee className="w-4 h-4" />
+              )}
+              Take Break
+            </motion.button>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={onBreakEnd}
+              disabled={!!actionLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold text-sm shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {actionLoading === "break_end" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
+              End Break
+            </motion.button>
+          )}
+
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onEndShift}
+            disabled={!!actionLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {actionLoading === "end_shift" ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Square className="w-4 h-4" />
+            )}
+            End Shift
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Break progress bar */}
+      <div className="mt-4">
+        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+          <span className="flex items-center gap-1">
+            <Timer className="w-3.5 h-3.5" />
+            Break Used
+          </span>
+          <span className="font-semibold text-slate-700 dark:text-slate-300">
+            {Math.min(breakUsed, config.max_break_minutes)} / {config.max_break_minutes} min
+          </span>
+        </div>
+        <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
+          <motion.div
+            className={`h-2 rounded-full transition-colors duration-500 ${barColor}`}
+            initial={{ width: 0 }}
+            animate={{ width: `${breakPct}%` }}
+            transition={{ duration: 0.5 }}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── ShiftSummaryModal Component ───────────────────────────────────────────
+
+function ShiftSummaryModal({
+  summary,
+  staffName,
+  onDone,
+}: {
+  summary: ShiftSummary;
+  staffName: string;
+  onDone: () => void;
+}) {
+  React.useEffect(() => {
+    const t = setTimeout(onDone, 5000);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-60 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.88, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92 }}
+        transition={{ type: "spring", stiffness: 300, damping: 26 }}
+        className="w-full max-w-sm bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden"
+      >
+        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 px-8 pt-8 pb-6 text-white text-center">
+          <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-3">
+            <CheckCircle2 className="w-7 h-7 text-white" />
+          </div>
+          <h2 className="text-xl font-extrabold">Shift Complete!</h2>
+          <p className="text-emerald-100 text-sm mt-1">Great work today, {staffName.split(" ")[0]}!</p>
+        </div>
+
+        <div className="px-8 py-6 space-y-3">
+          {[
+            { label: "Total Time", value: fmtMinutes(summary.total_minutes), icon: Clock },
+            { label: "Break Taken", value: fmtMinutes(summary.total_break_minutes), icon: Coffee },
+            { label: "Net Worked", value: fmtMinutes(summary.net_minutes), icon: TrendingUp },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-slate-700 last:border-0">
+              <span className="text-slate-500 dark:text-slate-400 flex items-center gap-2 text-sm">
+                <Icon className="w-4 h-4" />
+                {label}
+              </span>
+              <span className="font-bold text-slate-800 dark:text-white">{value}</span>
+            </div>
+          ))}
+
+          <p className="text-center text-xs text-slate-400 pt-1">Auto-closing in 5 seconds…</p>
+
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={onDone}
+            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-all text-sm"
+          >
+            Done
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // ── Check-In Step type (shared with components) ────────────────────────────
 type CheckInWizardStep =
   | "scan"
@@ -160,6 +614,18 @@ export default function StaffDashboardPage() {
     completed_today: 0,
     total_completed: 0,
   });
+
+  // ── Shift state ──────────────────────────────────────────────────────────
+  const [shiftStatus, setShiftStatus] = React.useState<ShiftStatus>("loading");
+  const [activeShift, setActiveShift] = React.useState<ActiveShift | null>(null);
+  const [venueConfig, setVenueConfig] = React.useState<VenueShiftConfig>({
+    max_break_minutes: 30,
+    shift_start_time: "09:00",
+    shift_end_time: "18:00",
+    enforce_shift_start_window: true,
+  });
+  const [shiftActionLoading, setShiftActionLoading] = React.useState<string | null>(null);
+  const [shiftSummary, setShiftSummary] = React.useState<ShiftSummary | null>(null);
 
   // Active vehicles (real data)
   const [activeVehicles, setActiveVehicles] = React.useState<ActiveSession[]>(
@@ -218,6 +684,73 @@ export default function StaffDashboardPage() {
     }
   }, []); // ← stable identity: no state deps
 
+  // ── Fetch current shift ───────────────────────────────────────────────
+  const fetchCurrentShift = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/staff/shift/current");
+      if (!res.ok) return;
+      const data = await res.json();
+      setVenueConfig(data.venueConfig ?? { max_break_minutes: 30, shift_start_time: "09:00", shift_end_time: "18:00" });
+      if (data.shift) {
+        setActiveShift(data.shift);
+        setShiftStatus(data.shift.status);
+      } else {
+        setActiveShift(null);
+        setShiftStatus("none");
+      }
+    } catch {
+      setShiftStatus("none");
+    }
+  }, []);
+
+  // ── Shift actions ─────────────────────────────────────────────────────
+  const handleStartShift = React.useCallback(async () => {
+    setShiftActionLoading("start");
+    try {
+      const res = await fetch("/api/staff/shift/start", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || "Failed to start shift"); return; }
+      setActiveShift(data.shift);
+      setShiftStatus(data.code === "PENDING_APPROVAL" ? "pending_approval" : "active");
+    } catch { alert("Network error. Please try again."); }
+    finally { setShiftActionLoading(null); }
+  }, []);
+
+  const handleBreakStart = React.useCallback(async () => {
+    setShiftActionLoading("break_start");
+    try {
+      const res = await fetch("/api/staff/shift/break/start", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || "Failed to start break"); return; }
+      setActiveShift(data.shift);
+      setShiftStatus("on_break");
+    } catch { alert("Network error."); }
+    finally { setShiftActionLoading(null); }
+  }, []);
+
+  const handleBreakEnd = React.useCallback(async () => {
+    setShiftActionLoading("break_end");
+    try {
+      const res = await fetch("/api/staff/shift/break/end", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || "Failed to end break"); return; }
+      setActiveShift(data.shift);
+      setShiftStatus("active");
+    } catch { alert("Network error."); }
+    finally { setShiftActionLoading(null); }
+  }, []);
+
+  const handleEndShift = React.useCallback(async () => {
+    setShiftActionLoading("end_shift");
+    try {
+      const res = await fetch("/api/staff/shift/end", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || "Failed to end shift"); return; }
+      setShiftSummary(data.summary);
+    } catch { alert("Network error."); }
+    finally { setShiftActionLoading(null); }
+  }, []);
+
   // ── Fetch active vehicles at staff's venue ────────────────────────────
   const fetchActiveVehicles = React.useCallback(async () => {
     try {
@@ -271,11 +804,19 @@ export default function StaffDashboardPage() {
   React.useEffect(() => {
     fetchStaffInfo();
     fetchActiveVehicles();
-  }, [fetchStaffInfo, fetchActiveVehicles]);
+    fetchCurrentShift();
+  }, [fetchStaffInfo, fetchActiveVehicles, fetchCurrentShift]);
 
   React.useEffect(() => {
     if (staffInfo?.id) fetchTasks();
   }, [staffInfo?.id, fetchTasks]);
+
+  // Auto-poll every 30s when awaiting admin approval
+  React.useEffect(() => {
+    if (shiftStatus !== "pending_approval") return;
+    const id = setInterval(fetchCurrentShift, 30_000);
+    return () => clearInterval(id);
+  }, [shiftStatus, fetchCurrentShift]);
 
   // Refresh active vehicles whenever the tab is switched to "Active Vehicles"
   React.useEffect(() => {
@@ -318,6 +859,113 @@ export default function StaffDashboardPage() {
     >
       {/* Dark Mode Background */}
       <div className="fixed inset-0 -z-10 bg-slate-50 dark:bg-slate-900 transition-colors duration-300" />
+
+      {/* Shift Start Gate — blocks dashboard until shift started */}
+      <AnimatePresence>
+        {shiftStatus === "none" && staffInfo && (
+          <ShiftStartGate
+            staffName={staffInfo.full_name}
+            venueName={staffInfo.venue?.name ?? "Your Venue"}
+            venueCity={staffInfo.venue?.city ?? ""}
+            config={venueConfig}
+            onStart={handleStartShift}
+            starting={shiftActionLoading === "start"}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Pending Approval Overlay — blocks dashboard, auto-polls for approval */}
+      <AnimatePresence>
+        {shiftStatus === "pending_approval" && (
+          <motion.div
+            key="pending-approval"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 24, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-red-300 dark:border-red-700 max-w-md w-full p-8 text-center"
+            >
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-red-500" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                Awaiting Admin Approval
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">
+                You were{" "}
+                <span className="font-semibold text-red-500">
+                  {activeShift?.late_minutes ?? 0} minutes late
+                </span>{" "}
+                to your shift.
+              </p>
+              <p className="text-slate-400 dark:text-slate-500 text-sm mb-6">
+                Your manager has been notified. The dashboard will unlock automatically once approved.
+              </p>
+              <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Checking for approval every 30 seconds…
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Rejected Overlay */}
+      <AnimatePresence>
+        {shiftStatus === "rejected" && (
+          <motion.div
+            key="rejected"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.92, y: 24, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 260, damping: 24 }}
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-red-400 dark:border-red-600 max-w-md w-full p-8 text-center"
+            >
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <XCircle className="w-8 h-8 text-red-500" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                Shift Rejected
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                Your shift request has been rejected by your manager. Please report to your manager for further instructions.
+              </p>
+              <button
+                onClick={handleLogout}
+                className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-sm transition-all"
+              >
+                Logout
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Shift Summary Modal */}
+      <AnimatePresence>
+        {shiftSummary && (
+          <ShiftSummaryModal
+            summary={shiftSummary}
+            staffName={staffInfo?.full_name ?? "Staff"}
+            onDone={() => {
+              setShiftSummary(null);
+              setActiveShift(null);
+              setShiftStatus("none");
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.header
         variants={item}
@@ -328,7 +976,7 @@ export default function StaffDashboardPage() {
             <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2.5 py-1.5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
               <User className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
               <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
-                Valet Staff
+                Driver
               </span>
             </div>
             {staffInfo?.venue && (
@@ -344,7 +992,7 @@ export default function StaffDashboardPage() {
             Staff Dashboard
           </h1>
           <p className="mt-0.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Welcome back, {staffInfo?.full_name || "Valet Attendant"}
+            Welcome back, {staffInfo?.full_name || "Driver"}
           </p>
         </div>
 
@@ -363,6 +1011,22 @@ export default function StaffDashboardPage() {
           </motion.button>
         </div>
       </motion.header>
+
+      {/* Shift Status Bar — shown when shift is active or on_break */}
+      <AnimatePresence>
+        {(shiftStatus === "active" || shiftStatus === "on_break") && activeShift && (
+          <motion.div variants={item}>
+            <ShiftStatusBar
+              shift={activeShift}
+              config={venueConfig}
+              onBreakStart={handleBreakStart}
+              onBreakEnd={handleBreakEnd}
+              onEndShift={handleEndShift}
+              actionLoading={shiftActionLoading}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Stats */}
       <motion.section
@@ -610,7 +1274,7 @@ function ActiveVehiclesTab({
                 <div className="text-right">
                   <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-700 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300">
                     <MapPin className="h-3 w-3" />
-                    {(v.slot as { slot_number: string }).slot_number}
+                    {(v.slot as { slot_number: string } | null)?.slot_number ?? "—"}
                   </span>
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{v.duration}</div>
                 </div>
@@ -1873,99 +2537,133 @@ function PerformanceTab({ stats }: { stats: StaffStats }) {
 // Flow: search (phone/plate) → session preview → confirm → receipt
 // ══════════════════════════════════════════════════════════════════════════
 
-interface CheckoutSearchResult {
+interface CheckoutTile {
   id: string;
   entry_time: string;
   rate_per_hour: number;
-  retrieval_status: string | null;
   duration: string;
   billed_hours: number;
   estimated_amount: number;
+  retrieval_status: string | null;
   vehicle: { license_plate: string; make: string | null; model: string | null; color: string | null; vehicle_type: string };
-  slot: { slot_number: string; floor_level: string | null; zone: string | null };
+  slot: { slot_number: string; floor_level: string | null; zone: string | null } | null;
   venue: { name: string };
-  customer: { id: string | null; name: string | null; phone: string | null };
+  customer_name: string;
 }
 
-interface CheckoutReceipt {
-  id: string;
-  status: string;
-  exit_time: string;
-  duration: string;
-  billed_hours: number;
-  rate_per_hour: number;
-  total_amount: number;
-  vehicle: { license_plate: string; make: string | null; model: string | null; color: string | null };
-  slot: { slot_number: string; floor_level: string | null; zone: string | null } | null;
-  venue: string;
-}
+type TileStep = "idle" | "confirming" | "delivering" | "done";
 
 function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
   const [query, setQuery] = React.useState("");
-  const [searchLoading, setSearchLoading] = React.useState(false);
-  const [sessions, setSessions] = React.useState<CheckoutSearchResult[] | null>(null);
-  const [notFound, setNotFound] = React.useState(false);
-  const [selected, setSelected] = React.useState<CheckoutSearchResult | null>(null);
-  const [checkoutLoading, setCheckoutLoading] = React.useState(false);
-  const [receipt, setReceipt] = React.useState<CheckoutReceipt | null>(null);
-  const [error, setError] = React.useState("");
+  const [sessions, setSessions] = React.useState<CheckoutTile[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [tileSteps, setTileSteps] = React.useState<Record<string, TileStep>>({});
+  const [tileLoading, setTileLoading] = React.useState<Record<string, boolean>>({});
+  const [tileError, setTileError] = React.useState<Record<string, string>>({});
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-    setSearchLoading(true);
-    setSessions(null);
-    setSelected(null);
-    setNotFound(false);
-    setReceipt(null);
-    setError("");
+  const fetchSessions = React.useCallback(async () => {
+    setLoading(true);
     try {
-      const res = await fetch(`/api/sessions/checkout/search?q=${encodeURIComponent(query.trim())}`);
-      const data = await res.json();
-      if (data.found && data.sessions.length > 0) {
-        setSessions(data.sessions);
-        if (data.sessions.length === 1) setSelected(data.sessions[0]);
+      const res = await fetch("/api/sessions?status=active");
+      if (res.ok) {
+        const data = await res.json();
+        const rows: Record<string, unknown>[] = data.sessions ?? [];
+        setSessions(
+          rows.map((s) => {
+            const durationHours =
+              (Date.now() - new Date(s.entry_time as string).getTime()) / 3_600_000;
+            const billedHours = Math.max(1, Math.ceil(durationHours));
+            const ratePerHour = (s.rate_per_hour as number) ?? 100;
+            return {
+              id: s.id as string,
+              entry_time: s.entry_time as string,
+              rate_per_hour: ratePerHour,
+              duration: (s.duration as string) || "0m",
+              billed_hours: billedHours,
+              estimated_amount: billedHours * ratePerHour,
+              retrieval_status: (s.retrieval_status as string | null) ?? null,
+              vehicle: s.vehicle as CheckoutTile["vehicle"],
+              slot: s.slot as CheckoutTile["slot"],
+              venue: s.venue as CheckoutTile["venue"],
+              customer_name: (s.customer_name as string) || "Walk-in",
+            };
+          })
+        );
+      }
+    } catch (err) {
+      console.error("Failed to fetch sessions:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  const setStep = (id: string, step: TileStep) =>
+    setTileSteps((p) => ({ ...p, [id]: step }));
+  const setLoadingFor = (id: string, val: boolean) =>
+    setTileLoading((p) => ({ ...p, [id]: val }));
+  const setErrorFor = (id: string, msg: string) =>
+    setTileError((p) => ({ ...p, [id]: msg }));
+
+  const handleStartDelivery = async (id: string) => {
+    setLoadingFor(id, true);
+    setErrorFor(id, "");
+    try {
+      const res = await fetch(`/api/sessions/${id}/retrieval`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "in_progress" }),
+      });
+      if (res.ok) {
+        setStep(id, "delivering");
       } else {
-        setNotFound(true);
+        const data = await res.json();
+        setErrorFor(id, data.error || "Failed to start delivery");
       }
     } catch {
-      setError("Search failed. Please try again.");
+      setErrorFor(id, "Network error. Please try again.");
     } finally {
-      setSearchLoading(false);
+      setLoadingFor(id, false);
     }
   };
 
-  const handleCheckout = async () => {
-    if (!selected) return;
-    setCheckoutLoading(true);
-    setError("");
+  const handleDelivered = async (id: string) => {
+    setLoadingFor(id, true);
+    setErrorFor(id, "");
     try {
       const res = await fetch("/api/sessions/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: selected.id }),
+        body: JSON.stringify({ session_id: id }),
       });
-      const data = await res.json();
       if (res.ok) {
-        setReceipt(data.session);
-        onSuccess();
+        setStep(id, "done");
+        setTimeout(() => {
+          setSessions((p) => p.filter((s) => s.id !== id));
+          onSuccess();
+        }, 1_500);
       } else {
-        setError(data.error || "Checkout failed");
+        const data = await res.json();
+        setErrorFor(id, data.error || "Checkout failed");
       }
     } catch {
-      setError("Network error. Please try again.");
+      setErrorFor(id, "Network error. Please try again.");
     } finally {
-      setCheckoutLoading(false);
+      setLoadingFor(id, false);
     }
   };
 
-  const reset = () => {
-    setQuery("");
-    setSessions(null);
-    setSelected(null);
-    setNotFound(false);
-    setReceipt(null);
-    setError("");
-  };
+  const filtered = sessions.filter((s) => {
+    if (!query.trim()) return true;
+    const q = query.toLowerCase();
+    return (
+      s.vehicle.license_plate.toLowerCase().includes(q) ||
+      s.customer_name.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <motion.div
@@ -1976,195 +2674,216 @@ function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
       transition={{ type: "spring", stiffness: 180, damping: 18 }}
       className="space-y-4"
     >
-      {/* ── Receipt Screen ────────────────────────────────────────────────── */}
-      {receipt ? (
-        <div className="space-y-4">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 16 }}
-            className="rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-6 text-white text-center shadow-lg"
-          >
-            <CircleCheck className="h-12 w-12 mx-auto mb-2 opacity-90" />
-            <p className="text-sm font-medium opacity-80 mb-1">Checkout Complete</p>
-            <p className="text-2xl font-black font-mono tracking-widest">{receipt.vehicle.license_plate}</p>
-            <p className="text-sm opacity-80 mt-1">Customer has been notified</p>
-          </motion.div>
+      {/* Search + Refresh */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by plate or customer…"
+            className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 pl-9 pr-4 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:text-white dark:placeholder-slate-400"
+          />
+        </div>
+        <button
+          onClick={fetchSessions}
+          className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
+      </div>
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-3 text-sm">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-700">
-              <Receipt className="h-4 w-4 text-slate-500" />
-              <span className="font-semibold dark:text-white">Receipt</span>
-            </div>
-            <div className="grid grid-cols-2 gap-y-2.5">
-              <span className="text-slate-500 dark:text-slate-400">Vehicle</span>
-              <span className="font-bold font-mono dark:text-white">{receipt.vehicle.license_plate}</span>
-              {receipt.slot?.slot_number && (
-                <>
-                  <span className="text-slate-500 dark:text-slate-400">Slot</span>
-                  <span className="font-semibold dark:text-white">{receipt.slot.slot_number}</span>
-                </>
-              )}
-              <span className="text-slate-500 dark:text-slate-400">Duration</span>
-              <span className="font-semibold dark:text-white">{receipt.duration}</span>
-              <span className="text-slate-500 dark:text-slate-400">Billed Hours</span>
-              <span className="font-semibold dark:text-white">{receipt.billed_hours}h @ PKR {receipt.rate_per_hour}/hr</span>
-              <span className="text-slate-500 dark:text-slate-400">Exit Time</span>
-              <span className="font-semibold dark:text-white">
-                {new Date(receipt.exit_time).toLocaleTimeString("en-PK", { hour: "numeric", minute: "2-digit" })}
-              </span>
-              <span className="text-slate-600 dark:text-slate-300 font-semibold pt-2 border-t border-slate-100 dark:border-slate-700">Total</span>
-              <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 pt-2 border-t border-slate-100 dark:border-slate-700">
-                PKR {receipt.total_amount}
-              </span>
-            </div>
-          </div>
-
-          <motion.button
-            whileTap={{ scale: 0.98 }}
-            onClick={reset}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-sky-700"
-          >
-            <Receipt className="h-4 w-4" /> Check-Out Another
-          </motion.button>
+      {/* Body */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 text-sky-500 animate-spin" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+          <Car className="w-12 h-12 opacity-30 mb-2" />
+          <p className="text-sm font-medium">
+            {query ? "No matching vehicles" : "No active sessions"}
+          </p>
         </div>
       ) : (
-        <>
-          <h4 className="text-lg font-bold text-slate-900 dark:text-white">Check-Out Vehicle</h4>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Search by customer phone number or license plate.</p>
+        <div className="space-y-3">
+          {filtered.map((session) => {
+            const step = tileSteps[session.id] ?? "idle";
+            const isLoading = tileLoading[session.id] ?? false;
+            const error = tileError[session.id] ?? "";
 
-          {/* Search bar */}
-          <div className="flex gap-2">
-            <input
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setNotFound(false); }}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="Phone (+923…) or plate (LEA-1234)"
-              className="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-4 py-3 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:text-white dark:placeholder-slate-400"
-            />
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={handleSearch}
-              disabled={!query.trim() || searchLoading}
-              className="flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50 transition-colors"
-            >
-              {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            </motion.button>
-          </div>
+            const iconBg =
+              step === "done"
+                ? "bg-emerald-50 dark:bg-emerald-900/30"
+                : step === "delivering"
+                ? "bg-amber-50 dark:bg-amber-900/30"
+                : "bg-sky-50 dark:bg-sky-900/30";
 
-          {/* Not found */}
-          {notFound && (
-            <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-400">
-              <Ban className="h-4 w-4 shrink-0" />
-              No active parking session found for &quot;{query}&quot;
-            </div>
-          )}
+            const IconEl =
+              step === "done" ? (
+                <CircleCheck className="h-5 w-5 text-emerald-600" />
+              ) : step === "delivering" ? (
+                <Truck className="h-5 w-5 text-amber-600" />
+              ) : (
+                <Car className="h-5 w-5 text-sky-600" />
+              );
 
-          {/* Multiple results */}
-          {sessions && sessions.length > 1 && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                {sessions.length} sessions found — select one
-              </p>
-              {sessions.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setSelected(s)}
-                  className={`w-full flex items-center justify-between rounded-xl border px-4 py-3 text-sm text-left transition ${selected?.id === s.id
-                    ? "border-sky-500 bg-sky-50 dark:bg-sky-950/30"
-                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-sky-300"
-                    }`}
-                >
-                  <span className="font-bold font-mono">{s.vehicle.license_plate}</span>
-                  <span className="text-slate-500 dark:text-slate-400">{s.duration} • {s.slot.slot_number}</span>
-                </button>
-              ))}
-            </div>
-          )}
+            return (
+              <motion.div
+                key={session.id}
+                layout
+                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden"
+              >
+                {/* Tile header row */}
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${iconBg}`}>
+                      {IconEl}
+                    </div>
+                    <div>
+                      <div className="font-bold font-mono tracking-wider dark:text-white">
+                        {session.vehicle.license_plate}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        {session.customer_name} · {session.duration}
+                      </div>
+                    </div>
+                  </div>
 
-          {/* Session preview */}
-          {selected && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 space-y-4"
-            >
-              {/* Vehicle header */}
-              <div className="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 dark:bg-sky-900/30 shrink-0">
-                  <Car className="h-5 w-5 text-sky-600" />
-                </div>
-                <div>
-                  <div className="font-black font-mono tracking-widest text-lg dark:text-white">{selected.vehicle.license_plate}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {[selected.vehicle.color, selected.vehicle.make, selected.vehicle.model].filter(Boolean).join(" ") || selected.vehicle.vehicle_type}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="text-right">
+                      <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                        PKR {session.estimated_amount}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {session.slot?.slot_number ?? "—"}
+                      </div>
+                    </div>
+
+                    {step === "idle" && (
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setStep(session.id, "confirming")}
+                        className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors"
+                      >
+                        <Receipt className="h-3.5 w-3.5" />
+                        Checkout
+                      </motion.button>
+                    )}
+                    {step === "confirming" && (
+                      <span className="text-xs font-medium text-slate-400 px-1">
+                        Confirming…
+                      </span>
+                    )}
+                    {step === "delivering" && (
+                      <span className="flex items-center gap-1 rounded-xl bg-amber-100 dark:bg-amber-900/30 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Delivering
+                      </span>
+                    )}
+                    {step === "done" && (
+                      <span className="flex items-center gap-1 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                        <CircleCheck className="h-3 w-3" /> Done
+                      </span>
+                    )}
                   </div>
                 </div>
-                {selected.retrieval_status && (
-                  <span className={`ml-auto text-xs rounded-full px-2 py-0.5 font-medium ${selected.retrieval_status === "in_progress" ? "bg-amber-100 text-amber-700" :
-                    selected.retrieval_status === "requested" ? "bg-orange-100 text-orange-700" : "bg-slate-100 text-slate-600"
-                    }`}>
-                    {selected.retrieval_status === "in_progress" ? "In Transit" : selected.retrieval_status}
-                  </span>
-                )}
-              </div>
 
-              {/* Details grid */}
-              <div className="grid grid-cols-2 gap-y-2.5 text-sm">
-                <span className="text-slate-500 dark:text-slate-400">Customer</span>
-                <span className="font-semibold dark:text-white">{selected.customer.name || "Walk-in"}</span>
-                {selected.customer.phone && (
-                  <>
-                    <span className="text-slate-500 dark:text-slate-400">Phone</span>
-                    <span className="font-semibold dark:text-white">{selected.customer.phone}</span>
-                  </>
-                )}
-                <span className="text-slate-500 dark:text-slate-400">Venue</span>
-                <span className="font-semibold dark:text-white">{selected.venue.name}</span>
-                <span className="text-slate-500 dark:text-slate-400">Slot</span>
-                <span className="font-semibold dark:text-white">{selected.slot.slot_number}{selected.slot.floor_level ? ` · F${selected.slot.floor_level}` : ""}</span>
-                <span className="text-slate-500 dark:text-slate-400">Duration</span>
-                <span className="font-semibold dark:text-white">{selected.duration}</span>
-                <span className="text-slate-500 dark:text-slate-400">Billed</span>
-                <span className="font-semibold dark:text-white">{selected.billed_hours}h × PKR {selected.rate_per_hour}</span>
-              </div>
+                {/* Expandable confirmation panel */}
+                <AnimatePresence>
+                  {(step === "confirming" || step === "delivering") && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 260, damping: 26 }}
+                      className="overflow-hidden border-t border-slate-100 dark:border-slate-700"
+                    >
+                      <div className="p-4 space-y-3">
+                        {/* Details grid */}
+                        <div className="grid grid-cols-2 gap-y-2 text-sm">
+                          <span className="text-slate-500 dark:text-slate-400">Customer</span>
+                          <span className="font-semibold dark:text-white">{session.customer_name}</span>
+                          <span className="text-slate-500 dark:text-slate-400">Venue</span>
+                          <span className="font-semibold dark:text-white">{session.venue?.name}</span>
+                          <span className="text-slate-500 dark:text-slate-400">Slot</span>
+                          <span className="font-semibold dark:text-white">
+                            {session.slot?.slot_number ?? "—"}
+                            {session.slot?.floor_level ? ` · F${session.slot.floor_level}` : ""}
+                          </span>
+                          <span className="text-slate-500 dark:text-slate-400">Duration</span>
+                          <span className="font-semibold dark:text-white">{session.duration}</span>
+                          <span className="text-slate-500 dark:text-slate-400">Billed</span>
+                          <span className="font-semibold dark:text-white">
+                            {session.billed_hours}h × PKR {session.rate_per_hour}
+                          </span>
+                        </div>
 
-              {/* Compact QR for visual confirmation */}
-              <div className="flex justify-center py-1">
-                <QRCodeDisplay
-                  sessionId={selected.id}
-                  licensePlate={selected.vehicle.license_plate}
-                  size="sm"
-                  variant="compact"
-                  showActions={false}
-                />
-              </div>
+                        {/* Amount callout */}
+                        <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-4 py-3 flex items-center justify-between">
+                          <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">
+                            Total Amount
+                          </span>
+                          <span className="text-xl font-black text-emerald-700 dark:text-emerald-400">
+                            PKR {session.estimated_amount}
+                          </span>
+                        </div>
 
-              {/* Total callout */}
-              <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-4 py-3 flex items-center justify-between">
-                <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">Total Amount</span>
-                <span className="text-xl font-black text-emerald-700 dark:text-emerald-400">PKR {selected.estimated_amount}</span>
-              </div>
+                        {error && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
+                            <AlertCircle className="h-4 w-4 shrink-0" />
+                            {error}
+                          </div>
+                        )}
 
-              {error && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
-                  <AlertCircle className="h-4 w-4 shrink-0" />{error}
-                </div>
-              )}
-
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={handleCheckout}
-                disabled={checkoutLoading}
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-              >
-                {checkoutLoading
-                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing…</>
-                  : <><CircleCheck className="h-4 w-4" /> Confirm Checkout</>}
-              </motion.button>
-            </motion.div>
-          )}
-        </>
+                        {/* Action buttons */}
+                        <div className="flex gap-2">
+                          {step === "confirming" && (
+                            <>
+                              <motion.button
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => {
+                                  setStep(session.id, "idle");
+                                  setErrorFor(session.id, "");
+                                }}
+                                className="flex-1 rounded-xl border border-slate-200 dark:border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                              >
+                                Cancel
+                              </motion.button>
+                              <motion.button
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => handleStartDelivery(session.id)}
+                                disabled={isLoading}
+                                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                              >
+                                {isLoading
+                                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                                  : <Truck className="h-4 w-4" />}
+                                Start Delivery
+                              </motion.button>
+                            </>
+                          )}
+                          {step === "delivering" && (
+                            <motion.button
+                              whileTap={{ scale: 0.97 }}
+                              onClick={() => handleDelivered(session.id)}
+                              disabled={isLoading}
+                              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                            >
+                              {isLoading
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <CircleCheck className="h-4 w-4" />}
+                              Delivered
+                            </motion.button>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
+        </div>
       )}
     </motion.div>
   );

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+
 // ── Zone Auto-Naming Algorithm ─────────────────────────────────────────────
 // Multi-word gate name: first letter of each word → "Food Court" → "FC"
 // Single-word gate name: first two letters → "Cinema" → "CI"

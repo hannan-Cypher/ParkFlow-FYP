@@ -6,6 +6,7 @@ import {
     MapPin, Plus, Pencil, Trash2, X, CheckCircle, AlertCircle,
     Building2, Phone, Mail, Globe, Hash, Loader2, ChevronDown,
     ChevronRight, ChevronLeft, DoorOpen, Layers, LayoutGrid,
+    Clock, Coffee, Info,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -25,11 +26,15 @@ interface GateFormData {
 interface BasicFormData {
     name: string; address: string; city: string; country: string
     contact_phone: string; contact_email: string; status: 'active' | 'inactive' | 'maintenance'
+    shift_start_time: string; shift_end_time: string; max_break_minutes: string
+    enforce_shift_start_window: boolean
 }
 
 const defaultBasicForm: BasicFormData = {
     name: '', address: '', city: '', country: 'Pakistan',
     contact_phone: '', contact_email: '', status: 'active',
+    shift_start_time: '09:00', shift_end_time: '18:00', max_break_minutes: '30',
+    enforce_shift_start_window: true,
 }
 
 // ─── Zone Auto-Naming (mirrors backend) ───────────────────────────────────────
@@ -119,7 +124,7 @@ function StepIndicator({ current, total, labels }: { current: number; total: num
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function LocationsTab() {
+export default function LocationsTab({ readOnly = false }: { readOnly?: boolean }) {
     const [locations, setLocations] = useState<Location[]>([])
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -154,9 +159,16 @@ export default function LocationsTab() {
         setWizardStep(0); setFormErrors({}); setModalOpen(true)
     }
 
-    const openEditModal = async (loc: Location) => {
+    const openEditModal = async (loc: Location & { shift_start_time?: string; shift_end_time?: string; max_break_minutes?: number; enforce_shift_start_window?: boolean }) => {
         setEditTarget(loc)
-        setBasicForm({ name: loc.name, address: loc.address, city: loc.city, country: loc.country, contact_phone: loc.contact_phone ?? '', contact_email: loc.contact_email ?? '', status: loc.status })
+        setBasicForm({
+            name: loc.name, address: loc.address, city: loc.city, country: loc.country,
+            contact_phone: loc.contact_phone ?? '', contact_email: loc.contact_email ?? '', status: loc.status,
+            shift_start_time: loc.shift_start_time ?? '09:00',
+            shift_end_time: loc.shift_end_time ?? '18:00',
+            max_break_minutes: String(loc.max_break_minutes ?? 30),
+            enforce_shift_start_window: loc.enforce_shift_start_window ?? true,
+        })
         // Fetch existing gates/zones
         try {
             const res = await fetch(`/api/locations/${loc.id}/gates`)
@@ -233,6 +245,8 @@ export default function LocationsTab() {
         try {
             const payload = {
                 ...basicForm,
+                max_break_minutes: parseInt(basicForm.max_break_minutes, 10) || 30,
+                enforce_shift_start_window: basicForm.enforce_shift_start_window,
                 gates: gatesForm.map(g => ({ name: g.name.trim(), zones: g.zones.map(z => ({ slots: Number(z.slots) })) })),
             }
             const url = editTarget ? `/api/locations/${editTarget.id}` : '/api/locations'
@@ -285,6 +299,60 @@ export default function LocationsTab() {
                         <option value="inactive">Inactive</option>
                         <option value="maintenance">Maintenance</option>
                     </select>
+                </div>
+            </div>
+
+            {/* Shift Configuration */}
+            <div>
+                <div className="flex items-center gap-2 mb-3">
+                    <Clock className="w-4 h-4 text-sky-500" />
+                    <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Shift Configuration</span>
+                </div>
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <InputField label="Shift Start Time" icon={Clock} type="time" value={basicForm.shift_start_time}
+                            onChange={e => setBasicForm(p => ({ ...p, shift_start_time: e.target.value }))} />
+                        <InputField label="Shift End Time" icon={Clock} type="time" value={basicForm.shift_end_time}
+                            onChange={e => setBasicForm(p => ({ ...p, shift_end_time: e.target.value }))} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Max Break Duration
+                        </label>
+                        <div className="relative">
+                            <Coffee className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+                            <input
+                                type="number" min={5} max={120} step={5}
+                                value={basicForm.max_break_minutes}
+                                onChange={e => setBasicForm(p => ({ ...p, max_break_minutes: e.target.value }))}
+                                className="w-full pl-10 pr-16 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 pointer-events-none">min</span>
+                        </div>
+                    </div>
+                    {/* Enforce start window toggle */}
+                    <div className="flex items-start justify-between gap-4 pt-1">
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Enforce Start Window
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                Block staff from clocking in more than 1 hour after the shift start time.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setBasicForm(p => ({ ...p, enforce_shift_start_window: !p.enforce_shift_start_window }))}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${basicForm.enforce_shift_start_window ? 'bg-sky-500' : 'bg-slate-200 dark:bg-slate-600'}`}
+                        >
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${basicForm.enforce_shift_start_window ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 shrink-0" />
+                        Staff cannot exceed the break limit during a shift. These settings apply to all staff at this venue.
+                    </p>
                 </div>
             </div>
         </div>
@@ -413,10 +481,12 @@ export default function LocationsTab() {
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Locations</h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage parking locations, gates, zones, and slots</p>
                 </div>
-                <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={openAddModal}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg transition-colors">
-                    <Plus className="w-4 h-4" /> Add Location
-                </motion.button>
+                {!readOnly && (
+                    <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={openAddModal}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl shadow-lg transition-colors">
+                        <Plus className="w-4 h-4" /> Add Location
+                    </motion.button>
+                )}
             </div>
 
             {/* Stats */}
@@ -466,14 +536,18 @@ export default function LocationsTab() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <StatusBadge status={loc.status} />
-                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => openEditModal(loc)}
-                                            className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 hover:text-sky-600 transition-colors" title="Edit">
-                                            <Pencil className="w-4 h-4" />
-                                        </motion.button>
-                                        <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => setDeleteTarget(loc)}
-                                            className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors" title="Delete">
-                                            <Trash2 className="w-4 h-4" />
-                                        </motion.button>
+                                        {!readOnly && (
+                                            <>
+                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => openEditModal(loc)}
+                                                    className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-sky-50 dark:hover:bg-sky-900/30 hover:text-sky-600 transition-colors" title="Edit">
+                                                    <Pencil className="w-4 h-4" />
+                                                </motion.button>
+                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={() => setDeleteTarget(loc)}
+                                                    className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors" title="Delete">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </motion.button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="border-t border-slate-100 dark:border-slate-700 mx-6" />

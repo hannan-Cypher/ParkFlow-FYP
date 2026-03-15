@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { LogOut, User } from 'lucide-react'
@@ -12,14 +12,16 @@ import LocationsTab from '@/components/admin/LocationsTab'
 import ANPRDetector from '@/components/anpr/ANPRDetector'
 import LiveFeedWidget from '@/components/admin/LiveFeedWidget'
 import DarkModeToggle from '@/components/DarkModeToggle'
+import { getDashboardPath, getRoleLabel } from '@/lib/roles'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('Overview')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
+  const [userRole, setUserRole] = useState<'admin' | 'supervisor'>('admin')
 
-  // Guard: only allow admin role to access this page
+  // Guard: only allow admin or supervisor to access this page
   useEffect(() => {
     let cancelled = false
 
@@ -38,10 +40,11 @@ export default function AdminDashboardPage() {
         const role = data.staff?.role
 
         if (!cancelled) {
-          if (role !== 'admin') {
-            router.push('/staff')
+          if (role !== 'admin' && role !== 'supervisor') {
+            router.push(getDashboardPath(role))
             return
           }
+          setUserRole(role as 'admin' | 'supervisor')
           setAuthChecked(true)
         }
       } catch (error) {
@@ -59,7 +62,17 @@ export default function AdminDashboardPage() {
     }
   }, [router])
 
-  const tabs = ['Overview', 'Analytics', 'Staff', 'Locations', 'Live Feed', 'ANPR', 'Settings']
+  const isSupervisor = userRole === 'supervisor'
+
+  // Supervisor sees: Overview, Staff, Locations (read-only), Live Feed, ANPR
+  // Admin sees all 7 tabs
+  const ALL_TABS = ['Overview', 'Analytics', 'Staff', 'Locations', 'Live Feed', 'ANPR', 'Settings']
+  const SUPERVISOR_HIDDEN = ['Analytics', 'Settings']
+
+  const tabs = useMemo(
+    () => isSupervisor ? ALL_TABS.filter((t) => !SUPERVISOR_HIDDEN.includes(t)) : ALL_TABS,
+    [isSupervisor]
+  )
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -136,11 +149,11 @@ export default function AdminDashboardPage() {
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-2 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 shrink-0">
               <User className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-              <span className="font-medium text-slate-700 dark:text-slate-200 text-sm">Admin</span>
+              <span className="font-medium text-slate-700 dark:text-slate-200 text-sm">{getRoleLabel(userRole)}</span>
             </div>
             <div className="min-w-0">
               <h1 className="text-xl sm:text-3xl font-display font-bold text-slate-900 dark:text-white leading-tight">
-                Admin Dashboard
+                {isSupervisor ? 'Supervisor Dashboard' : 'Admin Dashboard'}
               </h1>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">ParkFlow Management Console</p>
             </div>
@@ -208,13 +221,13 @@ export default function AdminDashboardPage() {
             animate="visible"
             exit="exit"
           >
-            {activeTab === 'Overview' && <OverviewTab />}
-            {activeTab === 'Analytics' && <AnalyticsTab />}
-            {activeTab === 'Staff' && <StaffTab />}
-            {activeTab === 'Settings' && <SettingsTab />}
+            {activeTab === 'Overview' && <OverviewTab hideRevenue={isSupervisor} />}
+            {activeTab === 'Analytics' && !isSupervisor && <AnalyticsTab />}
+            {activeTab === 'Staff' && <StaffTab isSupervisor={isSupervisor} />}
+            {activeTab === 'Settings' && !isSupervisor && <SettingsTab />}
             {activeTab === 'Locations' && (
               <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-6 shadow-sm">
-                <LocationsTab />
+                <LocationsTab readOnly={isSupervisor} />
               </div>
             )}
             {activeTab === 'Live Feed' && (

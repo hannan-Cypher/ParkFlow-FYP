@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * POST /api/sessions/retrieve
  *
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
                     COUNT(ps.id) FILTER (WHERE ps.status = 'active') AS active_tasks
              FROM users u
              LEFT JOIN parking_sessions ps ON ps.valet_staff_id = u.id AND ps.status = 'active'
-             WHERE u.role = 'valet_staff'
+             WHERE u.role = 'driver'
                AND u.venue_id = $1
                AND u.is_active = true
              GROUP BY u.id, u.full_name

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
 import { getAuthUser } from '@/lib/getUser'
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * GET /api/staff/me
  *

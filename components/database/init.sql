@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS users (
     password          VARCHAR(255) NOT NULL,
     full_name         VARCHAR(255) NOT NULL,
     phone             VARCHAR(20) NOT NULL,
-    role              VARCHAR(20) NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'valet_staff', 'admin')),
+    role              VARCHAR(20) NOT NULL DEFAULT 'customer' CHECK (role IN ('customer', 'driver', 'washer', 'supervisor', 'admin')),
     venue_id          UUID REFERENCES venues(id) ON DELETE SET NULL,
     profile_image_url TEXT,
     is_active         BOOLEAN DEFAULT TRUE,

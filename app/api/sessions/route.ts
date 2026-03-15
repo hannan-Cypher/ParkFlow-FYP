@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getAuthUser } from '@/lib/getUser';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * GET /api/sessions
  *
@@ -41,15 +44,15 @@ export async function GET(request: NextRequest) {
                 whereConditions += ` AND (v.owner_id = $${paramIndex} OR ps.customer_id = $${paramIndex})`;
                 params.push(user.id);
                 paramIndex++;
-            } else if (user.role === 'valet_staff') {
-                // Staff: only their assigned venue
+            } else if (user.role === 'driver' || user.role === 'washer') {
+                // Operational staff: only their assigned venue
                 if (user.venue_id) {
                     whereConditions += ` AND ps.venue_id = $${paramIndex}`;
                     params.push(user.venue_id);
                     paramIndex++;
                 }
-            } else if (user.role === 'admin') {
-                // Admin: optional venue filter from query param
+            } else if (user.role === 'admin' || user.role === 'supervisor') {
+                // Admin/Supervisor: optional venue filter from query param
                 if (venueIdParam) {
                     whereConditions += ` AND ps.venue_id = $${paramIndex}`;
                     params.push(venueIdParam);

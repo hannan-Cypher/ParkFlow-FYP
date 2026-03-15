@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * GET /api/admin/analytics
  *
@@ -50,7 +53,7 @@ export async function GET(_request: NextRequest) {
                 COALESCE(ROUND(AVG(ps.rating)::numeric, 1), 0)       AS avg_rating
             FROM users u
             JOIN parking_sessions ps ON ps.valet_staff_id = u.id
-            WHERE u.role = 'valet_staff'
+            WHERE u.role IN ('driver', 'washer', 'supervisor')
               AND ps.status = 'completed'
             GROUP BY u.id, u.full_name
             ORDER BY completed DESC

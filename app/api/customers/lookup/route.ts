@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getAuthUser } from '@/lib/getUser';
+import { isStaffRole, isAdminLike } from '@/lib/roles';
+
+export const dynamic = 'force-dynamic';
+
 
 /**
  * GET /api/customers/lookup?phone=xxx
@@ -18,7 +22,7 @@ export async function GET(request: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  if (user.role !== 'admin' && user.role !== 'valet_staff') {
+  if (!isAdminLike(user.role) && !isStaffRole(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

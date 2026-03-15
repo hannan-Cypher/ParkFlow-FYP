@@ -27370,5 +27370,1940 @@
       408,
       669
     ]
+  },
+  {
+    "plate_id": 661,
+    "timestamp": "2026-03-15T13:47:36.414208",
+    "detection_confidence": 0.7009451985359192,
+    "ocr_text": "N-57692",
+    "ocr_confidence": 0.5268206000328064,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 46841.3,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "N57692",
+        "cleaned": "N-57692",
+        "validated": "N-57692",
+        "confidence": 0.5268,
+        "elapsed_ms": 69.6,
+        "pk_match": false
+      },
+      "easyocr": {
+        "raw": "GEWAREEJA",
+        "cleaned": "GEWAREEJA",
+        "validated": "GEWAREEJA",
+        "confidence": 0.0206,
+        "elapsed_ms": 17817.7
+      },
+      "split_combined": {
+        "raw": "GEWEREELF",
+        "validated": "GEWEREELF",
+        "confidence": 0.02,
+        "elapsed_ms": 28949.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 46841.3
+    },
+    "plate_filename": "plate_661_20260315_134649_N-57692_conf70%.jpg",
+    "full_frame_filename": "frame_20260315_134649.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      18,
+      698,
+      720,
+      1280
+    ]
+  },
+  {
+    "plate_id": 662,
+    "timestamp": "2026-03-15T13:48:07.521365",
+    "detection_confidence": 0.6802347898483276,
+    "ocr_text": "5086748O8W0RTYUCOTOCT5P66HJ2XB3M21381AHNTKCONTFOLOPTIONACOMMANDOPTION",
+    "ocr_confidence": 0.8420185303479325,
+    "ocr_method": "easyocr",
+    "ocr_elapsed_ms": 45950.8,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "J82052",
+        "cleaned": "J-82052",
+        "validated": "J-82052",
+        "confidence": 0.4167,
+        "elapsed_ms": 21.1,
+        "pk_match": false
+      },
+      "easyocr": {
+        "raw": "5086748O8W0RTYUCOTOCT5P66HJ2XB3M21381AHNTKCONTFOLOPTIONACOMMANDOPTION",
+        "cleaned": "5086748O8W0RTYUCOTOCT5P66HJ2XB3M21381AHNTKCONTFOLOPTIONACOMMANDOPTION",
+        "validated": "5086748O8W0RTYUCOTOCT5P66HJ2XB3M21381AHNTKCONTFOLOPTIONACOMMANDOPTION",
+        "confidence": 0.842,
+        "elapsed_ms": 22961.7
+      },
+      "split_combined": {
+        "raw": "",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 22967.8
+      },
+      "selected": "easyocr",
+      "total_ms": 45950.8
+    },
+    "plate_filename": "plate_662_20260315_134721_5086748O8W0RTYUCOTOCT5P66HJ2XB3M21381AHNTKCONTFOLOPTIONACOMMANDOPTION_conf68%.jpg",
+    "full_frame_filename": "frame_20260315_134721.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      114,
+      594,
+      720,
+      1279
+    ]
+  },
+  {
+    "plate_id": 663,
+    "timestamp": "2026-03-15T14:17:58.226167",
+    "detection_confidence": 0.886563777923584,
+    "ocr_text": "AMK-9133",
+    "ocr_confidence": 0.8684803247451782,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1298.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK9133",
+        "cleaned": "AMK-9133",
+        "validated": "AMK-9133",
+        "confidence": 0.8685,
+        "elapsed_ms": 4.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AMK91331",
+        "cleaned": "AMK-91331",
+        "validated": "AIIN-9133",
+        "confidence": 0.659,
+        "elapsed_ms": 739.9
+      },
+      "split_combined": {
+        "raw": "AIIN9133",
+        "validated": "AIIN-9133",
+        "confidence": 0.659,
+        "elapsed_ms": 553.7
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1298.2
+    },
+    "plate_filename": "plate_663_20260315_141756_AMK-9133_conf89%.jpg",
+    "full_frame_filename": "frame_20260315_141756.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      271,
+      628,
+      432,
+      769
+    ]
+  },
+  {
+    "plate_id": 664,
+    "timestamp": "2026-03-15T14:18:00.077108",
+    "detection_confidence": 0.8834778666496277,
+    "ocr_text": "AMK-9133",
+    "ocr_confidence": 0.8582229614257812,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1051.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK9133",
+        "cleaned": "AMK-9133",
+        "validated": "AMK-9133",
+        "confidence": 0.8582,
+        "elapsed_ms": 4.6,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AMK91331",
+        "cleaned": "AMK-91331",
+        "validated": "HIIN-9133",
+        "confidence": 0.5994,
+        "elapsed_ms": 549.5
+      },
+      "split_combined": {
+        "raw": "HIIN9133",
+        "validated": "HIIN-9133",
+        "confidence": 0.5994,
+        "elapsed_ms": 497.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1051.4
+    },
+    "plate_filename": "plate_664_20260315_141759_AMK-9133_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_141759.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      261,
+      523,
+      394,
+      641
+    ]
+  },
+  {
+    "plate_id": 665,
+    "timestamp": "2026-03-15T14:18:02.366856",
+    "detection_confidence": 0.8797358870506287,
+    "ocr_text": "AMK-913",
+    "ocr_confidence": 0.9153056144714355,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 848.8,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK913",
+        "cleaned": "AMK-913",
+        "validated": "AMK-913",
+        "confidence": 0.9153,
+        "elapsed_ms": 4.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AMK91331",
+        "cleaned": "AMK-91331",
+        "validated": "AMK-91331",
+        "confidence": 1.0197,
+        "elapsed_ms": 441.7
+      },
+      "split_combined": {
+        "raw": "AIIN19133",
+        "validated": "AIIN-133",
+        "confidence": 0.5151,
+        "elapsed_ms": 402.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 848.8
+    },
+    "plate_filename": "plate_665_20260315_141801_AMK-913_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_141801.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      267,
+      714,
+      394,
+      827
+    ]
+  },
+  {
+    "plate_id": 666,
+    "timestamp": "2026-03-15T14:18:04.979637",
+    "detection_confidence": 0.8760955333709717,
+    "ocr_text": "AMK-9133",
+    "ocr_confidence": 0.9467417001724243,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 918.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK9133",
+        "cleaned": "AMK-9133",
+        "validated": "AMK-9133",
+        "confidence": 0.9467,
+        "elapsed_ms": 4.6,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AMK91331",
+        "cleaned": "AMK-91331",
+        "validated": "FIIN-9133",
+        "confidence": 0.5673,
+        "elapsed_ms": 469.6
+      },
+      "split_combined": {
+        "raw": "FIIN9133",
+        "validated": "FIIN-9133",
+        "confidence": 0.5673,
+        "elapsed_ms": 444.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 918.7
+    },
+    "plate_filename": "plate_666_20260315_141804_AMK-9133_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_141804.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      272,
+      724,
+      398,
+      836
+    ]
+  },
+  {
+    "plate_id": 667,
+    "timestamp": "2026-03-15T14:18:07.586020",
+    "detection_confidence": 0.8779343366622925,
+    "ocr_text": "AMK-9133",
+    "ocr_confidence": 0.8784580230712891,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 856.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK9133",
+        "cleaned": "AMK-9133",
+        "validated": "AMK-9133",
+        "confidence": 0.8785,
+        "elapsed_ms": 4.3,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AMK191331",
+        "cleaned": "AMK-1331",
+        "validated": "AIIN-133",
+        "confidence": 0.5174,
+        "elapsed_ms": 451.2
+      },
+      "split_combined": {
+        "raw": "AIIN19133",
+        "validated": "AIIN-133",
+        "confidence": 0.5174,
+        "elapsed_ms": 400.8
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 856.4
+    },
+    "plate_filename": "plate_667_20260315_141806_AMK-9133_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_141806.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      285,
+      699,
+      408,
+      810
+    ]
+  },
+  {
+    "plate_id": 668,
+    "timestamp": "2026-03-15T14:18:09.760422",
+    "detection_confidence": 0.8849722146987915,
+    "ocr_text": "AMK-9133",
+    "ocr_confidence": 0.9068795442581177,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 870.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK9133",
+        "cleaned": "AMK-9133",
+        "validated": "AMK-9133",
+        "confidence": 0.9069,
+        "elapsed_ms": 4.0,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AMK01331",
+        "cleaned": "AMK-331",
+        "validated": "AIN-91331",
+        "confidence": 0.711,
+        "elapsed_ms": 473.9
+      },
+      "split_combined": {
+        "raw": "AIN91331",
+        "validated": "AIN-91331",
+        "confidence": 0.711,
+        "elapsed_ms": 392.7
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 870.7
+    },
+    "plate_filename": "plate_668_20260315_141808_AMK-9133_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_141808.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      285,
+      718,
+      409,
+      830
+    ]
+  },
+  {
+    "plate_id": 669,
+    "timestamp": "2026-03-15T14:18:12.309775",
+    "detection_confidence": 0.8652657866477966,
+    "ocr_text": "AMK-9133",
+    "ocr_confidence": 0.8993666768074036,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 829.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK9133",
+        "cleaned": "AMK-9133",
+        "validated": "AMK-9133",
+        "confidence": 0.8994,
+        "elapsed_ms": 4.3,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AMK01331",
+        "cleaned": "AMK-331",
+        "validated": "AIN-91331",
+        "confidence": 0.5335,
+        "elapsed_ms": 436.7
+      },
+      "split_combined": {
+        "raw": "AIN91331",
+        "validated": "AIN-91331",
+        "confidence": 0.5335,
+        "elapsed_ms": 388.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 829.5
+    },
+    "plate_filename": "plate_669_20260315_141811_AMK-9133_conf87%.jpg",
+    "full_frame_filename": "frame_20260315_141811.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      288,
+      746,
+      412,
+      856
+    ]
+  },
+  {
+    "plate_id": 670,
+    "timestamp": "2026-03-15T14:18:14.675138",
+    "detection_confidence": 0.8772198557853699,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.977702796459198,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 748.1,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9777,
+        "elapsed_ms": 4.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "RUNJABBCG2463",
+        "cleaned": "BBCG-2463",
+        "validated": "BBCG-2463",
+        "confidence": 0.8817,
+        "elapsed_ms": 461.8
+      },
+      "split_combined": {
+        "raw": "D2405",
+        "validated": "D-2405",
+        "confidence": 0.5671,
+        "elapsed_ms": 281.7
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 748.1
+    },
+    "plate_filename": "plate_670_20260315_141813_BCG-2463_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_141813.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      229,
+      919,
+      375,
+      1006
+    ]
+  },
+  {
+    "plate_id": 671,
+    "timestamp": "2026-03-15T14:18:17.522051",
+    "detection_confidence": 0.8311209082603455,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9758427739143372,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 983.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9758,
+        "elapsed_ms": 4.6,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9736,
+        "elapsed_ms": 366.3
+      },
+      "split_combined": {
+        "raw": "BCG2463",
+        "validated": "BCG-2463",
+        "confidence": 1.3969,
+        "elapsed_ms": 612.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 983.4
+    },
+    "plate_filename": "plate_671_20260315_141816_BCG-2463_conf83%.jpg",
+    "full_frame_filename": "frame_20260315_141816.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      277,
+      976,
+      432,
+      1061
+    ]
+  },
+  {
+    "plate_id": 672,
+    "timestamp": "2026-03-15T14:18:21.372430",
+    "detection_confidence": 0.8670880794525146,
+    "ocr_text": "AMK-1133",
+    "ocr_confidence": 0.7181501388549805,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 2381.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK1133",
+        "cleaned": "AMK-1133",
+        "validated": "AMK-1133",
+        "confidence": 0.7182,
+        "elapsed_ms": 5.9,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "",
+        "cleaned": "UNREADABLE",
+        "validated": "YZ-3",
+        "confidence": 0.2656,
+        "elapsed_ms": 942.8
+      },
+      "split_combined": {
+        "raw": "YZ3",
+        "validated": "YZ-3",
+        "confidence": 0.2656,
+        "elapsed_ms": 1432.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 2381.0
+    },
+    "plate_filename": "plate_672_20260315_141818_AMK-1133_conf87%.jpg",
+    "full_frame_filename": "frame_20260315_141818.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      378,
+      559,
+      587,
+      728
+    ]
+  },
+  {
+    "plate_id": 673,
+    "timestamp": "2026-03-15T14:18:36.912513",
+    "detection_confidence": 0.8717480301856995,
+    "ocr_text": "BTH-130",
+    "ocr_confidence": 0.9703698754310608,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 805.8,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.9704,
+        "elapsed_ms": 5.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BTHIJ0",
+        "cleaned": "THIJ-0",
+        "validated": "HIHI-30",
+        "confidence": 0.2576,
+        "elapsed_ms": 336.2
+      },
+      "split_combined": {
+        "raw": "HIHI30CI",
+        "validated": "HIHI-30",
+        "confidence": 0.2576,
+        "elapsed_ms": 464.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 805.8
+    },
+    "plate_filename": "plate_673_20260315_141836_BTH-130_conf87%.jpg",
+    "full_frame_filename": "frame_20260315_141836.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      268,
+      234,
+      334,
+      278
+    ]
+  },
+  {
+    "plate_id": 674,
+    "timestamp": "2026-03-15T14:18:49.863559",
+    "detection_confidence": 0.8889784812927246,
+    "ocr_text": "BTH-130",
+    "ocr_confidence": 0.9738785624504089,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 2180.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.9739,
+        "elapsed_ms": 5.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.4897,
+        "elapsed_ms": 597.4
+      },
+      "split_combined": {
+        "raw": "BIHISU",
+        "validated": "BIHISU",
+        "confidence": 0.0792,
+        "elapsed_ms": 1577.3
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 2180.5
+    },
+    "plate_filename": "plate_674_20260315_141847_BTH-130_conf89%.jpg",
+    "full_frame_filename": "frame_20260315_141847.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      312,
+      1021,
+      434,
+      1082
+    ]
+  },
+  {
+    "plate_id": 675,
+    "timestamp": "2026-03-15T14:18:49.998208",
+    "detection_confidence": 0.8967002034187317,
+    "ocr_text": "BTH-130",
+    "ocr_confidence": 0.9736337065696716,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1971.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.9736,
+        "elapsed_ms": 7.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.4552,
+        "elapsed_ms": 726.8
+      },
+      "split_combined": {
+        "raw": "IH30",
+        "validated": "IH-30",
+        "confidence": 0.2299,
+        "elapsed_ms": 1237.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1971.9
+    },
+    "plate_filename": "plate_675_20260315_141848_BTH-130_conf90%.jpg",
+    "full_frame_filename": "frame_20260315_141848.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      385,
+      235,
+      519,
+      303
+    ]
+  },
+  {
+    "plate_id": 676,
+    "timestamp": "2026-03-15T14:30:10.459652",
+    "detection_confidence": 0.8993476629257202,
+    "ocr_text": "AMK-9133",
+    "ocr_confidence": 0.9012869000434875,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1837.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK9133",
+        "cleaned": "AMK-9133",
+        "validated": "AMK-9133",
+        "confidence": 0.9013,
+        "elapsed_ms": 5.9,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AMK91331",
+        "cleaned": "AMK-91331",
+        "validated": "AIIN-9133",
+        "confidence": 0.6439,
+        "elapsed_ms": 972.1
+      },
+      "split_combined": {
+        "raw": "AIIN9133",
+        "validated": "AIIN-9133",
+        "confidence": 0.6439,
+        "elapsed_ms": 859.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1837.9
+    },
+    "plate_filename": "plate_676_20260315_143008_AMK-9133_conf90%.jpg",
+    "full_frame_filename": "frame_20260315_143008.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      309,
+      762,
+      470,
+      905
+    ]
+  },
+  {
+    "plate_id": 677,
+    "timestamp": "2026-03-15T14:30:13.078083",
+    "detection_confidence": 0.8828404545783997,
+    "ocr_text": "AMK-9133",
+    "ocr_confidence": 0.9049726724624634,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1878.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AMK9133",
+        "cleaned": "AMK-9133",
+        "validated": "AMK-9133",
+        "confidence": 0.905,
+        "elapsed_ms": 4.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AMK91331",
+        "cleaned": "AMK-91331",
+        "validated": "HIIN-9133",
+        "confidence": 0.6295,
+        "elapsed_ms": 1200.8
+      },
+      "split_combined": {
+        "raw": "HIIN9133",
+        "validated": "HIIN-9133",
+        "confidence": 0.6295,
+        "elapsed_ms": 672.6
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1878.0
+    },
+    "plate_filename": "plate_677_20260315_143011_AMK-9133_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_143011.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      312,
+      743,
+      469,
+      883
+    ]
+  },
+  {
+    "plate_id": 678,
+    "timestamp": "2026-03-15T14:30:37.390076",
+    "detection_confidence": 0.7967381477355957,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9760266542434692,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1036.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.976,
+        "elapsed_ms": 5.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 1.2336,
+        "elapsed_ms": 567.4
+      },
+      "split_combined": {
+        "raw": "DON4",
+        "validated": "DON-4",
+        "confidence": 0.2706,
+        "elapsed_ms": 463.7
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1036.6
+    },
+    "plate_filename": "plate_678_20260315_143036_BCG-2463_conf80%.jpg",
+    "full_frame_filename": "frame_20260315_143036.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      294,
+      1020,
+      446,
+      1122
+    ]
+  },
+  {
+    "plate_id": 679,
+    "timestamp": "2026-03-15T14:30:39.181710",
+    "detection_confidence": 0.8382958173751831,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9759290814399719,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 808.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9759,
+        "elapsed_ms": 4.3,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 1.3409,
+        "elapsed_ms": 435.3
+      },
+      "split_combined": {
+        "raw": "NA4",
+        "validated": "NA-4",
+        "confidence": 0.3739,
+        "elapsed_ms": 368.7
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 808.4
+    },
+    "plate_filename": "plate_679_20260315_143038_BCG-2463_conf84%.jpg",
+    "full_frame_filename": "frame_20260315_143038.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      272,
+      912,
+      417,
+      997
+    ]
+  },
+  {
+    "plate_id": 680,
+    "timestamp": "2026-03-15T14:30:42.044202",
+    "detection_confidence": 0.8509696125984192,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9753726720809937,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1335.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9754,
+        "elapsed_ms": 4.3,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 1.0101,
+        "elapsed_ms": 459.9
+      },
+      "split_combined": {
+        "raw": "BCG2463",
+        "validated": "BCG-2463",
+        "confidence": 1.293,
+        "elapsed_ms": 871.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1335.5
+    },
+    "plate_filename": "plate_680_20260315_143040_BCG-2463_conf85%.jpg",
+    "full_frame_filename": "frame_20260315_143040.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      276,
+      908,
+      422,
+      995
+    ]
+  },
+  {
+    "plate_id": 681,
+    "timestamp": "2026-03-15T14:30:44.422288",
+    "detection_confidence": 0.8605132102966309,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.975472092628479,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 884.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9755,
+        "elapsed_ms": 4.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "0BCG2L63",
+        "cleaned": "BCG-2",
+        "validated": "BCG-2",
+        "confidence": 0.744,
+        "elapsed_ms": 517.5
+      },
+      "split_combined": {
+        "raw": "NDC240",
+        "validated": "NDC-240",
+        "confidence": 0.3379,
+        "elapsed_ms": 362.3
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 884.7
+    },
+    "plate_filename": "plate_681_20260315_143043_BCG-2463_conf86%.jpg",
+    "full_frame_filename": "frame_20260315_143043.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      272,
+      896,
+      416,
+      979
+    ]
+  },
+  {
+    "plate_id": 682,
+    "timestamp": "2026-03-15T14:30:47.036280",
+    "detection_confidence": 0.8299948573112488,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9762635231018066,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1206.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9763,
+        "elapsed_ms": 4.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 1.2951,
+        "elapsed_ms": 455.7
+      },
+      "split_combined": {
+        "raw": "BCG2463",
+        "validated": "BCG-2463",
+        "confidence": 1.3762,
+        "elapsed_ms": 745.8
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1206.4
+    },
+    "plate_filename": "plate_682_20260315_143045_BCG-2463_conf83%.jpg",
+    "full_frame_filename": "frame_20260315_143045.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      299,
+      900,
+      446,
+      986
+    ]
+  },
+  {
+    "plate_id": 683,
+    "timestamp": "2026-03-15T14:30:50.079086",
+    "detection_confidence": 0.8439793586730957,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.975433349609375,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1666.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9754,
+        "elapsed_ms": 4.9,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "0BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.754,
+        "elapsed_ms": 446.3
+      },
+      "split_combined": {
+        "raw": "BCG2463",
+        "validated": "BCG-2463",
+        "confidence": 1.2752,
+        "elapsed_ms": 1215.3
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1666.6
+    },
+    "plate_filename": "plate_683_20260315_143048_BCG-2463_conf84%.jpg",
+    "full_frame_filename": "frame_20260315_143048.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      291,
+      877,
+      439,
+      961
+    ]
+  },
+  {
+    "plate_id": 684,
+    "timestamp": "2026-03-15T14:30:51.697500",
+    "detection_confidence": 0.8659262657165527,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9744414687156677,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 855.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9744,
+        "elapsed_ms": 4.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG24L63",
+        "cleaned": "BCG-24",
+        "validated": "BCG-24",
+        "confidence": 0.5457,
+        "elapsed_ms": 434.9
+      },
+      "split_combined": {
+        "raw": "DI4240",
+        "validated": "DI-4240",
+        "confidence": 0.1655,
+        "elapsed_ms": 415.6
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 855.0
+    },
+    "plate_filename": "plate_684_20260315_143050_BCG-2463_conf87%.jpg",
+    "full_frame_filename": "frame_20260315_143050.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      309,
+      708,
+      444,
+      784
+    ]
+  },
+  {
+    "plate_id": 685,
+    "timestamp": "2026-03-15T14:30:54.230416",
+    "detection_confidence": 0.8659262657165527,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9744414687156677,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 870.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9744,
+        "elapsed_ms": 4.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG24L63",
+        "cleaned": "BCG-24",
+        "validated": "BCG-24",
+        "confidence": 0.5457,
+        "elapsed_ms": 515.4
+      },
+      "split_combined": {
+        "raw": "DI4240",
+        "validated": "DI-4240",
+        "confidence": 0.1655,
+        "elapsed_ms": 350.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 870.5
+    },
+    "plate_filename": "plate_685_20260315_143053_BCG-2463_conf87%.jpg",
+    "full_frame_filename": "frame_20260315_143053.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      309,
+      708,
+      444,
+      784
+    ]
+  },
+  {
+    "plate_id": 686,
+    "timestamp": "2026-03-15T14:30:56.992887",
+    "detection_confidence": 0.7722331285476685,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9767820239067078,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1030.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9768,
+        "elapsed_ms": 4.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 1.3701,
+        "elapsed_ms": 433.5
+      },
+      "split_combined": {
+        "raw": "BCG2463",
+        "validated": "BCG-2463",
+        "confidence": 1.2243,
+        "elapsed_ms": 592.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1030.9
+    },
+    "plate_filename": "plate_686_20260315_143055_BCG-2463_conf77%.jpg",
+    "full_frame_filename": "frame_20260315_143055.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      361,
+      988,
+      516,
+      1058
+    ]
+  },
+  {
+    "plate_id": 687,
+    "timestamp": "2026-03-15T14:30:59.770460",
+    "detection_confidence": 0.532903254032135,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9780153036117554,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 2775.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.978,
+        "elapsed_ms": 4.7,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2L63",
+        "cleaned": "BCG-2",
+        "validated": "BCG-2463",
+        "confidence": 0.8701,
+        "elapsed_ms": 632.1
+      },
+      "split_combined": {
+        "raw": "BCG2463",
+        "validated": "BCG-2463",
+        "confidence": 0.8701,
+        "elapsed_ms": 2138.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 2775.5
+    },
+    "plate_filename": "plate_687_20260315_143055_BCG-2463_conf53%.jpg",
+    "full_frame_filename": "frame_20260315_143055.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      358,
+      961,
+      517,
+      1060
+    ]
+  },
+  {
+    "plate_id": 688,
+    "timestamp": "2026-03-15T14:31:00.458430",
+    "detection_confidence": 0.7227849960327148,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9783989787101746,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1743.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9784,
+        "elapsed_ms": 6.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2L6",
+        "cleaned": "BCG-2",
+        "validated": "BCG-2",
+        "confidence": 0.4176,
+        "elapsed_ms": 1032.4
+      },
+      "split_combined": {
+        "raw": "D4",
+        "validated": "D4",
+        "confidence": 0.3052,
+        "elapsed_ms": 703.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1743.2
+    },
+    "plate_filename": "plate_688_20260315_143058_BCG-2463_conf72%.jpg",
+    "full_frame_filename": "frame_20260315_143058.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      393,
+      909,
+      527,
+      982
+    ]
+  },
+  {
+    "plate_id": 689,
+    "timestamp": "2026-03-15T14:31:02.700527",
+    "detection_confidence": 0.8261948823928833,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9757607579231262,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1497.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9758,
+        "elapsed_ms": 6.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 1.0605,
+        "elapsed_ms": 600.0
+      },
+      "split_combined": {
+        "raw": "BCG2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9389,
+        "elapsed_ms": 890.7
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1497.2
+    },
+    "plate_filename": "plate_689_20260315_143101_BCG-2463_conf83%.jpg",
+    "full_frame_filename": "frame_20260315_143101.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      323,
+      815,
+      469,
+      895
+    ]
+  },
+  {
+    "plate_id": 690,
+    "timestamp": "2026-03-15T14:31:04.407348",
+    "detection_confidence": 0.7620128393173218,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9746203422546387,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 958.8,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9746,
+        "elapsed_ms": 5.9,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2L63",
+        "cleaned": "BCG-2",
+        "validated": "BCG-2",
+        "confidence": 1.3423,
+        "elapsed_ms": 527.6
+      },
+      "split_combined": {
+        "raw": "N40",
+        "validated": "N40",
+        "confidence": 0.4944,
+        "elapsed_ms": 425.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 958.8
+    },
+    "plate_filename": "plate_690_20260315_143103_BCG-2463_conf76%.jpg",
+    "full_frame_filename": "frame_20260315_143103.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      323,
+      778,
+      464,
+      856
+    ]
+  },
+  {
+    "plate_id": 691,
+    "timestamp": "2026-03-15T14:31:06.851742",
+    "detection_confidence": 0.8086555004119873,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9753097891807556,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 943.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9753,
+        "elapsed_ms": 4.7,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 1.3728,
+        "elapsed_ms": 475.6
+      },
+      "split_combined": {
+        "raw": "DALL40",
+        "validated": "DALL-40",
+        "confidence": 0.2846,
+        "elapsed_ms": 463.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 943.9
+    },
+    "plate_filename": "plate_691_20260315_143105_BCG-2463_conf81%.jpg",
+    "full_frame_filename": "frame_20260315_143105.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      357,
+      784,
+      504,
+      858
+    ]
+  },
+  {
+    "plate_id": 692,
+    "timestamp": "2026-03-15T14:31:09.923734",
+    "detection_confidence": 0.8438432812690735,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9758812785148621,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1565.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9759,
+        "elapsed_ms": 4.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 1.0601,
+        "elapsed_ms": 509.6
+      },
+      "split_combined": {
+        "raw": "BCG2463",
+        "validated": "BCG-2463",
+        "confidence": 0.941,
+        "elapsed_ms": 1051.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1565.2
+    },
+    "plate_filename": "plate_692_20260315_143108_BCG-2463_conf84%.jpg",
+    "full_frame_filename": "frame_20260315_143108.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      282,
+      909,
+      435,
+      992
+    ]
+  },
+  {
+    "plate_id": 693,
+    "timestamp": "2026-03-15T14:31:12.176664",
+    "detection_confidence": 0.8370933532714844,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9755066633224487,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1315.1,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9755,
+        "elapsed_ms": 4.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2L63",
+        "cleaned": "BCG-2",
+        "validated": "BCG-2463",
+        "confidence": 1.3838,
+        "elapsed_ms": 440.3
+      },
+      "split_combined": {
+        "raw": "BCG2463",
+        "validated": "BCG-2463",
+        "confidence": 1.3838,
+        "elapsed_ms": 869.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1315.1
+    },
+    "plate_filename": "plate_693_20260315_143110_BCG-2463_conf84%.jpg",
+    "full_frame_filename": "frame_20260315_143110.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      296,
+      914,
+      446,
+      997
+    ]
+  },
+  {
+    "plate_id": 694,
+    "timestamp": "2026-03-15T14:31:14.627289",
+    "detection_confidence": 0.8201396465301514,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.9746090173721313,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1252.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.9746,
+        "elapsed_ms": 4.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 1.2132,
+        "elapsed_ms": 870.3
+      },
+      "split_combined": {
+        "raw": "NOC4",
+        "validated": "NOC-4",
+        "confidence": 0.3702,
+        "elapsed_ms": 377.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1252.4
+    },
+    "plate_filename": "plate_694_20260315_143113_BCG-2463_conf82%.jpg",
+    "full_frame_filename": "frame_20260315_143113.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      265,
+      921,
+      412,
+      1001
+    ]
+  },
+  {
+    "plate_id": 695,
+    "timestamp": "2026-03-15T14:31:16.777337",
+    "detection_confidence": 0.8187094926834106,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.973990261554718,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 774.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.974,
+        "elapsed_ms": 4.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BCG2L63",
+        "cleaned": "BCG-2",
+        "validated": "BCG-2",
+        "confidence": 0.7614,
+        "elapsed_ms": 422.2
+      },
+      "split_combined": {
+        "raw": "DOC4",
+        "validated": "DOC-4",
+        "confidence": 0.1905,
+        "elapsed_ms": 347.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 774.4
+    },
+    "plate_filename": "plate_695_20260315_143115_BCG-2463_conf82%.jpg",
+    "full_frame_filename": "frame_20260315_143115.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      302,
+      895,
+      447,
+      968
+    ]
+  },
+  {
+    "plate_id": 696,
+    "timestamp": "2026-03-15T14:31:44.979953",
+    "detection_confidence": 0.8568405508995056,
+    "ocr_text": "BTH-130",
+    "ocr_confidence": 0.9674336910247803,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1173.1,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.9674,
+        "elapsed_ms": 5.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "JTH430",
+        "cleaned": "JTH-430",
+        "validated": "JTH-430",
+        "confidence": 0.091,
+        "elapsed_ms": 449.4
+      },
+      "split_combined": {
+        "raw": "JIUJU",
+        "validated": "JIUJU",
+        "confidence": 0.0522,
+        "elapsed_ms": 718.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1173.1
+    },
+    "plate_filename": "plate_696_20260315_143143_BTH-130_conf86%.jpg",
+    "full_frame_filename": "frame_20260315_143143.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      358,
+      736,
+      424,
+      773
+    ]
+  },
+  {
+    "plate_id": 697,
+    "timestamp": "2026-03-15T14:31:45.807052",
+    "detection_confidence": 0.8760166764259338,
+    "ocr_text": "BTH-130",
+    "ocr_confidence": 0.9743731617927551,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1626.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.9744,
+        "elapsed_ms": 5.7,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BTHI30",
+        "cleaned": "BTHI-30",
+        "validated": "BTHI-30",
+        "confidence": 0.253,
+        "elapsed_ms": 437.9
+      },
+      "split_combined": {
+        "raw": "BIHISU",
+        "validated": "BIHISU",
+        "confidence": 0.092,
+        "elapsed_ms": 1182.8
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1626.6
+    },
+    "plate_filename": "plate_697_20260315_143144_BTH-130_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_143144.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      332,
+      1010,
+      431,
+      1061
+    ]
+  },
+  {
+    "plate_id": 698,
+    "timestamp": "2026-03-15T14:31:46.426800",
+    "detection_confidence": 0.8707963228225708,
+    "ocr_text": "BTH-130",
+    "ocr_confidence": 0.9739438891410828,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 902.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.9739,
+        "elapsed_ms": 8.0,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BTHI3U",
+        "cleaned": "BTHI-3",
+        "validated": "IHISU",
+        "confidence": 0.159,
+        "elapsed_ms": 413.9
+      },
+      "split_combined": {
+        "raw": "IHISU",
+        "validated": "IHISU",
+        "confidence": 0.159,
+        "elapsed_ms": 480.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 902.2
+    },
+    "plate_filename": "plate_698_20260315_143145_BTH-130_conf87%.jpg",
+    "full_frame_filename": "frame_20260315_143145.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      332,
+      1051,
+      433,
+      1101
+    ]
+  },
+  {
+    "plate_id": 699,
+    "timestamp": "2026-03-15T14:31:51.685579",
+    "detection_confidence": 0.8605630993843079,
+    "ocr_text": "BTH-130",
+    "ocr_confidence": 0.9734563827514648,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1354.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.9735,
+        "elapsed_ms": 5.6,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BTHI30",
+        "cleaned": "BTHI-30",
+        "validated": "BTHI-30",
+        "confidence": 0.737,
+        "elapsed_ms": 443.0
+      },
+      "split_combined": {
+        "raw": "IHI3U",
+        "validated": "IH-3",
+        "confidence": 0.3067,
+        "elapsed_ms": 905.6
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1354.5
+    },
+    "plate_filename": "plate_699_20260315_143150_BTH-130_conf86%.jpg",
+    "full_frame_filename": "frame_20260315_143150.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      375,
+      539,
+      466,
+      583
+    ]
+  },
+  {
+    "plate_id": 700,
+    "timestamp": "2026-03-15T14:31:52.088186",
+    "detection_confidence": 0.8848021030426025,
+    "ocr_text": "BTH-130",
+    "ocr_confidence": 0.975001335144043,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1392.8,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.975,
+        "elapsed_ms": 5.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BTHI30",
+        "cleaned": "BTHI-30",
+        "validated": "BH-3",
+        "confidence": 0.2889,
+        "elapsed_ms": 344.0
+      },
+      "split_combined": {
+        "raw": "BHI3U",
+        "validated": "BH-3",
+        "confidence": 0.2889,
+        "elapsed_ms": 1043.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1392.8
+    },
+    "plate_filename": "plate_700_20260315_143150_BTH-130_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_143150.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      328,
+      850,
+      420,
+      894
+    ]
+  },
+  {
+    "plate_id": 701,
+    "timestamp": "2026-03-15T14:31:54.858938",
+    "detection_confidence": 0.8616726398468018,
+    "ocr_text": "BTH-130",
+    "ocr_confidence": 0.9728751182556152,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1356.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 0.9729,
+        "elapsed_ms": 9.3,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BTH130",
+        "cleaned": "BTH-130",
+        "validated": "BTH-130",
+        "confidence": 1.033,
+        "elapsed_ms": 598.7
+      },
+      "split_combined": {
+        "raw": "BII3U",
+        "validated": "BI-3",
+        "confidence": 0.3653,
+        "elapsed_ms": 748.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1356.6
+    },
+    "plate_filename": "plate_701_20260315_143153_BTH-130_conf86%.jpg",
+    "full_frame_filename": "frame_20260315_143153.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      331,
+      636,
+      418,
+      680
+    ]
+  },
+  {
+    "plate_id": 702,
+    "timestamp": "2026-03-15T14:31:56.674056",
+    "detection_confidence": 0.8751895427703857,
+    "ocr_text": "BCG-2463",
+    "ocr_confidence": 0.979974627494812,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 776.1,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BCG2463",
+        "cleaned": "BCG-2463",
+        "validated": "BCG-2463",
+        "confidence": 0.98,
+        "elapsed_ms": 4.7,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "8CGJKUB2463",
+        "cleaned": "JKUB-2463",
+        "validated": "JKUB-2463",
+        "confidence": 0.7135,
+        "elapsed_ms": 368.9
+      },
+      "split_combined": {
+        "raw": "IA4",
+        "validated": "IA-4",
+        "confidence": 0.1251,
+        "elapsed_ms": 402.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 776.1
+    },
+    "plate_filename": "plate_702_20260315_143155_BCG-2463_conf88%.jpg",
+    "full_frame_filename": "frame_20260315_143155.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      361,
+      6,
+      450,
+      81
+    ]
+  },
+  {
+    "plate_id": 703,
+    "timestamp": "2026-03-15T14:31:57.399556",
+    "detection_confidence": 0.8034160137176514,
+    "ocr_text": "MA-2393",
+    "ocr_confidence": 0.6705953478813171,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 724.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "MA2393",
+        "cleaned": "MA-2393",
+        "validated": "MA-2393",
+        "confidence": 0.6706,
+        "elapsed_ms": 4.6,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "TK33",
+        "cleaned": "TK-33",
+        "validated": "MN-35",
+        "confidence": 0.496,
+        "elapsed_ms": 347.6
+      },
+      "split_combined": {
+        "raw": "MN35",
+        "validated": "MN-35",
+        "confidence": 0.496,
+        "elapsed_ms": 372.3
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 724.6
+    },
+    "plate_filename": "plate_703_20260315_143155_MA-2393_conf80%.jpg",
+    "full_frame_filename": "frame_20260315_143155.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      0,
+      124,
+      72,
+      240
+    ]
+  },
+  {
+    "plate_id": 704,
+    "timestamp": "2026-03-15T15:12:55.275083",
+    "detection_confidence": 0.8520315289497375,
+    "ocr_text": "J-00992",
+    "ocr_confidence": 0.5071273446083069,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 10958.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "J00992",
+        "cleaned": "J-00992",
+        "validated": "J-00992",
+        "confidence": 0.5071,
+        "elapsed_ms": 6.4,
+        "pk_match": false
+      },
+      "easyocr": {
+        "raw": "CDCOUCATNQUETTHABEENNACTEDBYJOLMARDRPINEAREPORTTOJOUMENOORIORIRTTTETNECTON",
+        "cleaned": "CDCOUCATNQUETTHABEENNACTEDBYJOLMARDRPINEAREPORTTOJOUMENOORIORIRTTTETNECTON",
+        "validated": "CDCOUCATNQUETTHABEENNACTEDBYJOLMARDRPINEAREPORTTOJOUMENOORIORIRTTTETNECTON",
+        "confidence": 0.0377,
+        "elapsed_ms": 4874.8
+      },
+      "split_combined": {
+        "raw": "CCDNOTTTREQUEETHEABEENNLECTEJBYYOUEMARDRPIETEARPORTTOJOUTMONDERIORHRTTETAUUCTON",
+        "validated": "CCDNOTTTREQUEETHEABEENNLECTEJBYYOUEMARDRPIETEARPORTTOJOUTMONDERIORHRTTETAUUCTON",
+        "confidence": 0.0006,
+        "elapsed_ms": 6077.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 10958.6
+    },
+    "plate_filename": "plate_704_20260315_151244_J-00992_conf85%.jpg",
+    "full_frame_filename": "frame_20260315_151244.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      135,
+      222,
+      423,
+      420
+    ]
+  },
+  {
+    "plate_id": 705,
+    "timestamp": "2026-03-15T15:13:41.037979",
+    "detection_confidence": 0.5198903679847717,
+    "ocr_text": "FLC-718",
+    "ocr_confidence": 0.5546557307243347,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 280.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "FLC718",
+        "cleaned": "FLC-718",
+        "validated": "FLC-718",
+        "confidence": 0.5547,
+        "elapsed_ms": 4.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "",
+        "cleaned": "UNREADABLE",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 101.8
+      },
+      "split_combined": {
+        "raw": "",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 174.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 280.7
+    },
+    "plate_filename": "plate_705_20260315_151340_FLC-718_conf52%.jpg",
+    "full_frame_filename": "frame_20260315_151340.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      595,
+      1151,
+      621,
+      1177
+    ]
   }
 ]

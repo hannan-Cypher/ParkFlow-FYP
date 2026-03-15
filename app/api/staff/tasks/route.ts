@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
 
+export const dynamic = 'force-dynamic';
+
+
 /**
  * GET /api/staff/tasks
  *
@@ -26,7 +29,7 @@ export async function GET(request: NextRequest) {
 
         // Verify staff member exists
         const staffCheck = await pool.query(
-            "SELECT id, full_name, venue_id FROM users WHERE id = $1 AND role = 'valet_staff'",
+            "SELECT id, full_name, venue_id FROM users WHERE id = $1 AND role IN ('driver', 'washer', 'supervisor')",
             [staffId]
         )
 
