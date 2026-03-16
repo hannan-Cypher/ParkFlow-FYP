@@ -38,6 +38,10 @@ export async function GET() {
         v.status,
         v.created_at,
         v.updated_at,
+        v.shift_start_time::text,
+        v.shift_end_time::text,
+        v.max_break_minutes,
+        v.enforce_shift_start_window,
         (SELECT COUNT(*) FROM gates g WHERE g.venue_id = v.id)::int AS gate_count,
         (SELECT COUNT(*) FROM zones z WHERE z.venue_id = v.id)::int AS zone_count
       FROM venues v
@@ -65,6 +69,10 @@ export async function POST(request: NextRequest) {
             contact_email,
             status = 'active',
             gates: gatesPayload,
+            shift_start_time = '09:00',
+            shift_end_time = '18:00',
+            max_break_minutes = 30,
+            enforce_shift_start_window = true,
         } = body;
 
         // ── Validation ─────────────────────────────────────────────────────
@@ -120,10 +128,14 @@ export async function POST(request: NextRequest) {
 
         // 1. Insert venue
         const venueResult = await client.query(
-            `INSERT INTO venues (name, address, city, country, total_slots, gates, contact_phone, contact_email, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-             RETURNING id, name, address, city, country, total_slots, gates, contact_phone, contact_email, status, created_at, updated_at`,
-            [name, address, city, country, totalSlots, totalGates, contact_phone || null, contact_email || null, status]
+            `INSERT INTO venues (name, address, city, country, total_slots, gates, contact_phone, contact_email, status,
+                                shift_start_time, shift_end_time, max_break_minutes, enforce_shift_start_window)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+             RETURNING id, name, address, city, country, total_slots, gates, contact_phone, contact_email, status,
+                       shift_start_time::text, shift_end_time::text, max_break_minutes, enforce_shift_start_window,
+                       created_at, updated_at`,
+            [name, address, city, country, totalSlots, totalGates, contact_phone || null, contact_email || null, status,
+             shift_start_time, shift_end_time, Number(max_break_minutes), Boolean(enforce_shift_start_window)]
         );
         const venue = venueResult.rows[0];
 

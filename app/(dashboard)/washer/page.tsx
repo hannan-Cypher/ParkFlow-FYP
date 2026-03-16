@@ -594,7 +594,7 @@ function ShiftStatusBar({
 function CompleteModal({
   task,
   notes,
-  photos,
+  photoFiles,
   submitting,
   onNotesChange,
   onPhotosChange,
@@ -603,14 +603,33 @@ function CompleteModal({
 }: {
   task: WashTask;
   notes: string;
-  photos: string;
+  photoFiles: File[];
   submitting: boolean;
   onNotesChange: (v: string) => void;
-  onPhotosChange: (v: string) => void;
+  onPhotosChange: (files: File[]) => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
   const wBadge = washTypeBadge(task.wash_type);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [previews, setPreviews] = React.useState<string[]>([]);
+
+  // Keep previews in sync with photoFiles
+  React.useEffect(() => {
+    const urls = photoFiles.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [photoFiles]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files ?? []);
+    onPhotosChange([...photoFiles, ...selected]);
+    e.target.value = "";
+  };
+
+  const removePhoto = (index: number) => {
+    onPhotosChange(photoFiles.filter((_, i) => i !== index));
+  };
 
   return (
     <motion.div
@@ -627,10 +646,10 @@ function CompleteModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.92, y: 20 }}
         transition={{ type: "spring", stiffness: 280, damping: 26 }}
-        className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden"
+        className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
       >
         {/* Gradient header */}
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 px-6 pt-6 pb-5 text-white">
+        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 px-6 pt-6 pb-5 text-white shrink-0">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-emerald-100 text-xs font-medium mb-1">
@@ -647,16 +666,15 @@ function CompleteModal({
               <X className="w-4 h-4 text-white" />
             </button>
           </div>
-          <span
-            className={`mt-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ring-1 ring-inset ring-white/30 bg-white/20 text-white`}
-          >
+          <span className="mt-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ring-1 ring-inset ring-white/30 bg-white/20 text-white">
             <Sparkles className="w-3 h-3" />
             {wBadge.label} Wash
           </span>
         </div>
 
-        {/* Body */}
-        <div className="px-6 py-5 space-y-4">
+        {/* Scrollable body */}
+        <div className="px-6 py-5 space-y-4 overflow-y-auto">
+          {/* Notes */}
           <div>
             <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
               <FileText className="w-3.5 h-3.5" />
@@ -671,43 +689,91 @@ function CompleteModal({
             />
           </div>
 
+          {/* After Photos */}
           <div>
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
               <Camera className="w-3.5 h-3.5" />
-              After Photos (optional)
+              After Photos{" "}
+              <span className="font-normal text-slate-400">(optional)</span>
             </label>
+
+            {/* Previews */}
+            {previews.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {previews.map((src, i) => (
+                  <div key={i} className="relative w-20 h-20 shrink-0">
+                    <img
+                      src={src}
+                      alt={`After ${i + 1}`}
+                      className="w-full h-full object-cover rounded-xl border border-slate-200 dark:border-slate-600"
+                    />
+                    <button
+                      onClick={() => removePhoto(i)}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {/* Add more tile */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={submitting}
+                  className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center gap-1 text-slate-400 dark:text-slate-500 hover:border-emerald-400 hover:text-emerald-500 transition-colors shrink-0 disabled:opacity-40"
+                >
+                  <Camera className="w-5 h-5" />
+                  <span className="text-[10px] font-medium">Add more</span>
+                </button>
+              </div>
+            )}
+
+            {/* Empty state drop zone */}
+            {previews.length === 0 && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={submitting}
+                className="w-full rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 py-7 flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500 hover:border-emerald-400 hover:text-emerald-500 transition-colors disabled:opacity-40"
+              >
+                <Camera className="w-7 h-7" />
+                <span className="text-sm font-medium">Tap to add photos</span>
+                <span className="text-xs">JPG, PNG, WEBP supported</span>
+              </button>
+            )}
+
             <input
-              type="text"
-              value={photos}
-              onChange={(e) => onPhotosChange(e.target.value)}
-              placeholder="https://… (comma-separated)"
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
             />
           </div>
+        </div>
 
-          <div className="flex gap-3 pt-1">
-            <button
-              onClick={onCancel}
-              disabled={submitting}
-              className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={onConfirm}
-              disabled={submitting}
-              className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {submitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4" />
-              )}
-              {submitting ? "Saving..." : "Confirm Complete"}
-            </motion.button>
-          </div>
+        {/* Footer */}
+        <div className="px-6 pb-6 pt-2 flex gap-3 shrink-0 border-t border-slate-100 dark:border-slate-700">
+          <button
+            onClick={onCancel}
+            disabled={submitting}
+            className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onConfirm}
+            disabled={submitting}
+            className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {submitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4" />
+            )}
+            {submitting ? "Uploading..." : "Confirm Complete"}
+          </motion.button>
         </div>
       </motion.div>
     </motion.div>
@@ -1069,7 +1135,7 @@ export default function WasherDashboard() {
   // Enhancement state
   const [completeModalTask, setCompleteModalTask] = React.useState<WashTask | null>(null);
   const [completeModalNotes, setCompleteModalNotes] = React.useState("");
-  const [completeModalPhotos, setCompleteModalPhotos] = React.useState("");
+  const [completeModalPhotoFiles, setCompleteModalPhotoFiles] = React.useState<File[]>([]);
   const [completeModalSubmitting, setCompleteModalSubmitting] = React.useState(false);
   const [expandedTaskId, setExpandedTaskId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -1221,7 +1287,7 @@ export default function WasherDashboard() {
   const handleCompleteWash = (task: WashTask) => {
     setCompleteModalTask(task);
     setCompleteModalNotes("");
-    setCompleteModalPhotos("");
+    setCompleteModalPhotoFiles([]);
   };
 
   // Actual API call from modal confirmation
@@ -1230,10 +1296,34 @@ export default function WasherDashboard() {
     setCompleteModalSubmitting(true);
     setActionLoading(completeModalTask.id);
     try {
-      const afterPhotos = completeModalPhotos
-        .split(",")
-        .map((u) => u.trim())
-        .filter(Boolean);
+      // Upload photos first if any were selected
+      let afterPhotos: string[] = [];
+      if (completeModalPhotoFiles.length > 0) {
+        const base64List = await Promise.all(
+          completeModalPhotoFiles.map(
+            (file) =>
+              new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+              })
+          )
+        );
+        const uploadRes = await fetch("/api/wash/photos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photos: base64List.map((data) => ({ data })) }),
+        });
+        if (!uploadRes.ok) {
+          const d = await uploadRes.json();
+          setError(d.error || "Failed to upload photos");
+          return;
+        }
+        const uploadData = await uploadRes.json();
+        afterPhotos = uploadData.urls ?? [];
+      }
+
       const res = await fetch(`/api/wash/tasks/${completeModalTask.id}/complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1952,10 +2042,10 @@ export default function WasherDashboard() {
           <CompleteModal
             task={completeModalTask}
             notes={completeModalNotes}
-            photos={completeModalPhotos}
+            photoFiles={completeModalPhotoFiles}
             submitting={completeModalSubmitting}
             onNotesChange={setCompleteModalNotes}
-            onPhotosChange={setCompleteModalPhotos}
+            onPhotosChange={setCompleteModalPhotoFiles}
             onCancel={() => setCompleteModalTask(null)}
             onConfirm={handleConfirmComplete}
           />

@@ -75,3 +75,5 @@ ARCHITECTURE.md
 CHANGELOG.md
 __tests__
 .claude/commands 
+test-results/
+playwright.config.ts/

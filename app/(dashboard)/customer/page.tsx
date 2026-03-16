@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   CreditCard,
+  Droplets,
   History,
   MapPin,
   Navigation,
@@ -117,6 +118,20 @@ interface CompletedSession {
     name: string;
     city: string;
   };
+}
+
+interface WashRequest {
+  id: string;
+  session_id: string;
+  wash_type: string;
+  service_status: string;
+  service_cost: number | null;
+  notes: string | null;
+  assigned_to_name: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  after_photos: string[];
+  created_at: string;
 }
 
 // ── Tabs ────────────────────────────────────────────────────────────────────
@@ -669,7 +684,7 @@ export default function CustomerDashboardPage() {
 
           {activeTab === "Live Feed" && <LiveFeedTab />}
 
-          {activeTab === "Services" && <ServicesTab />}
+          {activeTab === "Services" && <ServicesTab activeSessions={activeSessions} />}
 
           {activeTab === "Payment" && <PaymentTab sessions={completedSessions} />}
         </AnimatePresence>
@@ -876,9 +891,8 @@ function InlineRatingForm({ sessionId, onDone }: { sessionId: string; onDone: ()
             className="p-1 transition-transform hover:scale-110"
           >
             <Star
-              className={`h-9 w-9 transition-colors ${
-                s <= (hover || rating) ? "text-amber-400 fill-amber-400" : "text-slate-300 dark:text-slate-600"
-              }`}
+              className={`h-9 w-9 transition-colors ${s <= (hover || rating) ? "text-amber-400 fill-amber-400" : "text-slate-300 dark:text-slate-600"
+                }`}
             />
           </button>
         ))}
@@ -1380,21 +1394,165 @@ function LiveTimestamp() {
 // TAB: Services
 // ══════════════════════════════════════════════════════════════════════════════
 
-function ServicesTab() {
-  const SERVICES = [
+const WASH_TIERS: {
+  type: "basic" | "full" | "premium";
+  label: string;
+  icon: React.ElementType;
+  cost: number;
+  description: string;
+  color: string;
+  bgColor: string;
+  ringColor: string;
+  badgeBg: string;
+}[] = [
     {
-      icon: Sparkles,
-      title: "Express Cleaning",
-      desc: "Quick exterior wash and interior vacuum while your car is parked",
-      price: "Rs.250",
+      type: "basic",
+      label: "Basic Wash",
+      icon: Droplets,
+      cost: 500,
+      description: "Exterior rinse & dry",
+      color: "text-sky-600",
+      bgColor: "bg-sky-50 dark:bg-sky-900/30",
+      ringColor: "ring-sky-500",
+      badgeBg: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300",
     },
     {
+      type: "full",
+      label: "Full Wash",
+      icon: Sparkles,
+      cost: 1000,
+      description: "Exterior wash + interior vacuum",
+      color: "text-violet-600",
+      bgColor: "bg-violet-50 dark:bg-violet-900/30",
+      ringColor: "ring-violet-500",
+      badgeBg: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
+    },
+    {
+      type: "premium",
+      label: "Premium Detail",
       icon: Wand2,
-      title: "Premium Detail",
-      desc: "Complete interior & exterior detailing with wax and polish",
-      price: "Rs.750",
+      cost: 2000,
+      description: "Full detail, wax & polish",
+      color: "text-amber-600",
+      bgColor: "bg-amber-50 dark:bg-amber-900/30",
+      ringColor: "ring-amber-500",
+      badgeBg: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
     },
   ];
+
+function ServicesTab({ activeSessions }: { activeSessions: ActiveSession[] }) {
+  const [washRequests, setWashRequests] = React.useState<WashRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = React.useState(true);
+  const [selectedSession, setSelectedSession] = React.useState<string>("");
+  const [bookingType, setBookingType] = React.useState<"" | "basic" | "full" | "premium">("");
+  const [bookingLoading, setBookingLoading] = React.useState(false);
+  const [bookingError, setBookingError] = React.useState<string | null>(null);
+  const [bookingSuccess, setBookingSuccess] = React.useState(false);
+
+  // ── Fetch wash requests ─────────────────────────────────────────────────
+  const fetchWashRequests = async () => {
+    setLoadingRequests(true);
+    try {
+      const res = await fetch("/api/wash/my-requests");
+      if (res.ok) {
+        const data = await res.json();
+        setWashRequests(data.requests);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchWashRequests();
+  }, []);
+
+  // Auto-select first active session
+  React.useEffect(() => {
+    if (activeSessions.length > 0 && !selectedSession) {
+      setSelectedSession(activeSessions[0].id);
+    }
+  }, [activeSessions, selectedSession]);
+
+  // ── Booking handler ─────────────────────────────────────────────────────
+  const handleBook = async () => {
+    if (!selectedSession || !bookingType) return;
+    setBookingLoading(true);
+    setBookingError(null);
+    try {
+      const res = await fetch("/api/wash/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: selectedSession, wash_type: bookingType }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setBookingError(data.error || "Booking failed");
+        return;
+      }
+      setBookingSuccess(true);
+      setBookingType("");
+      await fetchWashRequests();
+      setTimeout(() => setBookingSuccess(false), 4000);
+    } catch {
+      setBookingError("Network error. Please try again.");
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  // ── Derived state ───────────────────────────────────────────────────────
+  const activeWash = washRequests.find(
+    (r) =>
+      r.session_id === selectedSession &&
+      (r.service_status === "pending" || r.service_status === "in_progress")
+  );
+
+  const completedWashes = washRequests.filter(
+    (r) => r.service_status === "completed"
+  ).slice(0, 5);
+
+  const hasActiveWash = !!activeWash;
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  const washTypeBadge = (type: string) => {
+    const tier = WASH_TIERS.find((t) => t.type === type);
+    return (
+      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${tier?.badgeBg ?? "bg-slate-100 text-slate-600"}`}>
+        {tier?.label ?? type}
+      </span>
+    );
+  };
+
+  const statusBadge = (status: string) => {
+    if (status === "pending") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700">
+          <Clock className="w-3 h-3" />
+          Pending
+        </span>
+      );
+    }
+    if (status === "in_progress") {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:ring-sky-700">
+          <span className="relative inline-flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
+          </span>
+          In Progress
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-700">
+        <CheckCircle2 className="w-3 h-3" />
+        Completed
+      </span>
+    );
+  };
 
   return (
     <motion.div
@@ -1403,50 +1561,254 @@ function ServicesTab() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ type: "spring", stiffness: 180, damping: 18 }}
+      className="space-y-5"
     >
-      <h4 className="mb-3 text-sm font-semibold text-slate-600">
-        Available Services
-      </h4>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {SERVICES.map((svc, i) => (
-          <motion.div
-            key={i}
-            className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5"
-            variants={subtleHover}
-            initial="rest"
-            whileHover="hover"
-            animate="rest"
-          >
-            <div className="flex items-start justify-between gap-6">
-              <div className="flex min-w-0 items-start gap-3">
-                <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
-                  <svc.icon className="h-5 w-5 text-emerald-600" />
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-base font-semibold">
-                    {svc.title}
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                    {svc.desc}
-                  </p>
-                </div>
-              </div>
-              <div className="shrink-0 text-lg font-bold">
-                {svc.price}
-              </div>
+      {/* ── No active session guard ──────────────────────────────────────── */}
+      {activeSessions.length === 0 ? (
+        <div className="rounded-2xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 p-5 text-center">
+          <AlertCircle className="w-10 h-10 text-sky-400 mx-auto mb-3" />
+          <h4 className="text-base font-semibold text-slate-800 dark:text-white mb-1">
+            No Active Parking Session
+          </h4>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            You need an active parking session to book a wash service.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* ── Session selector (only if multiple) ──────────────────────── */}
+          {activeSessions.length > 1 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mr-1">
+                Select vehicle:
+              </span>
+              {activeSessions.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => {
+                    setSelectedSession(s.id);
+                    setBookingType("");
+                    setBookingError(null);
+                  }}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${selectedSession === s.id
+                      ? "bg-sky-600 text-white shadow-sm"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                    }`}
+                >
+                  <Car className="w-3 h-3" />
+                  {s.vehicle?.license_plate ?? "Vehicle"}
+                </button>
+              ))}
             </div>
+          )}
 
-            <div className="mt-4">
-              <button
-                onClick={() => alert(`Booked: ${svc.title}`)}
-                className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+          {/* ── Active wash status banner ─────────────────────────────────── */}
+          {activeWash && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-2xl border border-sky-200 dark:border-sky-800 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 p-5"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Droplets className="w-5 h-5 text-sky-600" />
+                  <h4 className="text-sm font-semibold text-slate-800 dark:text-white">
+                    Wash In Progress
+                  </h4>
+                </div>
+                <button
+                  onClick={fetchWashRequests}
+                  className="p-1.5 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  title="Refresh status"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingRequests ? "animate-spin" : ""}`} />
+                </button>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {statusBadge(activeWash.service_status)}
+                {washTypeBadge(activeWash.wash_type)}
+                {activeWash.assigned_to_name && (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                    <User className="w-3 h-3" />
+                    {activeWash.assigned_to_name}
+                  </span>
+                )}
+                {activeWash.service_cost != null && (
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    PKR {activeWash.service_cost.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── Wash tier cards ───────────────────────────────────────────── */}
+          {!hasActiveWash && (
+            <>
+              <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
+                Choose a Wash Service
+              </h4>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                {WASH_TIERS.map((tier) => {
+                  const isSelected = bookingType === tier.type;
+                  return (
+                    <motion.button
+                      key={tier.type}
+                      onClick={() => {
+                        setBookingType(isSelected ? "" : tier.type);
+                        setBookingError(null);
+                      }}
+                      variants={subtleHover}
+                      initial="rest"
+                      whileHover="hover"
+                      animate="rest"
+                      className={`relative rounded-2xl border p-5 text-left transition-all ${isSelected
+                          ? `border-transparent ring-2 ${tier.ringColor} bg-white dark:bg-slate-800 shadow-md`
+                          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-sm"
+                        }`}
+                    >
+                      {isSelected && (
+                        <motion.div
+                          layoutId="wash-selected"
+                          className="absolute top-3 right-3"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                        >
+                          <CheckCircle2 className={`w-5 h-5 ${tier.color}`} />
+                        </motion.div>
+                      )}
+                      <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${tier.bgColor} mb-3`}>
+                        <tier.icon className={`h-5 w-5 ${tier.color}`} />
+                      </div>
+                      <div className="text-base font-semibold text-slate-900 dark:text-white">
+                        {tier.label}
+                      </div>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        {tier.description}
+                      </p>
+                      <div className="mt-3 text-lg font-extrabold text-slate-900 dark:text-white">
+                        PKR {tier.cost.toLocaleString()}
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {/* ── Error banner ──────────────────────────────────────────── */}
+              <AnimatePresence>
+                {bookingError && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 flex items-center gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                    <span className="text-sm text-red-700 dark:text-red-300">
+                      {bookingError}
+                    </span>
+                    <button
+                      onClick={() => setBookingError(null)}
+                      className="ml-auto p-1 rounded hover:bg-red-100 dark:hover:bg-red-800 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5 text-red-400" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ── Success toast ─────────────────────────────────────────── */}
+              <AnimatePresence>
+                {bookingSuccess && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3 flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                      Wash booked! A washer has been assigned.
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ── Book button ───────────────────────────────────────────── */}
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={handleBook}
+                disabled={!bookingType || !selectedSession || bookingLoading}
+                className="w-full rounded-xl bg-sky-600 py-3 text-sm font-semibold text-white shadow-sm hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
-                Book Now
-              </button>
+                {bookingLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Booking…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Book Wash
+                  </>
+                )}
+              </motion.button>
+            </>
+          )}
+
+          {/* ── Wash history ──────────────────────────────────────────────── */}
+          {completedWashes.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-3">
+                Recent Wash History
+              </h4>
+              <div className="space-y-2">
+                {completedWashes.map((req, i) => (
+                  <motion.div
+                    key={req.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/30 shrink-0">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          {washTypeBadge(req.wash_type)}
+                          {req.after_photos.length > 0 && (
+                            <span className="text-xs text-sky-600 dark:text-sky-400 font-medium">
+                              📸 {req.after_photos.length} photo{req.after_photos.length > 1 ? "s" : ""}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          {new Date(req.created_at).toLocaleDateString("en-PK", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                          {req.completed_at && req.started_at && (() => {
+                            const mins = Math.round(
+                              (new Date(req.completed_at).getTime() - new Date(req.started_at).getTime()) / 60000
+                            );
+                            return ` • ${mins} min`;
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                      PKR {(req.service_cost ?? 0).toLocaleString()}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
-          </motion.div>
-        ))}
-      </div>
+          )}
+        </>
+      )}
     </motion.div>
   );
 }

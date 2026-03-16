@@ -16,11 +16,14 @@ import {
   Clock,
   Calendar,
   ChevronUp,
+  ChevronDown,
   Coffee,
   TrendingUp,
   Search,
   AlertTriangle,
   XCircle,
+  LayoutGrid,
+  Building2,
 } from 'lucide-react'
 import { buildWhatsAppStaffInviteLink } from '@/lib/whatsapp'
 
@@ -33,11 +36,43 @@ interface StaffMember {
   phone: string | null
   role: string | null
   status: 'active' | 'pending' | 'deactivated'
+  on_duty: boolean
   created_at: string
   venue_id: string | null
   venue_name: string | null
+  zone_id: string | null
+  zone_name: string | null
   invited_at: string | null
   invited_by_name: string | null
+}
+
+interface DutyStaff {
+  id: string
+  full_name: string | null
+  email: string
+  phone: string | null
+  role: string
+}
+
+interface DutyZone {
+  id: string
+  name: string
+  total_slots: number
+  staff: DutyStaff[]
+}
+
+interface DutyGate {
+  id: string
+  name: string
+  zones: DutyZone[]
+}
+
+interface DutyVenue {
+  id: string
+  name: string
+  supervisor: DutyStaff | null
+  gates: DutyGate[]
+  unassigned_staff: DutyStaff[]
 }
 
 interface Venue {
@@ -136,17 +171,36 @@ function RoleBadge({ role }: { role: string | null }) {
 
 // ── Status badge ───────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status: StaffMember['status'] }) {
-  const config = {
-    active: { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Active' },
-    pending: { dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50', label: 'Pending' },
-    deactivated: { dot: 'bg-gray-400', text: 'text-gray-500', bg: 'bg-gray-100', label: 'Deactivated' },
-  }[status]
-
+function StatusBadge({ status, onDuty }: { status: StaffMember['status']; onDuty: boolean }) {
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+        Pending
+      </span>
+    )
+  }
+  if (status === 'deactivated') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+        Deactivated
+      </span>
+    )
+  }
+  // active — show shift duty state
+  if (onDuty) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        On Duty
+      </span>
+    )
+  }
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
-      {config.label}
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-600">
+      <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+      Off Duty
     </span>
   )
 }
@@ -169,6 +223,13 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
   const [loadingShifts, setLoadingShifts] = useState<string | null>(null)
   const [pendingShifts, setPendingShifts] = useState<PendingShift[]>([])
   const [approvingId, setApprovingId] = useState<string | null>(null)
+
+  // Duty board state
+  const [showDutyBoard, setShowDutyBoard] = useState(false)
+  const [dutyVenues, setDutyVenues] = useState<DutyVenue[]>([])
+  const [selectedDutyVenueId, setSelectedDutyVenueId] = useState<string>('')
+  const [loadingDutyBoard, setLoadingDutyBoard] = useState(false)
+  const [zoneAssignPopover, setZoneAssignPopover] = useState<string | null>(null)
 
   // Modal form state
   const [inviteEmail, setInviteEmail] = useState('')
@@ -446,7 +507,7 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
     }
   }
 
-  // ── Assign venue ─────────────────────────────────────────────────────────
+  // ── Assign venue + zone ──────────────────────────────────────────────────
 
   async function handleAssignVenue(staffId: string, venueId: string | null) {
     setAssigningId(staffId)
@@ -454,10 +515,11 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
       const res = await fetch('/api/staff/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ staff_id: staffId, venue_id: venueId }),
+        body: JSON.stringify({ staff_id: staffId, venue_id: venueId, zone_id: null }),
       })
       if (res.ok) {
         await fetchStaff()
+        if (showDutyBoard) fetchDutyBoard()
       } else {
         const data = await res.json()
         addToast(data.error || 'Failed to assign venue')
@@ -468,6 +530,107 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
       setAssigningId(null)
     }
   }
+
+  // ── Duty Board ──────────────────────────────────────────────────────────
+
+  const fetchDutyBoard = useCallback(async () => {
+    setLoadingDutyBoard(true)
+    try {
+      const res = await fetch('/api/admin/staff/duty-assignments')
+      if (res.ok) {
+        const data = await res.json()
+        setDutyVenues(data.venues ?? [])
+        // Auto-select first venue if none selected
+        if (!selectedDutyVenueId && data.venues?.length > 0) {
+          setSelectedDutyVenueId(data.venues[0].id)
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoadingDutyBoard(false)
+    }
+  }, [selectedDutyVenueId])
+
+  async function handleZoneAssign(staffId: string, venueId: string, zoneId: string) {
+    setAssigningId(staffId)
+    try {
+      const res = await fetch('/api/staff/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_id: staffId, venue_id: venueId, zone_id: zoneId }),
+      })
+      if (res.ok) {
+        addToast('Staff assigned to zone')
+        setZoneAssignPopover(null)
+        await fetchDutyBoard()
+        await fetchStaff()
+      } else {
+        const data = await res.json()
+        addToast(data.error || 'Failed to assign')
+      }
+    } catch {
+      addToast('Network error')
+    } finally {
+      setAssigningId(null)
+    }
+  }
+
+  async function handleZoneUnassign(staffId: string, venueId: string) {
+    setAssigningId(staffId)
+    try {
+      const res = await fetch('/api/staff/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_id: staffId, venue_id: venueId, zone_id: null }),
+      })
+      if (res.ok) {
+        addToast('Staff unassigned from zone')
+        await fetchDutyBoard()
+        await fetchStaff()
+      } else {
+        const data = await res.json()
+        addToast(data.error || 'Failed to unassign')
+      }
+    } catch {
+      addToast('Network error')
+    } finally {
+      setAssigningId(null)
+    }
+  }
+
+  async function handleSupervisorAssign(staffId: string, venueId: string | null) {
+    setAssigningId(staffId)
+    try {
+      const res = await fetch('/api/staff/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_id: staffId, venue_id: venueId, zone_id: null }),
+      })
+      if (res.ok) {
+        addToast('Supervisor assigned to venue')
+        await fetchDutyBoard()
+        await fetchStaff()
+      } else {
+        const data = await res.json()
+        addToast(data.error || 'Failed to assign supervisor')
+      }
+    } catch {
+      addToast('Network error')
+    } finally {
+      setAssigningId(null)
+    }
+  }
+
+  const selectedDutyVenue = useMemo(
+    () => dutyVenues.find(v => v.id === selectedDutyVenueId) ?? null,
+    [dutyVenues, selectedDutyVenueId]
+  )
+
+  const availableSupervisors = useMemo(
+    () => staff.filter(s => s.role === 'supervisor' && s.status === 'active'),
+    [staff]
+  )
 
   // ── Stats (always from full list, not filtered) ───────────────────────────
 
@@ -593,6 +756,263 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
         )}
       </AnimatePresence>
 
+      {/* ── Duty Board ────────────────────────────────────────────────── */}
+      <div className="mb-5">
+        <button
+          onClick={() => {
+            const next = !showDutyBoard
+            setShowDutyBoard(next)
+            if (next && dutyVenues.length === 0) fetchDutyBoard()
+          }}
+          className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl border transition-all ${showDutyBoard
+            ? 'bg-gradient-to-r from-sky-50 to-indigo-50 dark:from-sky-900/20 dark:to-indigo-900/20 border-sky-200 dark:border-sky-800'
+            : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 hover:border-sky-200 dark:hover:border-sky-700'
+            }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${showDutyBoard
+              ? 'bg-sky-500 text-white'
+              : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
+              }`}>
+              <LayoutGrid className="w-4.5 h-4.5" />
+            </div>
+            <div className="text-left">
+              <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">Duty Assignment Board</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Assign drivers & washers to zones</p>
+            </div>
+          </div>
+          {showDutyBoard ? (
+            <ChevronUp className="w-4 h-4 text-slate-400" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-400" />
+          )}
+        </button>
+
+        <AnimatePresence>
+          {showDutyBoard && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-3 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl p-5">
+                {/* Venue selector */}
+                <div className="flex items-center gap-3 mb-5">
+                  <Building2 className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  <select
+                    value={selectedDutyVenueId}
+                    onChange={(e) => setSelectedDutyVenueId(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
+                  >
+                    <option value="">Select a venue...</option>
+                    {dutyVenues.map(v => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={fetchDutyBoard}
+                    disabled={loadingDutyBoard}
+                    className="p-2 border border-gray-200 dark:border-slate-600 text-slate-400 hover:text-sky-500 rounded-lg transition-all disabled:opacity-40"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${loadingDutyBoard ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+
+                {loadingDutyBoard && (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="w-6 h-6 text-sky-500 animate-spin" />
+                  </div>
+                )}
+
+                {!loadingDutyBoard && selectedDutyVenue && (
+                  <>
+                    {/* Supervisor row — admin only */}
+                    {!isSupervisor && (
+                      <div className="mb-5 p-4 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-xl">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">
+                              Supervisor
+                            </span>
+                            {selectedDutyVenue.supervisor ? (
+                              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                                {selectedDutyVenue.supervisor.full_name || selectedDutyVenue.supervisor.email}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-slate-400 italic">No supervisor assigned</span>
+                            )}
+                          </div>
+                          <select
+                            value={selectedDutyVenue.supervisor?.id ?? ''}
+                            onChange={(e) => {
+                              const newSupervisorId = e.target.value
+                              if (newSupervisorId) {
+                                handleSupervisorAssign(newSupervisorId, selectedDutyVenue.id)
+                              } else if (selectedDutyVenue.supervisor?.id) {
+                                // Unassign the current supervisor
+                                handleSupervisorAssign(selectedDutyVenue.supervisor.id, null)
+                              }
+                            }}
+                            className="text-xs px-3 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer focus:ring-2 focus:ring-purple-400/20 outline-none"
+                          >
+                            <option value="">Assign supervisor...</option>
+                            {availableSupervisors.map(s => (
+                              <option key={s.id} value={s.id}>{s.full_name || s.email}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Gates → Zones grid */}
+                    {selectedDutyVenue.gates.length === 0 ? (
+                      <div className="text-center py-8">
+                        <MapPin className="w-10 h-10 text-slate-200 dark:text-slate-600 mx-auto mb-2" />
+                        <p className="text-sm text-slate-400">No gates/zones configured for this venue</p>
+                        <p className="text-xs text-slate-300 dark:text-slate-500 mt-1">Set up the venue structure in the Locations tab first</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {selectedDutyVenue.gates.map(gate => (
+                          <div key={gate.id}>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 px-1">
+                              {gate.name}
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {gate.zones.map(zone => (
+                                <div
+                                  key={zone.id}
+                                  className="border border-gray-100 dark:border-slate-700 rounded-xl p-3.5 bg-slate-50/50 dark:bg-slate-800/50 hover:border-sky-200 dark:hover:border-sky-800 transition-all"
+                                >
+                                  {/* Zone header */}
+                                  <div className="flex items-center justify-between mb-2.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{zone.name}</span>
+                                      <span className="text-[10px] text-slate-400 dark:text-slate-500">{zone.total_slots} slots</span>
+                                    </div>
+                                    {/* Add button */}
+                                    <div className="relative">
+                                      <button
+                                        onClick={() => setZoneAssignPopover(zoneAssignPopover === zone.id ? null : zone.id)}
+                                        className="p-1 text-slate-300 dark:text-slate-600 hover:text-sky-500 dark:hover:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/20 rounded-md transition-all"
+                                        title="Assign staff"
+                                      >
+                                        <UserPlus className="w-3.5 h-3.5" />
+                                      </button>
+
+                                      {/* Assign popover */}
+                                      {zoneAssignPopover === zone.id && (
+                                        <div className="absolute right-0 top-8 z-30 w-56 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-xl shadow-xl p-2 max-h-48 overflow-y-auto">
+                                          {selectedDutyVenue.unassigned_staff.length === 0 ? (
+                                            <p className="text-xs text-slate-400 p-2 text-center">No unassigned staff at this venue</p>
+                                          ) : (
+                                            selectedDutyVenue.unassigned_staff.map(s => (
+                                              <button
+                                                key={s.id}
+                                                onClick={() => handleZoneAssign(s.id, selectedDutyVenue.id, zone.id)}
+                                                disabled={assigningId === s.id}
+                                                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-900/20 text-left transition-colors disabled:opacity-40"
+                                              >
+                                                {assigningId === s.id ? (
+                                                  <Loader2 className="w-3.5 h-3.5 text-sky-500 animate-spin flex-shrink-0" />
+                                                ) : (
+                                                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s.role === 'driver' ? 'bg-sky-500' : 'bg-emerald-500'
+                                                    }`} />
+                                                )}
+                                                <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
+                                                  {s.full_name || s.email}
+                                                </span>
+                                                <span className={`ml-auto text-[10px] font-semibold uppercase ${s.role === 'driver' ? 'text-sky-500' : 'text-emerald-500'
+                                                  }`}>
+                                                  {s.role}
+                                                </span>
+                                              </button>
+                                            ))
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Assigned staff */}
+                                  {zone.staff.length === 0 ? (
+                                    <p className="text-[11px] text-slate-300 dark:text-slate-600 italic">No staff assigned</p>
+                                  ) : (
+                                    <div className="space-y-1.5">
+                                      {zone.staff.map(s => (
+                                        <div
+                                          key={s.id}
+                                          className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-700/50 border border-gray-100 dark:border-slate-600"
+                                        >
+                                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.role === 'driver' ? 'bg-sky-500' : 'bg-emerald-500'
+                                            }`} />
+                                          <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate flex-1">
+                                            {s.full_name || s.email}
+                                          </span>
+                                          <span className={`text-[10px] font-semibold uppercase ${s.role === 'driver' ? 'text-sky-400' : 'text-emerald-400'
+                                            }`}>
+                                            {s.role}
+                                          </span>
+                                          <button
+                                            onClick={() => handleZoneUnassign(s.id, selectedDutyVenue.id)}
+                                            disabled={assigningId === s.id}
+                                            className="p-0.5 text-slate-300 dark:text-slate-500 hover:text-red-500 transition-colors disabled:opacity-40"
+                                            title="Unassign from zone"
+                                          >
+                                            {assigningId === s.id
+                                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                                              : <X className="w-3 h-3" />}
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Unassigned pool */}
+                    {selectedDutyVenue.unassigned_staff.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-amber-500 dark:text-amber-400 mb-2 px-1">
+                          Unassigned at {selectedDutyVenue.name} ({selectedDutyVenue.unassigned_staff.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedDutyVenue.unassigned_staff.map(s => (
+                            <span
+                              key={s.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/50"
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${s.role === 'driver' ? 'bg-sky-500' : 'bg-emerald-500'
+                                }`} />
+                              {s.full_name || s.email}
+                              <span className="text-amber-400 dark:text-amber-500 uppercase text-[9px]">{s.role}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {!loadingDutyBoard && !selectedDutyVenueId && (
+                  <div className="text-center py-8">
+                    <Building2 className="w-10 h-10 text-slate-200 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="text-sm text-slate-400">Select a venue to manage duty assignments</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* Stats row — clickable to filter */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {([
@@ -603,9 +1023,8 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
           <button
             key={label}
             onClick={() => setStatusFilter(statusFilter === value ? 'all' : value)}
-            className={`${bg} rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all text-left ${
-              statusFilter === value ? `ring-2 ${ring}` : 'hover:brightness-95'
-            }`}
+            className={`${bg} rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all text-left ${statusFilter === value ? `ring-2 ${ring}` : 'hover:brightness-95'
+              }`}
           >
             <span className={`w-2.5 h-2.5 rounded-full ${dot} flex-shrink-0`} />
             <div>
@@ -644,11 +1063,10 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all ${
-                statusFilter === s
-                  ? 'bg-sky-500 text-white'
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-              }`}
+              className={`px-3 py-2 rounded-lg text-xs font-medium capitalize transition-all ${statusFilter === s
+                ? 'bg-sky-500 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                }`}
             >
               {s === 'all' ? `All (${staff.length})` : s}
             </button>
@@ -735,114 +1153,120 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
               variants={itemVariants}
               className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-sm overflow-hidden"
             >
-            <div className="p-5 flex items-center gap-4">
-              {/* Avatar */}
-              <div
-                className={`w-12 h-12 rounded-full bg-gradient-to-br ${GRADIENTS[index % GRADIENTS.length]} flex items-center justify-center flex-shrink-0`}
-              >
-                <span className="text-white font-bold text-sm">
-                  {getInitials(member.full_name, member.email)}
-                </span>
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">
-                    {member.full_name || '—'}
-                  </p>
-                  <StatusBadge status={member.status} />
-                  <RoleBadge role={member.role} />
+              <div className="p-5 flex items-center gap-4">
+                {/* Avatar */}
+                <div
+                  className={`w-12 h-12 rounded-full bg-gradient-to-br ${GRADIENTS[index % GRADIENTS.length]} flex items-center justify-center flex-shrink-0`}
+                >
+                  <span className="text-white font-bold text-sm">
+                    {getInitials(member.full_name, member.email)}
+                  </span>
                 </div>
-                <p className="text-slate-400 text-sm truncate">{member.email}</p>
-                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                  {/* Inline venue select */}
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                    {assigningId === member.id ? (
-                      <Loader2 className="w-3.5 h-3.5 text-sky-500 animate-spin" />
-                    ) : (
-                      <select
-                        value={member.venue_id ?? ''}
-                        onChange={(e) => handleAssignVenue(member.id, e.target.value || null)}
-                        disabled={assigningId === member.id}
-                        className="text-xs text-slate-600 dark:text-slate-300 bg-transparent border-0 outline-none cursor-pointer hover:text-sky-600 transition-colors pr-1 appearance-none"
-                      >
-                        <option value="">Unassigned</option>
-                        {venues.map((v) => (
-                          <option key={v.id} value={v.id}>{v.name}</option>
-                        ))}
-                      </select>
-                    )}
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-slate-800 dark:text-slate-100 truncate">
+                      {member.full_name || '—'}
+                    </p>
+                    <StatusBadge status={member.status} onDuty={member.on_duty} />
+                    <RoleBadge role={member.role} />
                   </div>
-                  <span className="text-slate-200 text-xs">•</span>
-                  <p className="text-slate-300 text-xs">
-                    Invited {formatDate(member.invited_at || member.created_at)}
-                    {member.invited_by_name && ` by ${member.invited_by_name}`}
-                  </p>
+                  <p className="text-slate-400 text-sm truncate">{member.email}</p>
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                    {/* Inline venue + zone display */}
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                      {assigningId === member.id ? (
+                        <Loader2 className="w-3.5 h-3.5 text-sky-500 animate-spin" />
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <select
+                            value={member.venue_id ?? ''}
+                            onChange={(e) => handleAssignVenue(member.id, e.target.value || null)}
+                            disabled={assigningId === member.id}
+                            className="text-xs text-slate-600 dark:text-slate-300 bg-transparent border-0 outline-none cursor-pointer hover:text-sky-600 transition-colors pr-1 appearance-none"
+                          >
+                            <option value="">Unassigned</option>
+                            {venues.map((v) => (
+                              <option key={v.id} value={v.id}>{v.name}</option>
+                            ))}
+                          </select>
+                          {member.zone_name && (
+                            <span className="text-xs text-sky-500 dark:text-sky-400 font-medium">
+                              → {member.zone_name}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-slate-200 text-xs">•</span>
+                    <p className="text-slate-300 text-xs">
+                      Invited {formatDate(member.invited_at || member.created_at)}
+                      {member.invited_by_name && ` by ${member.invited_by_name}`}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {/* Shift history toggle */}
-                <button
-                  onClick={() => toggleShiftHistory(member.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                    expandedShiftId === member.id
+                {/* Actions */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Shift history toggle */}
+                  <button
+                    onClick={() => toggleShiftHistory(member.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${expandedShiftId === member.id
                       ? 'bg-sky-50 border-sky-300 text-sky-700 dark:bg-sky-900/30 dark:border-sky-700 dark:text-sky-400'
                       : 'border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-sky-300 hover:text-sky-600'
-                  }`}
-                >
-                  {loadingShifts === member.id ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : expandedShiftId === member.id ? (
-                    <ChevronUp className="w-3.5 h-3.5" />
-                  ) : (
-                    <Clock className="w-3.5 h-3.5" />
-                  )}
-                  Shifts
-                </button>
+                      }`}
+                  >
+                    {loadingShifts === member.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : expandedShiftId === member.id ? (
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    ) : (
+                      <Clock className="w-3.5 h-3.5" />
+                    )}
+                    Shifts
+                  </button>
 
-                {member.status === 'pending' && (
-                  <button
-                    onClick={() => handleResend(member)}
-                    disabled={actionLoading === member.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-sky-300 text-sky-600 hover:bg-sky-50 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
-                  >
-                    {actionLoading === member.id ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <MessageCircle className="w-3.5 h-3.5" />
-                    )}
-                    Resend via WhatsApp
-                  </button>
-                )}
-                {member.status === 'active' && !isSupervisor && (
-                  <button
-                    onClick={() => handleDeactivate(member)}
-                    disabled={actionLoading === member.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-red-300 text-red-600 hover:bg-red-50 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
-                  >
-                    {actionLoading === member.id ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <UserX className="w-3.5 h-3.5" />
-                    )}
-                    Deactivate
-                  </button>
-                )}
-                {member.status === 'deactivated' && !isSupervisor && (
-                  <button
-                    onClick={() => openModal(member.email)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-sky-300 text-sky-600 hover:bg-sky-50 rounded-lg text-xs font-medium transition-all"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Re-invite
-                  </button>
-                )}
-              </div>
-            </div>{/* end p-5 flex row */}
+                  {member.status === 'pending' && (
+                    <button
+                      onClick={() => handleResend(member)}
+                      disabled={actionLoading === member.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-sky-300 text-sky-600 hover:bg-sky-50 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+                    >
+                      {actionLoading === member.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      )}
+                      Resend via WhatsApp
+                    </button>
+                  )}
+                  {member.status === 'active' && !isSupervisor && (
+                    <button
+                      onClick={() => handleDeactivate(member)}
+                      disabled={actionLoading === member.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-red-300 text-red-600 hover:bg-red-50 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+                    >
+                      {actionLoading === member.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <UserX className="w-3.5 h-3.5" />
+                      )}
+                      Deactivate
+                    </button>
+                  )}
+                  {member.status === 'deactivated' && !isSupervisor && (
+                    <button
+                      onClick={() => openModal(member.email)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 border border-sky-300 text-sky-600 hover:bg-sky-50 rounded-lg text-xs font-medium transition-all"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Re-invite
+                    </button>
+                  )}
+                </div>
+              </div>{/* end p-5 flex row */}
 
               {/* Shift history panel */}
               <AnimatePresence>
@@ -1013,11 +1437,10 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
                     <button
                       type="button"
                       onClick={() => setInviteRole('driver')}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        inviteRole === 'driver'
-                          ? 'border-sky-500 bg-sky-50 ring-1 ring-sky-500/30'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${inviteRole === 'driver'
+                        ? 'border-sky-500 bg-sky-50 ring-1 ring-sky-500/30'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        }`}
                     >
                       <p className={`text-sm font-semibold ${inviteRole === 'driver' ? 'text-sky-700' : 'text-slate-700'}`}>
                         Driver
@@ -1027,11 +1450,10 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
                     <button
                       type="button"
                       onClick={() => setInviteRole('washer')}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        inviteRole === 'washer'
-                          ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/30'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${inviteRole === 'washer'
+                        ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500/30'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        }`}
                     >
                       <p className={`text-sm font-semibold ${inviteRole === 'washer' ? 'text-emerald-700' : 'text-slate-700'}`}>
                         Washer
@@ -1041,11 +1463,10 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
                     <button
                       type="button"
                       onClick={() => setInviteRole('supervisor')}
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        inviteRole === 'supervisor'
-                          ? 'border-purple-500 bg-purple-50 ring-1 ring-purple-500/30'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
+                      className={`p-3 rounded-xl border-2 text-left transition-all ${inviteRole === 'supervisor'
+                        ? 'border-purple-500 bg-purple-50 ring-1 ring-purple-500/30'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        }`}
                     >
                       <p className={`text-sm font-semibold ${inviteRole === 'supervisor' ? 'text-purple-700' : 'text-slate-700'}`}>
                         Supervisor

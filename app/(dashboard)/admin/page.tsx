@@ -9,6 +9,7 @@ import AnalyticsTab from '@/components/admin/AnalyticsTab'
 import StaffTab from '@/components/admin/StaffTab'
 import SettingsTab from '@/components/admin/SettingsTab'
 import LocationsTab from '@/components/admin/LocationsTab'
+import CustomerSearchTab from '@/components/admin/CustomerSearchTab'
 import ANPRDetector from '@/components/anpr/ANPRDetector'
 import LiveFeedWidget from '@/components/admin/LiveFeedWidget'
 import DarkModeToggle from '@/components/DarkModeToggle'
@@ -66,7 +67,7 @@ export default function AdminDashboardPage() {
 
   // Supervisor sees: Overview, Staff, Locations (read-only), Live Feed, ANPR
   // Admin sees all 7 tabs
-  const ALL_TABS = ['Overview', 'Analytics', 'Staff', 'Locations', 'Live Feed', 'ANPR', 'Settings']
+  const ALL_TABS = ['Overview', 'Analytics', 'Staff', 'Customers', 'Locations', 'Live Feed', 'ANPR', 'Settings']
   const SUPERVISOR_HIDDEN = ['Analytics', 'Settings']
 
   const tabs = useMemo(
@@ -224,6 +225,11 @@ export default function AdminDashboardPage() {
             {activeTab === 'Overview' && <OverviewTab hideRevenue={isSupervisor} />}
             {activeTab === 'Analytics' && !isSupervisor && <AnalyticsTab />}
             {activeTab === 'Staff' && <StaffTab isSupervisor={isSupervisor} />}
+            {activeTab === 'Customers' && (
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-6 shadow-sm">
+                <CustomerSearchTab />
+              </div>
+            )}
             {activeTab === 'Settings' && !isSupervisor && <SettingsTab />}
             {activeTab === 'Locations' && (
               <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-6 shadow-sm">

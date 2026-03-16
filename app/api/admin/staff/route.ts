@@ -32,16 +32,24 @@ export async function GET(request: NextRequest) {
       SELECT
         u.id, u.email, u.full_name, u.phone, u.role, u.status, u.created_at,
         u.venue_id, av.name as venue_name,
+        u.zone_id, az.name as zone_name,
         si.created_at as invited_at,
-        inviter.full_name as invited_by_name
+        inviter.full_name as invited_by_name,
+        CASE WHEN ss.id IS NOT NULL THEN true ELSE false END AS on_duty
       FROM users u
       LEFT JOIN venues av ON u.venue_id = av.id
+      LEFT JOIN zones az ON u.zone_id = az.id
       LEFT JOIN (
         SELECT DISTINCT ON (email) email, invited_by, created_at
         FROM staff_invitations
         ORDER BY email, created_at DESC
       ) si ON u.email = si.email
       LEFT JOIN users inviter ON si.invited_by = inviter.id
+      LEFT JOIN LATERAL (
+        SELECT id FROM staff_shifts
+        WHERE staff_id = u.id AND status IN ('active', 'on_break')
+        LIMIT 1
+      ) ss ON true
       WHERE u.role IN ('driver', 'washer', 'supervisor')
       ORDER BY u.created_at DESC
     `);

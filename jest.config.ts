@@ -9,6 +9,7 @@ const config: Config = {
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
   collectCoverageFrom: [
     'lib/roles.ts',
+    'lib/duty-assignment.ts',
     'app/api/wash/**/*.ts',
   ],
   coverageThreshold: {

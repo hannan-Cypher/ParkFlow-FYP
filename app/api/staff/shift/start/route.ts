@@ -42,7 +42,9 @@ export async function POST(request: NextRequest) {
     if (enforce_shift_start_window && shift_start_time) {
       const [shiftH, shiftM] = (shift_start_time as string).split(':').map(Number);
       const now = new Date();
-      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const PKT_OFFSET_MINUTES = 5 * 60; // UTC+5 — Pakistan Standard Time
+      const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+      const nowMinutes = (utcMinutes + PKT_OFFSET_MINUTES) % (24 * 60);
       const shiftStartMinutes = shiftH * 60 + shiftM;
       const deadlineMinutes = shiftStartMinutes + 60;
 
