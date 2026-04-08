@@ -30337,5 +30337,951 @@
       301,
       335
     ]
+  },
+  {
+    "plate_id": 730,
+    "timestamp": "2026-04-08T12:51:17.254060",
+    "detection_confidence": 0.6067818403244019,
+    "ocr_text": "4S216",
+    "ocr_confidence": 0.5947462320327759,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 4628.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "4S216",
+        "cleaned": "4S216",
+        "validated": "4S216",
+        "confidence": 0.5947,
+        "elapsed_ms": 5.2,
+        "pk_match": false
+      },
+      "easyocr": {
+        "raw": "",
+        "cleaned": "UNREADABLE",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 1780.1
+      },
+      "split_combined": {
+        "raw": "",
+        "validated": "UNREADABLE",
+        "confidence": 0.0,
+        "elapsed_ms": 2843.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 4628.4
+    },
+    "plate_filename": "plate_730_20260408_125112_4S216_conf61%.jpg",
+    "full_frame_filename": "frame_20260408_125112.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      410,
+      0,
+      681,
+      213
+    ]
+  },
+  {
+    "plate_id": 731,
+    "timestamp": "2026-04-08T13:08:13.659692",
+    "detection_confidence": 0.6949362754821777,
+    "ocr_text": "RIS-8000",
+    "ocr_confidence": 0.9692697525024414,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 757.1,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "RIS8000",
+        "cleaned": "RIS-8000",
+        "validated": "RIS-8000",
+        "confidence": 0.9693,
+        "elapsed_ms": 5.0,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PUNJAB81RIS8000",
+        "cleaned": "RIS-8000",
+        "validated": "RIS-8000",
+        "confidence": 0.7454,
+        "elapsed_ms": 301.1
+      },
+      "split_combined": {
+        "raw": "RIS8000",
+        "validated": "RIS-8000",
+        "confidence": 1.2524,
+        "elapsed_ms": 450.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 757.1
+    },
+    "plate_filename": "plate_731_20260408_130812_RIS-8000_conf69%.jpg",
+    "full_frame_filename": "frame_20260408_130812.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      560,
+      576,
+      640,
+      616
+    ]
+  },
+  {
+    "plate_id": 732,
+    "timestamp": "2026-04-08T13:08:37.263950",
+    "detection_confidence": 0.6810194253921509,
+    "ocr_text": "RIS-8000",
+    "ocr_confidence": 0.9740158915519714,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 535.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "RIS8000",
+        "cleaned": "RIS-8000",
+        "validated": "RIS-8000",
+        "confidence": 0.974,
+        "elapsed_ms": 4.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PUNJABRIS80001",
+        "cleaned": "RIS-80001",
+        "validated": "RIS-80001",
+        "confidence": 0.9446,
+        "elapsed_ms": 218.9
+      },
+      "split_combined": {
+        "raw": "RIS8000",
+        "validated": "RIS-8000",
+        "confidence": 0.8473,
+        "elapsed_ms": 311.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 535.0
+    },
+    "plate_filename": "plate_732_20260408_130836_RIS-8000_conf68%.jpg",
+    "full_frame_filename": "frame_20260408_130836.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      405,
+      642,
+      481,
+      684
+    ]
+  },
+  {
+    "plate_id": 733,
+    "timestamp": "2026-04-08T13:12:07.929272",
+    "detection_confidence": 0.8168407082557678,
+    "ocr_text": "AWB-608",
+    "ocr_confidence": 0.9714782238006592,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1002.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AWB608",
+        "cleaned": "AWB-608",
+        "validated": "AWB-608",
+        "confidence": 0.9715,
+        "elapsed_ms": 7.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PUNJABHAHB608",
+        "cleaned": "HAHB-608",
+        "validated": "HAHB-608",
+        "confidence": 0.2864,
+        "elapsed_ms": 402.7
+      },
+      "split_combined": {
+        "raw": "IAHB608",
+        "validated": "IAHB-608",
+        "confidence": 0.2643,
+        "elapsed_ms": 592.6
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1002.4
+    },
+    "plate_filename": "plate_733_20260408_131206_AWB-608_conf82%.jpg",
+    "full_frame_filename": "frame_20260408_131206.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      326,
+      461,
+      398,
+      500
+    ]
+  },
+  {
+    "plate_id": 734,
+    "timestamp": "2026-04-08T13:12:08.101213",
+    "detection_confidence": 0.7909800410270691,
+    "ocr_text": "AWB-608",
+    "ocr_confidence": 0.973268449306488,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 852.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AWB608",
+        "cleaned": "AWB-608",
+        "validated": "AWB-608",
+        "confidence": 0.9733,
+        "elapsed_ms": 5.0,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PUNJABAHB608",
+        "cleaned": "AHB-608",
+        "validated": "HAHB-608",
+        "confidence": 0.7122,
+        "elapsed_ms": 342.0
+      },
+      "split_combined": {
+        "raw": "HAHB608",
+        "validated": "HAHB-608",
+        "confidence": 0.7122,
+        "elapsed_ms": 505.8
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 852.9
+    },
+    "plate_filename": "plate_734_20260408_131207_AWB-608_conf79%.jpg",
+    "full_frame_filename": "frame_20260408_131207.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      359,
+      401,
+      436,
+      440
+    ]
+  },
+  {
+    "plate_id": 735,
+    "timestamp": "2026-04-08T13:13:48.778462",
+    "detection_confidence": 0.7943502068519592,
+    "ocr_text": "AGW-597",
+    "ocr_confidence": 0.9697586894035339,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 670.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AGW597",
+        "cleaned": "AGW-597",
+        "validated": "AGW-597",
+        "confidence": 0.9698,
+        "elapsed_ms": 4.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "IE597",
+        "cleaned": "IE-597",
+        "validated": "IE-597",
+        "confidence": 0.2412,
+        "elapsed_ms": 171.4
+      },
+      "split_combined": {
+        "raw": "ACA597",
+        "validated": "ACA-597",
+        "confidence": 0.0973,
+        "elapsed_ms": 494.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 670.0
+    },
+    "plate_filename": "plate_735_20260408_131348_AGW-597_conf79%.jpg",
+    "full_frame_filename": "frame_20260408_131348.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      427,
+      503,
+      477,
+      534
+    ]
+  },
+  {
+    "plate_id": 736,
+    "timestamp": "2026-04-08T13:13:49.259371",
+    "detection_confidence": 0.7989505529403687,
+    "ocr_text": "AWB-608",
+    "ocr_confidence": 0.9728620648384094,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 576.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AWB608",
+        "cleaned": "AWB-608",
+        "validated": "AWB-608",
+        "confidence": 0.9729,
+        "elapsed_ms": 5.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PURJABAB6G8",
+        "cleaned": "ABAB-6",
+        "validated": "IAHB-608",
+        "confidence": 0.2944,
+        "elapsed_ms": 283.2
+      },
+      "split_combined": {
+        "raw": "IAHB608",
+        "validated": "IAHB-608",
+        "confidence": 0.2944,
+        "elapsed_ms": 287.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 576.7
+    },
+    "plate_filename": "plate_736_20260408_131348_AWB-608_conf80%.jpg",
+    "full_frame_filename": "frame_20260408_131348.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      472,
+      444,
+      544,
+      484
+    ]
+  },
+  {
+    "plate_id": 737,
+    "timestamp": "2026-04-08T13:13:51.019662",
+    "detection_confidence": 0.8494312167167664,
+    "ocr_text": "AWB-608",
+    "ocr_confidence": 0.9729461073875427,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 796.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AWB608",
+        "cleaned": "AWB-608",
+        "validated": "AWB-608",
+        "confidence": 0.9729,
+        "elapsed_ms": 5.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PUNJABANB608",
+        "cleaned": "ANB-608",
+        "validated": "AHB-608",
+        "confidence": 0.7567,
+        "elapsed_ms": 361.0
+      },
+      "split_combined": {
+        "raw": "AHB608",
+        "validated": "AHB-608",
+        "confidence": 0.7567,
+        "elapsed_ms": 429.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 796.0
+    },
+    "plate_filename": "plate_737_20260408_131350_AWB-608_conf85%.jpg",
+    "full_frame_filename": "frame_20260408_131350.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      394,
+      424,
+      468,
+      463
+    ]
+  },
+  {
+    "plate_id": 738,
+    "timestamp": "2026-04-08T13:13:51.063666",
+    "detection_confidence": 0.8690505623817444,
+    "ocr_text": "BSS-585",
+    "ocr_confidence": 0.9721428751945496,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1174.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BSS585",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.9721,
+        "elapsed_ms": 5.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BSS505GEAY",
+        "cleaned": "BSS-505",
+        "validated": "BSS-505",
+        "confidence": 0.4436,
+        "elapsed_ms": 586.9
+      },
+      "split_combined": {
+        "raw": "KCEOC05",
+        "validated": "CEOC-05",
+        "confidence": 0.3634,
+        "elapsed_ms": 582.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1174.7
+    },
+    "plate_filename": "plate_738_20260408_131349_BSS-585_conf87%.jpg",
+    "full_frame_filename": "frame_20260408_131349.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      234,
+      529,
+      311,
+      586
+    ]
+  },
+  {
+    "plate_id": 739,
+    "timestamp": "2026-04-08T13:13:52.730336",
+    "detection_confidence": 0.8372378349304199,
+    "ocr_text": "BSS-585",
+    "ocr_confidence": 0.9689554572105408,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 840.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BSS585",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.969,
+        "elapsed_ms": 5.6,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "EIA",
+        "cleaned": "EIA",
+        "validated": "45",
+        "confidence": 0.1176,
+        "elapsed_ms": 380.5
+      },
+      "split_combined": {
+        "raw": "45",
+        "validated": "45",
+        "confidence": 0.1176,
+        "elapsed_ms": 454.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 840.5
+    },
+    "plate_filename": "plate_739_20260408_131351_BSS-585_conf84%.jpg",
+    "full_frame_filename": "frame_20260408_131351.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      204,
+      340,
+      244,
+      378
+    ]
+  },
+  {
+    "plate_id": 740,
+    "timestamp": "2026-04-08T13:13:53.117057",
+    "detection_confidence": 0.8234961628913879,
+    "ocr_text": "AWB-608",
+    "ocr_confidence": 0.973138153553009,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 882.1,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AWB608",
+        "cleaned": "AWB-608",
+        "validated": "AWB-608",
+        "confidence": 0.9731,
+        "elapsed_ms": 5.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PUABANB608",
+        "cleaned": "BANB-608",
+        "validated": "AHB-608",
+        "confidence": 0.4843,
+        "elapsed_ms": 458.9
+      },
+      "split_combined": {
+        "raw": "AHB608",
+        "validated": "AHB-608",
+        "confidence": 0.4843,
+        "elapsed_ms": 417.3
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 882.1
+    },
+    "plate_filename": "plate_740_20260408_131352_AWB-608_conf82%.jpg",
+    "full_frame_filename": "frame_20260408_131352.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      370,
+      530,
+      445,
+      563
+    ]
+  },
+  {
+    "plate_id": 741,
+    "timestamp": "2026-04-08T13:13:53.212804",
+    "detection_confidence": 0.8746362924575806,
+    "ocr_text": "BSS-585",
+    "ocr_confidence": 0.970830500125885,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1848.7,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BSS585",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.9708,
+        "elapsed_ms": 4.3,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "CIABSS585SLED",
+        "cleaned": "ABSS-585",
+        "validated": "ABSS-585",
+        "confidence": 0.4243,
+        "elapsed_ms": 402.6
+      },
+      "split_combined": {
+        "raw": "CIA1S585SLAMEB",
+        "validated": "CIA-1",
+        "confidence": 0.2172,
+        "elapsed_ms": 1441.8
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1848.7
+    },
+    "plate_filename": "plate_741_20260408_131351_BSS-585_conf87%.jpg",
+    "full_frame_filename": "frame_20260408_131351.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      201,
+      474,
+      286,
+      534
+    ]
+  },
+  {
+    "plate_id": 742,
+    "timestamp": "2026-04-08T13:13:55.986138",
+    "detection_confidence": 0.853713870048523,
+    "ocr_text": "AWB-608",
+    "ocr_confidence": 0.973336398601532,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 575.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AWB608",
+        "cleaned": "AWB-608",
+        "validated": "AWB-608",
+        "confidence": 0.9733,
+        "elapsed_ms": 4.2,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PUNJA8HANBI6G",
+        "cleaned": "A8HANBI6G",
+        "validated": "HANB-6081",
+        "confidence": 0.4026,
+        "elapsed_ms": 286.1
+      },
+      "split_combined": {
+        "raw": "HANB6081",
+        "validated": "HANB-6081",
+        "confidence": 0.4026,
+        "elapsed_ms": 285.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 575.6
+    },
+    "plate_filename": "plate_742_20260408_131355_AWB-608_conf85%.jpg",
+    "full_frame_filename": "frame_20260408_131355.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      341,
+      458,
+      409,
+      494
+    ]
+  },
+  {
+    "plate_id": 743,
+    "timestamp": "2026-04-08T13:13:58.609819",
+    "detection_confidence": 0.7886646389961243,
+    "ocr_text": "AWB-608",
+    "ocr_confidence": 0.9756917357444763,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1714.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AWB608",
+        "cleaned": "AWB-608",
+        "validated": "AWB-608",
+        "confidence": 0.9757,
+        "elapsed_ms": 6.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PURJABAB608",
+        "cleaned": "ABAB-608",
+        "validated": "ABAB-608",
+        "confidence": 0.7049,
+        "elapsed_ms": 461.3
+      },
+      "split_combined": {
+        "raw": "ANB608",
+        "validated": "ANB-608",
+        "confidence": 0.4585,
+        "elapsed_ms": 1246.6
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1714.5
+    },
+    "plate_filename": "plate_743_20260408_131356_AWB-608_conf79%.jpg",
+    "full_frame_filename": "frame_20260408_131356.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      227,
+      545,
+      306,
+      582
+    ]
+  },
+  {
+    "plate_id": 744,
+    "timestamp": "2026-04-08T13:13:59.873807",
+    "detection_confidence": 0.7810162305831909,
+    "ocr_text": "AWB-608",
+    "ocr_confidence": 0.9722424149513245,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1402.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AWB608",
+        "cleaned": "AWB-608",
+        "validated": "AWB-608",
+        "confidence": 0.9722,
+        "elapsed_ms": 8.3,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "PUNJADALB608",
+        "cleaned": "DALB-608",
+        "validated": "AHB-668",
+        "confidence": 0.7523,
+        "elapsed_ms": 565.4
+      },
+      "split_combined": {
+        "raw": "AHB668",
+        "validated": "AHB-668",
+        "confidence": 0.7523,
+        "elapsed_ms": 829.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1402.9
+    },
+    "plate_filename": "plate_744_20260408_131358_AWB-608_conf78%.jpg",
+    "full_frame_filename": "frame_20260408_131358.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      378,
+      482,
+      458,
+      519
+    ]
+  },
+  {
+    "plate_id": 745,
+    "timestamp": "2026-04-08T13:14:00.827764",
+    "detection_confidence": 0.8808806538581848,
+    "ocr_text": "BSS-585",
+    "ocr_confidence": 0.9720306992530823,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 3592.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BSS585",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.972,
+        "elapsed_ms": 5.7,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BSS585ICASLLL",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.4733,
+        "elapsed_ms": 1153.1
+      },
+      "split_combined": {
+        "raw": "1SST585ISLLULA",
+        "validated": "SST-585",
+        "confidence": 0.1188,
+        "elapsed_ms": 2433.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 3592.2
+    },
+    "plate_filename": "plate_745_20260408_131357_BSS-585_conf88%.jpg",
+    "full_frame_filename": "frame_20260408_131357.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      159,
+      326,
+      249,
+      390
+    ]
+  },
+  {
+    "plate_id": 746,
+    "timestamp": "2026-04-08T13:14:01.097164",
+    "detection_confidence": 0.8814050555229187,
+    "ocr_text": "BSS-585",
+    "ocr_confidence": 0.970999538898468,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 3106.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BSS585",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.971,
+        "elapsed_ms": 5.7,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BSS505ICTESLAY",
+        "cleaned": "BSS-505",
+        "validated": "BSS-505",
+        "confidence": 0.1782,
+        "elapsed_ms": 1039.3
+      },
+      "split_combined": {
+        "raw": "0SS585ISLAUBND",
+        "validated": "SS-585",
+        "confidence": 0.1347,
+        "elapsed_ms": 2060.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 3106.0
+    },
+    "plate_filename": "plate_746_20260408_131357_BSS-585_conf88%.jpg",
+    "full_frame_filename": "frame_20260408_131357.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      139,
+      357,
+      227,
+      419
+    ]
+  },
+  {
+    "plate_id": 747,
+    "timestamp": "2026-04-08T13:14:02.487767",
+    "detection_confidence": 0.8828572034835815,
+    "ocr_text": "BSS-585",
+    "ocr_confidence": 0.9723942279815674,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 2796.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BSS585",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.9724,
+        "elapsed_ms": 6.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BSS585IC1IS134",
+        "cleaned": "BSS-585",
+        "validated": "ES-585",
+        "confidence": 0.2889,
+        "elapsed_ms": 1043.2
+      },
+      "split_combined": {
+        "raw": "ES585ICIISLAUID",
+        "validated": "ES-585",
+        "confidence": 0.2889,
+        "elapsed_ms": 1746.3
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 2796.2
+    },
+    "plate_filename": "plate_747_20260408_131359_BSS-585_conf88%.jpg",
+    "full_frame_filename": "frame_20260408_131359.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      171,
+      337,
+      260,
+      400
+    ]
+  },
+  {
+    "plate_id": 748,
+    "timestamp": "2026-04-08T13:14:02.677657",
+    "detection_confidence": 0.8798781633377075,
+    "ocr_text": "BSS-585",
+    "ocr_confidence": 0.9731862545013428,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 2502.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BSS585",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.9732,
+        "elapsed_ms": 7.6,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BSS585ICTISLEYRE",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.1111,
+        "elapsed_ms": 877.0
+      },
+      "split_combined": {
+        "raw": "HSS585ISLAUEB",
+        "validated": "HSS-585",
+        "confidence": 0.0929,
+        "elapsed_ms": 1617.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 2502.2
+    },
+    "plate_filename": "plate_748_20260408_131400_BSS-585_conf88%.jpg",
+    "full_frame_filename": "frame_20260408_131400.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      154,
+      320,
+      243,
+      384
+    ]
+  },
+  {
+    "plate_id": 749,
+    "timestamp": "2026-04-08T13:14:03.129988",
+    "detection_confidence": 0.8176124691963196,
+    "ocr_text": "85LED",
+    "ocr_confidence": 0.7341532331201902,
+    "ocr_method": "easyocr",
+    "ocr_elapsed_ms": 1589.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BVB3CY",
+        "cleaned": "BVB-3",
+        "validated": "BVB-3",
+        "confidence": 0.2108,
+        "elapsed_ms": 5.3,
+        "pk_match": false
+      },
+      "easyocr": {
+        "raw": "85IAE",
+        "cleaned": "85IAE",
+        "validated": "85LED",
+        "confidence": 0.7342,
+        "elapsed_ms": 459.4
+      },
+      "split_combined": {
+        "raw": "85LED",
+        "validated": "85LED",
+        "confidence": 0.7342,
+        "elapsed_ms": 1123.9
+      },
+      "selected": "easyocr",
+      "total_ms": 1589.4
+    },
+    "plate_filename": "plate_749_20260408_131401_85LED_conf82%.jpg",
+    "full_frame_filename": "frame_20260408_131401.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      0,
+      340,
+      34,
+      399
+    ]
+  },
+  {
+    "plate_id": 750,
+    "timestamp": "2026-04-08T13:14:05.709238",
+    "detection_confidence": 0.8704983592033386,
+    "ocr_text": "BSS-585",
+    "ocr_confidence": 0.971977710723877,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1372.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BSS585",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.972,
+        "elapsed_ms": 5.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BSS505ICLLA",
+        "cleaned": "BSS-505",
+        "validated": "BSS-505",
+        "confidence": 0.2897,
+        "elapsed_ms": 468.0
+      },
+      "split_combined": {
+        "raw": "ESS585ICUSAC",
+        "validated": "ESS-585",
+        "confidence": 0.1063,
+        "elapsed_ms": 898.4
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1372.0
+    },
+    "plate_filename": "plate_750_20260408_131404_BSS-585_conf87%.jpg",
+    "full_frame_filename": "frame_20260408_131404.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      187,
+      242,
+      275,
+      303
+    ]
+  },
+  {
+    "plate_id": 751,
+    "timestamp": "2026-04-08T13:14:08.115469",
+    "detection_confidence": 0.8672241568565369,
+    "ocr_text": "BSS-585",
+    "ocr_confidence": 0.9709938168525696,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1177.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "BSS585",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.971,
+        "elapsed_ms": 6.3,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "BSS585ICKALL",
+        "cleaned": "BSS-585",
+        "validated": "BSS-585",
+        "confidence": 0.4187,
+        "elapsed_ms": 520.5
+      },
+      "split_combined": {
+        "raw": "HSS585ICIELEUA",
+        "validated": "HSS-585",
+        "confidence": 0.2412,
+        "elapsed_ms": 651.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1177.9
+    },
+    "plate_filename": "plate_751_20260408_131406_BSS-585_conf87%.jpg",
+    "full_frame_filename": "frame_20260408_131406.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      133,
+      245,
+      218,
+      306
+    ]
   }
 ]

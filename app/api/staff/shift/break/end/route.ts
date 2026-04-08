@@ -31,16 +31,28 @@ export async function POST(request: NextRequest) {
     const toAdd = Math.min(elapsedMinutes, remaining);
     const newTotal = shift.total_break_minutes + toAdd;
 
-    const updated = await pool.query(
+    await pool.query(
       `UPDATE staff_shifts
        SET status = 'active',
            total_break_minutes = $1,
            break_start = NULL,
            updated_at = NOW()
-       WHERE id = $2
-       RETURNING id, shift_start, status, break_start, total_break_minutes`,
+       WHERE id = $2`,
       [newTotal, shift.id]
     );
+
+    // Also set user as active so they can be assigned tasks again
+    await pool.query(
+      `UPDATE users SET is_active = true, updated_at = NOW() WHERE id = $1`,
+      [user.id]
+    );
+
+    const updated = await pool.query(
+      `SELECT id, shift_start, status, break_start, total_break_minutes 
+       FROM staff_shifts WHERE id = $1`,
+      [shift.id]
+    );
+
 
     return NextResponse.json({ shift: updated.rows[0], minutesUsed: toAdd });
   } catch (err) {

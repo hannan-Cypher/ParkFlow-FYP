@@ -83,15 +83,36 @@ export async function POST(request: NextRequest) {
         // ── Start transaction ───────────────────────────────────────────────────
         await client.query('BEGIN');
 
-        // ── 1. Check venue exists ───────────────────────────────────────────────
+        // ── 1. Check venue exists & fetch capacity ──────────────────────────────
         const venueResult = await client.query(
-            'SELECT id, name, address, contact_phone FROM venues WHERE id = $1',
+            `SELECT id, name, address, contact_phone, total_slots,
+                    (SELECT COUNT(*) FROM parking_sessions ps
+                     WHERE ps.venue_id = v.id AND ps.status = 'active') AS active_sessions
+             FROM venues v WHERE v.id = $1`,
             [venue_id]
         );
         const venue = venueResult.rows[0];
         if (!venue) {
             await client.query('ROLLBACK');
             return NextResponse.json({ error: 'Venue not found' }, { status: 404 });
+        }
+
+        // ── 1b. Hard capacity guard ─────────────────────────────────────────────
+        // Guard against data drift: even if parking_slots statuses are somehow
+        // out of sync, block check-in when active sessions already fill the venue.
+        const activeSessions = Number(venue.active_sessions);
+        const totalSlots = Number(venue.total_slots);
+        if (totalSlots > 0 && activeSessions >= totalSlots) {
+            await client.query('ROLLBACK');
+            return NextResponse.json(
+                {
+                    error: `Parking is full at ${venue.name}. All ${totalSlots} spots are occupied. Please try another venue or wait for a spot to open.`,
+                    venue_name: venue.name,
+                    total_slots: totalSlots,
+                    active_sessions: activeSessions,
+                },
+                { status: 422 }
+            );
         }
 
         // ── 2. Check for duplicate active session ───────────────────────────────

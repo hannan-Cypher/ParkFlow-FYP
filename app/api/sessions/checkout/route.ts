@@ -80,7 +80,19 @@ export async function POST(request: NextRequest) {
         const ratePerHour = Number(session.rate_per_hour) || 100;
         // Round up to nearest hour for billing (minimum 1 hour)
         const billedHours = Math.max(Math.ceil(totalHours), 1);
-        const totalAmount = billedHours * ratePerHour;
+        const parkingAmount = billedHours * ratePerHour;
+
+        // ── 2b. Add completed wash service costs ─────────────────────────────────
+        const washResult = await client.query(
+            `SELECT COALESCE(SUM(service_cost), 0) AS wash_total
+             FROM service_requests
+             WHERE session_id = $1
+               AND service_type = 'wash'
+               AND service_status = 'completed'`,
+            [session.id]
+        );
+        const washAmount = Number(washResult.rows[0].wash_total);
+        const totalAmount = parkingAmount + washAmount;
 
         // ── 3. Free the slot ────────────────────────────────────────────────────
         if (session.slot_id) {
@@ -90,7 +102,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── 4. Complete the session ─────────────────────────────────────────────
+        // ── 4. Complete the session (store parking amount only in DB) ──────────
         await client.query(
             `UPDATE parking_sessions
        SET exit_time = NOW(),
@@ -99,7 +111,7 @@ export async function POST(request: NextRequest) {
            status = 'completed',
            payment_status = 'completed'
        WHERE id = $3`,
-            [totalHours.toFixed(2), totalAmount.toFixed(2), session.id]
+            [totalHours.toFixed(2), parkingAmount.toFixed(2), session.id]
         );
 
         // ── 5. Notify customer ───────────────────────────────────────────────
@@ -113,7 +125,7 @@ export async function POST(request: NextRequest) {
                 [
                     session.customer_id,
                     'Checkout Complete',
-                    `Your ${session.license_plate} has been checked out. Duration: ${nd}. Total: PKR ${totalAmount}.`,
+                    `Your ${session.license_plate} has been checked out. Duration: ${nd}. Total: PKR ${Math.round(totalAmount)}${washAmount > 0 ? ` (Parking: ${Math.round(parkingAmount)} + Wash: ${Math.round(washAmount)})` : ''}.`,
                     'checkout',
                     session.id,
                 ]
@@ -140,7 +152,9 @@ export async function POST(request: NextRequest) {
                     total_hours: Number(totalHours.toFixed(2)),
                     billed_hours: billedHours,
                     rate_per_hour: ratePerHour,
-                    total_amount: totalAmount,
+                    parking_amount: Math.round(parkingAmount),
+                    wash_amount: Math.round(washAmount),
+                    total_amount: Math.round(totalAmount),
                     vehicle: {
                         license_plate: session.license_plate,
                         make: session.make,

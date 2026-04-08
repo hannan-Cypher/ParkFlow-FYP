@@ -41,6 +41,7 @@ import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
 import PhoneInput from "@/components/staff/PhoneInput";
 import CustomerLookupResult from "@/components/staff/CustomerLookupResult";
 import CheckInStepIndicator from "@/components/staff/CheckInStepIndicator";
+import { CollapsibleSessionCard, type CollapsibleSessionData, type ViewerRole } from "@/components/shared/CollapsibleSessionCard";
 import {
   buildWhatsAppTicketLink,
   buildWhatsAppReturningLink,
@@ -71,6 +72,7 @@ const subtleHover = {
 interface StaffInfo {
   id: string;
   full_name: string;
+  role?: string;
   venue: { id: string; name: string; city: string } | null;
 }
 
@@ -373,8 +375,8 @@ function ShiftStatusBar({
     breakPct >= 100
       ? "bg-red-500"
       : breakPct >= 80
-      ? "bg-amber-500"
-      : "bg-emerald-500";
+        ? "bg-amber-500"
+        : "bg-emerald-500";
 
   const isOnBreak = shift.status === "on_break";
 
@@ -389,22 +391,19 @@ function ShiftStatusBar({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset ${
-                isOnBreak
-                  ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-700"
-                  : "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-700"
-              }`}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset ${isOnBreak
+                ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-700"
+                : "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-700"
+                }`}
             >
               <span className="relative flex h-2 w-2">
                 <span
-                  className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
-                    isOnBreak ? "bg-amber-400" : "bg-emerald-400"
-                  }`}
+                  className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${isOnBreak ? "bg-amber-400" : "bg-emerald-400"
+                    }`}
                 />
                 <span
-                  className={`relative inline-flex h-2 w-2 rounded-full ${
-                    isOnBreak ? "bg-amber-500" : "bg-emerald-500"
-                  }`}
+                  className={`relative inline-flex h-2 w-2 rounded-full ${isOnBreak ? "bg-amber-500" : "bg-emerald-500"
+                    }`}
                 />
               </span>
               {isOnBreak ? "On Break" : "Shift Active"}
@@ -517,7 +516,7 @@ function ShiftSummaryModal({
   onDone: () => void;
 }) {
   React.useEffect(() => {
-    const t = setTimeout(onDone, 5000);
+    const t = setTimeout(onDone, 5000000);
     return () => clearTimeout(t);
   }, [onDone]);
 
@@ -526,7 +525,7 @@ function ShiftSummaryModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-60 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.88, y: 16 }}
@@ -558,7 +557,7 @@ function ShiftSummaryModal({
             </div>
           ))}
 
-          <p className="text-center text-xs text-slate-400 pt-1">Auto-closing in 5 seconds…</p>
+
 
           <motion.button
             whileTap={{ scale: 0.97 }}
@@ -672,6 +671,7 @@ export default function StaffDashboardPage() {
             setStaffInfo({
               id: bestStaff.id,
               full_name: bestStaff.full_name,
+              role: bestStaff.role ?? undefined,
               venue: bestStaff.venue
                 ? { id: bestStaff.venue.id, name: bestStaff.venue.name, city: "" }
                 : null,
@@ -1160,6 +1160,7 @@ export default function StaffDashboardPage() {
               tasks={tasks}
               loading={loadingTasks}
               onRefresh={fetchTasks}
+              staffRole={staffInfo?.role || 'driver'}
             />
           )}
           {activeTab === "Performance" && (
@@ -1436,6 +1437,8 @@ function CheckInTab({
   const [checkinLoading, setCheckinLoading] = React.useState(false);
   const [checkinResult, setCheckinResult] = React.useState<{ session: CheckinSession } | null>(null);
   const [errorMsg, setErrorMsg] = React.useState("");
+  const [isParkingFull, setIsParkingFull] = React.useState(false);
+
 
   // Damage photos (post-slot step)
   const [damagePhotos, setDamagePhotos] = React.useState<Array<{ data: string; label: string }>>([]);
@@ -1611,7 +1614,7 @@ function CheckInTab({
   // ── Check-in submit ─────────────────────────────────────────────────────
   const handleCheckin = React.useCallback(async () => {
     if (!plate || !selectedVenue) { setErrorMsg("License plate and venue are required"); return; }
-    setCheckinLoading(true); setErrorMsg("");
+    setCheckinLoading(true); setErrorMsg(""); setIsParkingFull(false);
     try {
       const res = await fetch("/api/sessions/checkin", {
         method: "POST",
@@ -1629,7 +1632,14 @@ function CheckInTab({
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setErrorMsg(data.error || "Check-in failed"); return; }
+      if (!res.ok) {
+        // Detect "parking full" specifically (422 with total_slots in body)
+        if (res.status === 422 && data.total_slots !== undefined) {
+          setIsParkingFull(true);
+        }
+        setErrorMsg(data.error || "Check-in failed");
+        return;
+      }
       setCheckinResult(data);
 
       setStep("slot");
@@ -1675,7 +1685,7 @@ function CheckInTab({
     setIsKnownPlate(false); setPlateLookupLoading(false);
     setMake(""); setModel(""); setColor(""); setVehicleType("car");
     setCheckinResult(null); setDamagePhotos([]); setDamageNotes("");
-    setDamageUploaded(false); stopCamera();
+    setDamageUploaded(false); setIsParkingFull(false); stopCamera();
   };
 
   return (
@@ -2017,8 +2027,17 @@ function CheckInTab({
           )}
 
           {errorMsg && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-              <AlertCircle className="h-4 w-4 shrink-0" />{errorMsg}
+            <div className={`flex items-start gap-3 p-4 rounded-xl border text-sm ${isParkingFull
+              ? "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-800 dark:text-red-300"
+              : "bg-red-50 border-red-200 text-red-700"
+              }`}>
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              <div>
+                {isParkingFull && (
+                  <p className="font-bold text-base mb-1">🚫 Parking Full</p>
+                )}
+                <p>{errorMsg}</p>
+              </div>
             </div>
           )}
 
@@ -2033,11 +2052,13 @@ function CheckInTab({
               className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
               Back
             </button>
-            <motion.button whileTap={{ scale: 0.98 }} onClick={handleCheckin} disabled={checkinLoading}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-50">
+            <motion.button whileTap={{ scale: 0.98 }} onClick={handleCheckin} disabled={checkinLoading || isParkingFull}
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">
               {checkinLoading
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Checking in…</>
-                : <><Send className="h-4 w-4" /> Confirm Check-In</>}
+                : isParkingFull
+                  ? <><AlertCircle className="h-4 w-4" /> Parking Full</>
+                  : <><Send className="h-4 w-4" /> Confirm Check-In</>}
             </motion.button>
           </div>
         </div>
@@ -2306,13 +2327,31 @@ function TasksTab({
   tasks,
   loading,
   onRefresh,
+  staffRole,
 }: {
   tasks: TaskItem[];
   loading: boolean;
   onRefresh: () => void;
+  staffRole: string;
 }) {
+  // Map staff role to viewerRole for the collapsible card
+  const viewerRole: ViewerRole =
+    staffRole === 'admin' ? 'admin' :
+      staffRole === 'supervisor' ? 'supervisor' :
+        'driver';
   const activeTasks = tasks.filter((t) => t.status === "active");
   const completedTasks = tasks.filter((t) => t.status === "completed");
+
+  const [expandedTaskIds, setExpandedTaskIds] = React.useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string) => {
+    setExpandedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   return (
     <motion.div
@@ -2364,9 +2403,35 @@ function TasksTab({
                 Completed Today ({completedTasks.length})
               </h5>
               <div className="space-y-3">
-                {completedTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} />
-                ))}
+                {completedTasks.map((task) => {
+                  const sessionData: CollapsibleSessionData = {
+                    id: task.id,
+                    license_plate: task.vehicle.license_plate,
+                    vehicle_make: task.vehicle.make,
+                    vehicle_model: task.vehicle.model,
+                    vehicle_color: task.vehicle.color,
+                    vehicle_type: task.vehicle.vehicle_type,
+                    status: task.status,
+                    venue_name: task.venue.name,
+                    slot_display: `Slot ${task.slot.slot_number} · ${task.slot.zone}`,
+                    entry_time: task.entry_time,
+                    exit_time: task.exit_time,
+                    duration: task.duration,
+                    total_amount: task.billing.total_amount,
+                    customer_name: task.customer.name,
+                    customer_phone: task.customer.phone,
+                    damage_photos: task.damage_photos?.map(p => ({ url: p.url, label: p.label })),
+                  };
+                  return (
+                    <CollapsibleSessionCard
+                      key={task.id}
+                      session={sessionData}
+                      isExpanded={expandedTaskIds.has(task.id)}
+                      onToggleExpand={toggleExpand}
+                      viewerRole={viewerRole}
+                    />
+                  );
+                })}
               </div>
             </div>
           )}
@@ -2719,8 +2784,8 @@ function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
               step === "done"
                 ? "bg-emerald-50 dark:bg-emerald-900/30"
                 : step === "delivering"
-                ? "bg-amber-50 dark:bg-amber-900/30"
-                : "bg-sky-50 dark:bg-sky-900/30";
+                  ? "bg-amber-50 dark:bg-amber-900/30"
+                  : "bg-sky-50 dark:bg-sky-900/30";
 
             const IconEl =
               step === "done" ? (

@@ -106,6 +106,7 @@ export async function GET(
         const washRes = await pool.query(
             `SELECT
         sr.id,
+        sr.session_id,
         sr.wash_type,
         sr.service_status,
         sr.service_cost,
@@ -123,9 +124,15 @@ export async function GET(
         );
 
         // ── Aggregate stats ───────────────────────────────────────────────────
-        const totalSpent = sessionsRes.rows
+        const parkingSpent = sessionsRes.rows
             .filter((s) => s.status === 'completed')
             .reduce((sum, s) => sum + Number(s.total_amount ?? 0), 0);
+
+        const washSpent = washRes.rows
+            .filter((w) => w.service_status === 'completed')
+            .reduce((sum, w) => sum + Number(w.service_cost ?? 0), 0);
+
+        const totalSpent = parkingSpent + washSpent;
 
         const avgRating = sessionsRes.rows
             .filter((s) => s.rating != null)
@@ -151,28 +158,35 @@ export async function GET(
                 created_at: v.created_at,
                 session_count: Number(v.session_count),
             })),
-            sessions: sessionsRes.rows.map((s) => ({
-                id: s.id,
-                status: s.status,
-                entry_time: s.entry_time,
-                exit_time: s.exit_time,
-                rate_per_hour: s.rate_per_hour,
-                total_hours: s.total_hours,
-                total_amount: s.total_amount,
-                payment_status: s.payment_status,
-                rating: s.rating,
-                rating_comment: s.rating_comment,
-                retrieval_status: s.retrieval_status,
-                license_plate: s.license_plate,
-                vehicle_make: s.vehicle_make,
-                vehicle_model: s.vehicle_model,
-                vehicle_color: s.vehicle_color,
-                venue_name: s.venue_name,
-                venue_city: s.venue_city,
-                slot_number: s.slot_number,
-                floor_level: s.floor_level,
-                staff_name: s.staff_name,
-            })),
+            sessions: sessionsRes.rows.map((s) => {
+                // Calculate wash amount for this session from wash requests
+                const sessionWashAmount = washRes.rows
+                    .filter((w) => w.session_id === s.id && w.service_status === 'completed')
+                    .reduce((sum, w) => sum + Number(w.service_cost ?? 0), 0);
+                return {
+                    id: s.id,
+                    status: s.status,
+                    entry_time: s.entry_time,
+                    exit_time: s.exit_time,
+                    rate_per_hour: s.rate_per_hour,
+                    total_hours: s.total_hours,
+                    total_amount: s.total_amount,
+                    wash_amount: sessionWashAmount > 0 ? sessionWashAmount : null,
+                    payment_status: s.payment_status,
+                    rating: s.rating,
+                    rating_comment: s.rating_comment,
+                    retrieval_status: s.retrieval_status,
+                    license_plate: s.license_plate,
+                    vehicle_make: s.vehicle_make,
+                    vehicle_model: s.vehicle_model,
+                    vehicle_color: s.vehicle_color,
+                    venue_name: s.venue_name,
+                    venue_city: s.venue_city,
+                    slot_number: s.slot_number,
+                    floor_level: s.floor_level,
+                    staff_name: s.staff_name,
+                };
+            }),
             wash_requests: washRes.rows.map((w) => ({
                 id: w.id,
                 wash_type: w.wash_type,

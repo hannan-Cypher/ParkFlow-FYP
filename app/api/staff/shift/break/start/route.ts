@@ -30,13 +30,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Break allowance fully used' }, { status: 409 });
     }
 
-    const updated = await pool.query(
+    await pool.query(
       `UPDATE staff_shifts
        SET break_start = NOW(), status = 'on_break', updated_at = NOW()
-       WHERE id = $1
-       RETURNING id, shift_start, status, break_start, total_break_minutes`,
+       WHERE id = $1`,
       [shift.id]
     );
+
+    // Also set user as inactive so they aren't assigned tasks
+    await pool.query(
+      `UPDATE users SET is_active = false, updated_at = NOW() WHERE id = $1`,
+      [user.id]
+    );
+
+    const updated = await pool.query(
+      `SELECT id, shift_start, status, break_start, total_break_minutes 
+       FROM staff_shifts WHERE id = $1`,
+      [shift.id]
+    );
+
 
     return NextResponse.json({ shift: updated.rows[0] });
   } catch (err) {

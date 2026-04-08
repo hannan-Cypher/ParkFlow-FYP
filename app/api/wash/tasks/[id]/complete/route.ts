@@ -13,14 +13,14 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getAuthUser(request);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (user.role !== 'washer') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json().catch(() => ({}));
     const { notes, after_photos } = body;
 

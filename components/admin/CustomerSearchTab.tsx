@@ -19,6 +19,7 @@ import {
     AlertCircle,
     Users,
 } from 'lucide-react'
+import { CollapsibleSessionCard, type CollapsibleSessionData } from '../shared/CollapsibleSessionCard'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ interface Session {
     rate_per_hour: number | null
     total_hours: number | null
     total_amount: number | null
+    wash_amount: number | null
     payment_status: string
     rating: number | null
     rating_comment: string | null
@@ -189,6 +191,17 @@ export default function CustomerSearchTab() {
     const [washRequests, setWashRequests] = useState<WashRequest[]>([])
     const [detailLoading, setDetailLoading] = useState(false)
     const [detailTab, setDetailTab] = useState<'sessions' | 'vehicles' | 'washes'>('sessions')
+
+    const [expandedSessionIds, setExpandedSessionIds] = useState<Set<string>>(new Set())
+
+    const toggleExpandSession = useCallback((id: string) => {
+        setExpandedSessionIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    }, [])
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
@@ -340,7 +353,7 @@ export default function CustomerSearchTab() {
                                     <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase">Sessions</div>
                                 </div>
                                 <div className="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 p-3 text-center">
-                                    <div className="text-xl font-bold text-emerald-700 dark:text-emerald-300">Rs.{detail.total_spent.toLocaleString()}</div>
+                                    <div className="text-xl font-bold text-emerald-700 dark:text-emerald-300">Rs.{Math.round(detail.total_spent).toLocaleString()}</div>
                                     <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase">Total Spent</div>
                                 </div>
                                 <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3 text-center">
@@ -395,58 +408,37 @@ export default function CustomerSearchTab() {
                                         <p className="text-sm">No parking sessions yet</p>
                                     </div>
                                 ) : (
-                                    sessions.map((s, i) => (
-                                        <motion.div
-                                            key={s.id}
-                                            initial={{ opacity: 0, y: 6 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: i * 0.03 }}
-                                            className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3"
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 dark:bg-sky-900/30 shrink-0">
-                                                        <History className="h-4 w-4 text-sky-600" />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <span className="font-mono text-sm font-semibold text-slate-800 dark:text-white">{s.license_plate}</span>
-                                                            <SessionStatusBadge status={s.status} />
-                                                        </div>
-                                                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                                            {s.venue_name && (
-                                                                <span className="flex items-center gap-0.5">
-                                                                    <MapPin className="w-3 h-3" />
-                                                                    {s.venue_name}
-                                                                </span>
-                                                            )}
-                                                            <span>{formatDateTime(s.entry_time)}</span>
-                                                            {s.slot_number && <span>• Slot {s.slot_number}</span>}
-                                                            {s.staff_name && <span>• {s.staff_name}</span>}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right shrink-0 ml-3">
-                                                    <div className="text-sm font-bold text-slate-900 dark:text-white">
-                                                        Rs.{(s.total_amount ?? 0).toLocaleString()}
-                                                    </div>
-                                                    <div className="text-xs text-slate-400">
-                                                        {s.total_hours ? `${Number(s.total_hours).toFixed(1)}h` : '—'}
-                                                    </div>
-                                                    {s.rating && (
-                                                        <div className="flex items-center gap-0.5 justify-end mt-0.5">
-                                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                                <Star
-                                                                    key={star}
-                                                                    className={`w-3 h-3 ${star <= s.rating! ? 'text-amber-400 fill-amber-400' : 'text-slate-300 dark:text-slate-600'}`}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    ))
+                                    sessions.map((s) => {
+                                        const sessionData: CollapsibleSessionData = {
+                                            id: s.id,
+                                            license_plate: s.license_plate,
+                                            vehicle_make: s.vehicle_make,
+                                            vehicle_model: s.vehicle_model,
+                                            vehicle_color: s.vehicle_color,
+                                            vehicle_type: null,
+                                            status: s.status,
+                                            venue_name: s.venue_name || "",
+                                            slot_display: s.slot_number ? `Slot ${s.slot_number}${s.floor_level ? ` · F${s.floor_level}` : ''}` : '',
+                                            entry_time: s.entry_time,
+                                            exit_time: s.exit_time,
+                                            duration: s.total_hours ? `${Number(s.total_hours).toFixed(1)}h` : null,
+                                            total_amount: s.total_amount,
+                                            wash_amount: s.wash_amount ?? null,
+                                            customer_name: detail?.full_name || null,
+                                            customer_phone: detail?.phone || null,
+                                            damage_photos: null,
+                                            staff_name: s.staff_name
+                                        };
+                                        return (
+                                            <CollapsibleSessionCard 
+                                                key={s.id} 
+                                                session={sessionData} 
+                                                isExpanded={expandedSessionIds.has(s.id)}
+                                                onToggleExpand={toggleExpandSession}
+                                                viewerRole="admin"
+                                            />
+                                        );
+                                    })
                                 )}
                             </div>
                         )}
@@ -530,7 +522,7 @@ export default function CustomerSearchTab() {
                                                     </div>
                                                 </div>
                                                 <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                                    Rs.{(w.service_cost ?? 0).toLocaleString()}
+                                                    Rs.{Math.round(w.service_cost ?? 0).toLocaleString()}
                                                 </div>
                                             </div>
                                         </motion.div>

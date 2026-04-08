@@ -384,7 +384,7 @@ export default function DynamicPricingCard() {
                 {liveRate ? (
                   <>
                     <p className="text-4xl font-black text-slate-900 dark:text-white">
-                      Rs. {liveRate.rate.toLocaleString()}
+                      Rs. {Math.round(liveRate.rate).toLocaleString()}
                       <span className="text-base font-semibold text-slate-400 ml-1">/hr</span>
                     </p>
                     <div className="mt-3 space-y-1.5 text-xs text-slate-500 dark:text-slate-400">

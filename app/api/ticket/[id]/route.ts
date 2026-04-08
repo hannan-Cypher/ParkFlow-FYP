@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const result = await pool.query(
@@ -38,7 +38,7 @@ export async function GET(
       LEFT JOIN parking_slots pk ON ps.slot_id = pk.id
       LEFT JOIN users u ON ps.customer_id = u.id
       WHERE ps.id = $1`,
-      [params.id]
+      [(await params).id]
     );
 
     if (result.rows.length === 0) {

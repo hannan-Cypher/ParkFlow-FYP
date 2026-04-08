@@ -65,13 +65,30 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ found: false, sessions: [] });
         }
 
+        // Fetch wash costs for all matching sessions in one query
+        const sessionIds = result.rows.map((r) => r.id);
+        const washResult = await pool.query(
+            `SELECT session_id, COALESCE(SUM(service_cost), 0) AS wash_total
+             FROM service_requests
+             WHERE session_id = ANY($1)
+               AND service_type = 'wash'
+               AND service_status = 'completed'
+             GROUP BY session_id`,
+            [sessionIds]
+        );
+        const washMap = new Map(
+            washResult.rows.map((r) => [r.session_id, Number(r.wash_total)])
+        );
+
         const sessions = result.rows.map((row) => {
             const durationHours = Number(row.duration_hours) || 0;
             const h = Math.floor(durationHours);
             const m = Math.round((durationHours - h) * 60);
             const durationDisplay = h > 0 ? `${h}h ${m}m` : `${m}m`;
             const billedHours = Math.max(Math.ceil(durationHours), 1);
-            const estimatedAmount = billedHours * (Number(row.rate_per_hour) || 100);
+            const parkingAmount = billedHours * (Number(row.rate_per_hour) || 100);
+            const washAmount = washMap.get(row.id) || 0;
+            const estimatedAmount = parkingAmount + washAmount;
 
             return {
                 id: row.id,
@@ -83,6 +100,8 @@ export async function GET(request: NextRequest) {
                 duration_hours: Number(durationHours.toFixed(2)),
                 billed_hours: billedHours,
                 estimated_amount: estimatedAmount,
+                parking_amount: parkingAmount,
+                wash_amount: washAmount,
                 vehicle: {
                     license_plate: row.license_plate,
                     make: row.make,

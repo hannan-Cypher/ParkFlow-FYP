@@ -477,14 +477,15 @@ function TicketContent({ sessionId }: { sessionId: string }) {
   );
 }
 
-export default function TicketPage({ params }: { params: { id: string } }) {
+export default function TicketPage({ params }: { params: Promise<{ id: string }> }) {
+  const unwrappedParams = React.use(params);
   return (
     <Suspense fallback={
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     }>
-      <TicketContent sessionId={params.id} />
+      <TicketContent sessionId={unwrappedParams.id} />
     </Suspense>
   );
 }

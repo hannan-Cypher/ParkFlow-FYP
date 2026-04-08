@@ -18,11 +18,11 @@ export const dynamic = 'force-dynamic';
  */
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const client = await pool.connect();
     try {
-        const sessionId = params.id;
+        const { id: sessionId } = await params;
         const body = await request.json();
         const { status } = body;
 
@@ -83,7 +83,19 @@ export async function PATCH(
         const totalHours = Math.max(durationMs / (1000 * 60 * 60), 0.01);
         const ratePerHour = Number(session.rate_per_hour) || 100;
         const billedHours = Math.max(Math.ceil(totalHours), 1);
-        const totalAmount = billedHours * ratePerHour;
+        const parkingAmount = billedHours * ratePerHour;
+
+        // Add completed wash costs
+        const washResult = await client.query(
+            `SELECT COALESCE(SUM(service_cost), 0) AS wash_total
+             FROM service_requests
+             WHERE session_id = $1
+               AND service_type = 'wash'
+               AND service_status = 'completed'`,
+            [sessionId]
+        );
+        const washAmount = Number(washResult.rows[0].wash_total);
+        const totalAmount = parkingAmount + washAmount;
 
         const h = Math.floor(totalHours);
         const m = Math.round((totalHours - h) * 60);
@@ -107,7 +119,7 @@ export async function PATCH(
                  payment_status   = 'completed',
                  retrieval_status = 'ready'
              WHERE id = $4`,
-            [exitTime.toISOString(), totalHours.toFixed(2), totalAmount.toFixed(2), sessionId]
+            [exitTime.toISOString(), totalHours.toFixed(2), parkingAmount.toFixed(2), sessionId]
         );
 
         // Notify customer
@@ -118,7 +130,7 @@ export async function PATCH(
                 [
                     session.cu_id,
                     'Your Car Has Arrived!',
-                    `${session.license_plate} is waiting at the pickup point. Duration: ${durationDisplay}. Total: PKR ${totalAmount}.`,
+                    `${session.license_plate} is waiting at the pickup point. Duration: ${durationDisplay}. Total: PKR ${Math.round(totalAmount)}${washAmount > 0 ? ` (Parking: ${Math.round(parkingAmount)} + Wash: ${Math.round(washAmount)})` : ''}.`,
                     'car_ready',
                     sessionId,
                 ]
@@ -138,7 +150,9 @@ export async function PATCH(
                 total_hours: Number(totalHours.toFixed(2)),
                 billed_hours: billedHours,
                 rate_per_hour: ratePerHour,
-                total_amount: totalAmount,
+                parking_amount: Math.round(parkingAmount),
+                wash_amount: Math.round(washAmount),
+                total_amount: Math.round(totalAmount),
                 vehicle: {
                     license_plate: session.license_plate,
                     make: session.make,

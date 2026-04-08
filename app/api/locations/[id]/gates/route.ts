@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic';
 // GET /api/locations/[id]/gates - Get full gate → zone hierarchy for a venue
 export async function GET(
     _request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         // Check venue exists
         const venueResult = await pool.query(

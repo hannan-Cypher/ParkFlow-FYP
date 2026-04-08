@@ -134,8 +134,8 @@ export default function SettingsTab() {
     {
       icon: CreditCard,
       label: 'Total Revenue',
-      value: `Rs.${stats.revenue.total.toLocaleString()}`,
-      detail: `Rs.${stats.revenue.today.toLocaleString()} today`,
+      value: `Rs.${Math.round(stats.revenue.total).toLocaleString()}`,
+      detail: `Rs.${Math.round(stats.revenue.today).toLocaleString()} today`,
       color: 'text-emerald-600',
     },
   ]

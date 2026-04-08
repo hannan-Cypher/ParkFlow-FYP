@@ -871,12 +871,6 @@ function WashTaskCard({
               </span>
             </div>
           )}
-          {task.cost != null && (
-            <div className="flex items-center gap-1.5">
-              <Star className="w-3.5 h-3.5 text-slate-400" />
-              <span>PKR {task.cost.toLocaleString()}</span>
-            </div>
-          )}
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
             <span>{timeAgo(task.created_at)}</span>
@@ -1102,10 +1096,12 @@ function WashTaskCard({
 
 // ── Main Page Component ─────────────────────────────────────────────────
 
-type TabKey = "tasks" | "completed" | "shift";
+const tabs = ["Tasks", "Completed", "Performance"] as const;
+type TabKey = (typeof tabs)[number];
 
 export default function WasherDashboard() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = React.useState<TabKey>("Tasks");
   const [washer, setWasher] = React.useState<WasherInfo | null>(null);
   const [stats, setStats] = React.useState<WashStats | null>(null);
   const [tasks, setTasks] = React.useState<WashTask[]>([]);
@@ -1136,24 +1132,6 @@ export default function WasherDashboard() {
   const [expandedTaskId, setExpandedTaskId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [washTypeFilter, setWashTypeFilter] = React.useState<"" | "basic" | "full" | "premium">("");
-
-  const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-    {
-      key: "tasks",
-      label: "My Tasks",
-      icon: <Droplets className="w-4 h-4" />,
-    },
-    {
-      key: "completed",
-      label: "Completed",
-      icon: <CheckCircle2 className="w-4 h-4" />,
-    },
-    {
-      key: "shift",
-      label: "Shift",
-      icon: <Clock className="w-4 h-4" />,
-    },
-  ];
 
   // ── Data Fetching ──────────────────────────────────────────────────────
 
@@ -1439,16 +1417,7 @@ export default function WasherDashboard() {
     });
   }, [tasks, searchQuery, washTypeFilter]);
 
-  const todayEarnings = React.useMemo(() => {
-    const today = new Date().toLocaleDateString();
-    return completedTasks
-      .filter(
-        (t) =>
-          t.completed_at &&
-          new Date(t.completed_at).toLocaleDateString() === today
-      )
-      .reduce((s, t) => s + (t.cost ?? 0), 0);
-  }, [completedTasks]);
+
 
   const filteredActiveTasks = filteredTasks.filter((t) => t.status === "in_progress");
   const filteredPendingTasks = filteredTasks.filter((t) => t.status === "pending");
@@ -1656,321 +1625,240 @@ export default function WasherDashboard() {
           </motion.div>
         )}
 
-
-        {/* Shift Section */}
-        <div className="space-y-4 mb-6">
-
-
-
-          {/* No shift yet — start shift button */}
-          {!activeShift && shiftConfig && (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mx-auto">
-                <Sunrise className="w-7 h-7 text-emerald-500" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-800 dark:text-white mb-1">
-                  Ready to Start?
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  Scheduled{" "}
-                  {fmt12(shiftConfig.shift_start_time)} &ndash;{" "}
-                  {fmt12(shiftConfig.shift_end_time)}
-                </p>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={handleStartShift}
-                disabled={shiftStarting}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {shiftStarting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-                {shiftStarting ? "Starting..." : "Start My Shift"}
-              </motion.button>
-            </div>
-          )}
-
-          {/* Shift summary (shown after ending) */}
-          {shiftSummary && !activeShift && (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
-              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
-                Last Shift Summary
-              </h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Total Time</p>
-                  <p className="font-semibold dark:text-white">{fmtMinutes(shiftSummary.total_minutes)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Net Work Time</p>
-                  <p className="font-semibold dark:text-white">{fmtMinutes(shiftSummary.net_minutes)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Break Time</p>
-                  <p className="font-semibold dark:text-white">{fmtMinutes(shiftSummary.total_break_minutes)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Shift Period</p>
-                  <p className="font-semibold dark:text-white">
-                    {new Date(shiftSummary.shift_start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                    {" "}&ndash;{" "}
-                    {new Date(shiftSummary.shift_end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-
-        {/* Tasks Section */}
-        <div className="space-y-6 mb-6">
-
-          {/* Search + filter bar */}
-          <div className="mb-5 space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by plate number…"
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              {(["", "basic", "full", "premium"] as const).map((type) => {
-                const badge = type ? washTypeBadge(type) : null;
-                const isActive = washTypeFilter === type;
-                return (
-                  <button
-                    key={type || "all"}
-                    onClick={() => setWashTypeFilter(type)}
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ring-1 ring-inset transition-all ${isActive
-                      ? badge
-                        ? badge.bg
-                        : "bg-slate-800 text-white ring-slate-700 dark:bg-white dark:text-slate-900 dark:ring-slate-200"
-                      : "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:ring-slate-600 hover:ring-slate-300"
-                      }`}
-                  >
-                    {type ? washTypeBadge(type).label : "All"}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* No match message */}
-          {filteredTasks.length === 0 && tasks.length > 0 && (
-            <div className="text-center py-8 text-sm text-slate-400 dark:text-slate-500">
-              No tasks match your filters.{" "}
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setWashTypeFilter("");
-                }}
-                className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
-              >
-                Clear filters
-              </button>
-            </div>
-          )}
-
-          {/* In-progress section */}
-          {filteredActiveTasks.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Droplets className="w-4 h-4 text-sky-500" />
-                In Progress ({filteredActiveTasks.length})
-              </h3>
-              <div className="space-y-3">
-                {filteredActiveTasks.map((task) => (
-                  <WashTaskCard
-                    key={task.id}
-                    task={task}
-                    onStart={handleStartWash}
-                    onComplete={handleCompleteWash}
-                    actionLoading={actionLoading}
-                    isExpanded={expandedTaskId === task.id}
-                    onToggleExpand={(id) =>
-                      setExpandedTaskId((p) => (p === id ? null : id))
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Pending section */}
-          {filteredPendingTasks.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-500" />
-                Pending ({filteredPendingTasks.length})
-              </h3>
-              <div className="space-y-3">
-                {filteredPendingTasks.map((task) => (
-                  <WashTaskCard
-                    key={task.id}
-                    task={task}
-                    onStart={handleStartWash}
-                    onComplete={handleCompleteWash}
-                    actionLoading={actionLoading}
-                    isExpanded={expandedTaskId === task.id}
-                    onToggleExpand={(id) =>
-                      setExpandedTaskId((p) => (p === id ? null : id))
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {tasks.length === 0 && (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 mb-1">
-                No tasks right now
-              </h3>
-              <p className="text-sm text-slate-400 dark:text-slate-500">
-                New wash requests will appear here automatically.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => {
-                  fetchTasks();
-                  fetchStats();
-                }}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Refresh
-              </motion.button>
-            </div>
-          )}
-
-        </div>
-
-        {/* Completed/Performance Section */}
-        <div className="mt-8">
-
-          {stats && (
-            <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
-              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
-                Performance Summary
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center">
-                  <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                    {stats.completed_today}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Today
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-extrabold text-slate-800 dark:text-white">
-                    {stats.total_completed}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    All Time
-                  </p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-extrabold text-violet-600 dark:text-violet-400">
-                    {stats.avg_duration_minutes}m
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Avg Duration
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Wash type breakdown */}
-          {completedTasks.length > 0 && (() => {
-            const breakdown = (["basic", "full", "premium"] as const)
-              .map((type) => ({
-                type,
-                badge: washTypeBadge(type),
-                count: completedTasks.filter((t) => t.wash_type === type).length,
-                revenue: completedTasks
-                  .filter((t) => t.wash_type === type)
-                  .reduce((s, t) => s + (t.cost ?? 0), 0),
-              }))
-              .filter((b) => b.count > 0);
-
-            return breakdown.length > 0 ? (
-              <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
-                <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
-                  By Wash Type
-                </h3>
-                <div className="space-y-2">
-                  {breakdown.map((b) => (
-                    <div key={b.type} className="flex items-center justify-between">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ring-1 ring-inset ${b.badge.bg}`}
-                      >
-                        <Sparkles className="w-3 h-3" />
-                        {b.badge.label}
-                      </span>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-slate-600 dark:text-slate-300 font-medium">
-                          {b.count} wash{b.count !== 1 ? "es" : ""}
-                        </span>
-                        {b.revenue > 0 && (
-                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                            PKR {b.revenue.toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null;
-          })()}
-
-          {completedTasks.length > 0 ? (
-            <div className="space-y-3">
-              {completedTasks.map((task) => (
-                <WashTaskCard
-                  key={task.id}
-                  task={task}
-                  onStart={handleStartWash}
-                  onComplete={handleCompleteWash}
-                  actionLoading={actionLoading}
-                  isExpanded={expandedTaskId === task.id}
-                  onToggleExpand={(id) =>
-                    setExpandedTaskId((p) => (p === id ? null : id))
-                  }
-                />
+        {/* Tabs */}
+        <motion.nav variants={item} className="mt-6 mb-6">
+          <div className="overflow-x-auto scrollbar-none rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1">
+            <div className="flex gap-1 min-w-max">
+              {tabs.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTab(t)}
+                  className={`relative shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition ${activeTab === t
+                    ? "bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 dark:text-white"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    }`}
+                >
+                  {t}
+                </button>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                <ListChecks className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 mb-1">
-                No completed washes yet
-              </h3>
-              <p className="text-sm text-slate-400 dark:text-slate-500">
-                Completed wash tasks will appear here.
-              </p>
-            </div>
-          )}
+          </div>
+        </motion.nav>
 
-        </div>
+        {/* Content */}
+        <section className="mt-4">
+          <AnimatePresence mode="wait">
+
+
+            {/* Tasks Section */}
+            {activeTab === "Tasks" && (
+              <motion.div key="tasks" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ type: "spring", stiffness: 180, damping: 18 }} className="space-y-6 mb-6">
+
+                {/* Search + filter bar */}
+                <div className="mb-5 space-y-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by plate number…"
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {(["", "basic", "full", "premium"] as const).map((type) => {
+                      const badge = type ? washTypeBadge(type) : null;
+                      const isActive = washTypeFilter === type;
+                      return (
+                        <button
+                          key={type || "all"}
+                          onClick={() => setWashTypeFilter(type)}
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ring-1 ring-inset transition-all ${isActive
+                            ? badge
+                              ? badge.bg
+                              : "bg-slate-800 text-white ring-slate-700 dark:bg-white dark:text-slate-900 dark:ring-slate-200"
+                            : "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:ring-slate-600 hover:ring-slate-300"
+                            }`}
+                        >
+                          {type ? washTypeBadge(type).label : "All"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* No match message */}
+                {filteredTasks.length === 0 && tasks.length > 0 && (
+                  <div className="text-center py-8 text-sm text-slate-400 dark:text-slate-500">
+                    No tasks match your filters.{" "}
+                    <button
+                      onClick={() => {
+                        setSearchQuery("");
+                        setWashTypeFilter("");
+                      }}
+                      className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                )}
+
+                {/* In-progress section */}
+                {filteredActiveTasks.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Droplets className="w-4 h-4 text-sky-500" />
+                      In Progress ({filteredActiveTasks.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {filteredActiveTasks.map((task) => (
+                        <WashTaskCard
+                          key={task.id}
+                          task={task}
+                          onStart={handleStartWash}
+                          onComplete={handleCompleteWash}
+                          actionLoading={actionLoading}
+                          isExpanded={expandedTaskId === task.id}
+                          onToggleExpand={(id) =>
+                            setExpandedTaskId((p) => (p === id ? null : id))
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pending section */}
+                {filteredPendingTasks.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-500" />
+                      Pending ({filteredPendingTasks.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {filteredPendingTasks.map((task) => (
+                        <WashTaskCard
+                          key={task.id}
+                          task={task}
+                          onStart={handleStartWash}
+                          onComplete={handleCompleteWash}
+                          actionLoading={actionLoading}
+                          isExpanded={expandedTaskId === task.id}
+                          onToggleExpand={(id) =>
+                            setExpandedTaskId((p) => (p === id ? null : id))
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {tasks.length === 0 && (
+                  <div className="text-center py-16">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                      <Sparkles className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 mb-1">
+                      No tasks right now
+                    </h3>
+                    <p className="text-sm text-slate-400 dark:text-slate-500">
+                      New wash requests will appear here automatically.
+                    </p>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        fetchTasks();
+                        fetchStats();
+                      }}
+                      className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Refresh
+                    </motion.button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {activeTab === "Completed" && (
+              <motion.div key="completed" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ type: "spring", stiffness: 180, damping: 18 }} className="space-y-4 mb-6">
+                {/* Wash type breakdown */}
+                {completedTasks.length > 0 && (() => {
+                  const breakdown = (["basic", "full", "premium"] as const)
+                    .map((type) => ({
+                      type,
+                      badge: washTypeBadge(type),
+                      count: completedTasks.filter((t) => t.wash_type === type).length,
+                    }))
+                    .filter((b) => b.count > 0);
+
+                  return breakdown.length > 0 ? (
+                    <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
+                      <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
+                        By Wash Type
+                      </h3>
+                      <div className="space-y-2">
+                        {breakdown.map((b) => (
+                          <div key={b.type} className="flex items-center justify-between">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ring-1 ring-inset ${b.badge.bg}`}
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              {b.badge.label}
+                            </span>
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-slate-600 dark:text-slate-300 font-medium">
+                                {b.count} wash{b.count !== 1 ? "es" : ""}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
+                {completedTasks.length > 0 ? (
+                  <div className="space-y-3">
+                    {completedTasks.map((task) => (
+                      <WashTaskCard
+                        key={task.id}
+                        task={task}
+                        onStart={handleStartWash}
+                        onComplete={handleCompleteWash}
+                        actionLoading={actionLoading}
+                        isExpanded={expandedTaskId === task.id}
+                        onToggleExpand={(id) =>
+                          setExpandedTaskId((p) => (p === id ? null : id))
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                      <ListChecks className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 mb-1">
+                      No completed washes yet
+                    </h3>
+                    <p className="text-sm text-slate-400 dark:text-slate-500">
+                      Completed wash tasks will appear here.
+                    </p>
+                  </div>
+                )}
+
+              </motion.div>
+            )}
+
+            {activeTab === "Performance" && stats && (
+              <PerformanceTab stats={stats} />
+            )}
+
+          </AnimatePresence>
+        </section>
 
       </main>
 
@@ -1990,5 +1878,90 @@ export default function WasherDashboard() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function PerformanceTab({ stats }: { stats: WashStats }) {
+  const metrics = [
+    {
+      label: "Total Completed",
+      value: String(stats.total_completed),
+      trend: stats.completed_today > 0 ? `+${stats.completed_today} today` : "—",
+      positive: true,
+    },
+    {
+      label: "Pending Tasks",
+      value: String(stats.pending),
+      trend: stats.pending > 0 ? "Needs doing" : "All clear",
+      positive: stats.pending === 0,
+    },
+    {
+      label: "Tasks In Progress",
+      value: String(stats.in_progress),
+      trend: stats.in_progress > 0 ? "In action" : "None right now",
+      positive: true,
+    },
+    {
+      label: "Avg Duration",
+      value: `${stats.avg_duration_minutes}m`,
+      trend: "Per wash",
+      positive: true,
+    },
+  ];
+
+  return (
+    <motion.div
+      key="performance"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ type: "spring", stiffness: 180, damping: 18 }}
+    >
+      <h4 className="mb-3 text-sm font-semibold text-slate-600 dark:text-slate-400">
+        Your Performance
+      </h4>
+
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          {metrics.map((metric, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm"
+            >
+              <div className="text-sm text-slate-500 dark:text-slate-400">{metric.label}</div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <div className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  {metric.value}
+                </div>
+                <span
+                  className={`text-sm font-medium ${metric.positive ? "text-emerald-600" : "text-amber-600"
+                    }`}
+                >
+                  {metric.trend}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-6 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 shadow-lg">
+              <TrendingUp className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <div className="text-lg font-bold text-slate-900 dark:text-white">
+                {stats.total_completed >= 3
+                  ? "Great Work!"
+                  : "Keep Going!"}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">
+                {stats.total_completed} total washes handled
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }

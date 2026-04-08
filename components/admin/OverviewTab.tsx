@@ -174,7 +174,7 @@ export default function OverviewTab({ hideRevenue = false }: { hideRevenue?: boo
       // Checkout event (if completed)
       if (s.status === 'completed' && s.exit_time) {
         items.push({
-          text: `${s.vehicle.license_plate} checked out — Rs.${s.total_amount?.toFixed(0) ?? '0'} (${s.duration})`,
+          text: `${s.vehicle.license_plate} checked out — Rs.${Math.round(s.total_amount ?? 0)} (${s.duration})`,
           time: `${formatDate(s.exit_time)} ${formatTime(s.exit_time)}`,
           type: 'checkout',
         })
@@ -243,7 +243,7 @@ export default function OverviewTab({ hideRevenue = false }: { hideRevenue?: boo
             ? [
                 {
                   label: "Today's Revenue",
-                  value: `Rs.${todayRevenue.toLocaleString()}`,
+                  value: `Rs.${Math.round(todayRevenue).toLocaleString()}`,
                   icon: Banknote,
                   color: 'from-violet-500 to-purple-600',
                   sub: 'Earned today',
@@ -450,8 +450,8 @@ export default function OverviewTab({ hideRevenue = false }: { hideRevenue?: boo
                   {!hideRevenue && (
                     <div>
                       <p className="text-xs text-slate-500 dark:text-slate-400">Revenue</p>
-                      <p className="text-lg font-extrabold text-violet-600">
-                        Rs.{venue.revenue.toLocaleString()}
+                      <p className="text-lg font-extrabold text-violet-600 dark:text-violet-400">
+                        Rs.{Math.round(venue.revenue).toLocaleString()}
                       </p>
                     </div>
                   )}

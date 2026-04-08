@@ -16,16 +16,33 @@ export async function GET(_request: NextRequest) {
     try {
         // ── Daily revenue for last 7 days ──────────────────────────────────────
         const dailyRevenueResult = await pool.query(`
-            SELECT
-                TO_CHAR(exit_time::date, 'Mon DD') AS day,
-                exit_time::date                    AS date,
-                COUNT(*)::int                      AS sessions,
-                COALESCE(SUM(total_amount), 0)     AS revenue
-            FROM parking_sessions
-            WHERE status = 'completed'
-              AND exit_time >= NOW() - INTERVAL '7 days'
-            GROUP BY exit_time::date
-            ORDER BY exit_time::date ASC
+            SELECT day, date, SUM(sessions)::int AS sessions, COALESCE(SUM(revenue), 0) AS revenue
+            FROM (
+                -- Parking revenue
+                SELECT
+                    TO_CHAR(exit_time::date, 'Mon DD') AS day,
+                    exit_time::date                    AS date,
+                    COUNT(*)                           AS sessions,
+                    SUM(total_amount)                  AS revenue
+                FROM parking_sessions
+                WHERE status = 'completed'
+                  AND exit_time >= NOW() - INTERVAL '7 days'
+                GROUP BY exit_time::date
+                UNION ALL
+                -- Wash service revenue
+                SELECT
+                    TO_CHAR(completed_at::date, 'Mon DD') AS day,
+                    completed_at::date                    AS date,
+                    0                                     AS sessions,
+                    SUM(service_cost)                     AS revenue
+                FROM service_requests
+                WHERE service_type = 'wash'
+                  AND service_status = 'completed'
+                  AND completed_at >= NOW() - INTERVAL '7 days'
+                GROUP BY completed_at::date
+            ) combined
+            GROUP BY day, date
+            ORDER BY date ASC
         `);
 
         // Fill in missing days with zero so chart always shows 7 bars

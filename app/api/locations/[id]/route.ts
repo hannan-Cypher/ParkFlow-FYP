@@ -22,11 +22,11 @@ interface GateZonePayload {
 // PUT /api/locations/[id] - Update a location with full gate/zone/slot rebuild
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     const client = await pool.connect();
     try {
-        const { id } = params;
+        const { id } = await params;
         const body = await request.json();
         const {
             name,
@@ -125,6 +125,44 @@ export async function PUT(
         );
         const venue = venueResult.rows[0];
 
+        // ── Guard: block destructive slot rebuild when active sessions exist ────
+        // Deleting & recreating parking_slots resets their status to 'available',
+        // which would allow new check-ins even when the venue is actually full.
+        const activeSessionCheck = await client.query(
+            `SELECT COUNT(*) AS cnt FROM parking_sessions
+             WHERE venue_id = $1 AND status = 'active'`,
+            [id]
+        );
+        const activeSessionCount = Number(activeSessionCheck.rows[0].cnt);
+        if (activeSessionCount > 0) {
+            await client.query('ROLLBACK');
+            return NextResponse.json(
+                {
+                    error: `Cannot edit venue layout while ${activeSessionCount} active parking session${activeSessionCount !== 1 ? 's are' : ' is'} in progress. Please check out all vehicles first, then update the venue.`,
+                    active_sessions: activeSessionCount,
+                },
+                { status: 409 }
+            );
+        }
+
+        // ── Guard: new slot count cannot be below currently occupied slots ──────
+        const occupiedSlotCheck = await client.query(
+            `SELECT COUNT(*) AS cnt FROM parking_slots
+             WHERE venue_id = $1 AND status = 'occupied'`,
+            [id]
+        );
+        const occupiedSlotCount = Number(occupiedSlotCheck.rows[0].cnt);
+        if (totalSlots < occupiedSlotCount) {
+            await client.query('ROLLBACK');
+            return NextResponse.json(
+                {
+                    error: `New capacity (${totalSlots}) cannot be less than the currently occupied slot count (${occupiedSlotCount}).`,
+                    occupied_slots: occupiedSlotCount,
+                },
+                { status: 422 }
+            );
+        }
+
         // 2. Delete old parking_slots, zones, and gates (cascading via FK)
         //    Delete parking_slots first (they reference zones/gates)
         await client.query('DELETE FROM parking_slots WHERE venue_id = $1', [id]);
@@ -217,10 +255,10 @@ export async function PUT(
 // DELETE /api/locations/[id] - Delete a location (cascades to gates, zones, slots)
 export async function DELETE(
     _request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
         const result = await pool.query(
             'DELETE FROM venues WHERE id = $1 RETURNING id, name',

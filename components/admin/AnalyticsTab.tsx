@@ -195,8 +195,8 @@ export default function AnalyticsTab() {
     {
       icon: Banknote,
       label: 'Total Revenue',
-      value: `Rs.${data.totalRevenue.toLocaleString()}`,
-      sub: `Rs.${data.todayRevenue.toLocaleString()} today`,
+      value: `Rs.${Math.round(data.totalRevenue).toLocaleString()}`,
+      sub: `Rs.${Math.round(data.todayRevenue).toLocaleString()} today`,
       color: 'from-violet-500 to-purple-600',
     },
     {
@@ -364,7 +364,7 @@ export default function AnalyticsTab() {
                     <div>
                       <p className="text-xs text-slate-500 dark:text-slate-400">Revenue</p>
                       <p className="text-lg font-extrabold text-violet-600">
-                        Rs.{v.revenue.toLocaleString()}
+                        Rs.{Math.round(v.revenue).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -408,7 +408,7 @@ export default function AnalyticsTab() {
                       <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{d.day}</span>
                       <div className="text-right">
                         <span className="text-sm font-bold text-violet-600">
-                          Rs.{Number(d.revenue).toLocaleString()}
+                          Rs.{Math.round(Number(d.revenue)).toLocaleString()}
                         </span>
                         <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">{d.sessions} sessions</span>
                       </div>
