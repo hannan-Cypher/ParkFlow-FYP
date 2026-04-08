@@ -10,10 +10,14 @@ CREATE TABLE IF NOT EXISTS staff_invitations (
     token VARCHAR(255) UNIQUE NOT NULL,
     venue_id UUID REFERENCES venues(id) ON DELETE SET NULL,
     invited_by UUID NOT NULL REFERENCES users(id),
+    staff_role VARCHAR(20) DEFAULT 'driver',
     expires_at TIMESTAMP NOT NULL,
     used_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Add staff_role column if table already exists
+ALTER TABLE staff_invitations ADD COLUMN IF NOT EXISTS staff_role VARCHAR(20) DEFAULT 'driver';
 
 -- 3. Indexes for fast lookup
 CREATE INDEX IF NOT EXISTS idx_staff_invitations_token ON staff_invitations(token);

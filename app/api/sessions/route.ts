@@ -84,6 +84,7 @@ export async function GET(request: NextRequest) {
         ps.retrieval_status,
         ps.retrieval_requested_at,
         ps.qr_code,
+        ps.sms_code,
         ps.rating,
         ps.rating_comment,
         v.id          AS vehicle_id,
@@ -174,6 +175,7 @@ export async function GET(request: NextRequest) {
                 retrieval_status: row.retrieval_status || null,
                 retrieval_requested_at: row.retrieval_requested_at || null,
                 qr_code: row.qr_code || null,
+                sms_code: row.sms_code || null,
                 rating: row.rating != null ? Number(row.rating) : null,
                 rating_comment: row.rating_comment || null,
             };

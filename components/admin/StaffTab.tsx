@@ -283,6 +283,10 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
         const data = await res.json()
         setPendingShifts(data.pendingShifts ?? [])
       } else {
+        if (res.status === 401) {
+          window.location.href = '/login'
+          return
+        }
         console.error('fetchPendingShifts failed:', res.status, await res.text())
       }
     } catch (err) {
@@ -407,7 +411,7 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
       // Automatically use the ngrok URL so WhatsApp formats the text as a clickable blue hyperlink
       let safeLink = data.magicLink;
       if (typeof window !== 'undefined' && window.location.origin.includes('localhost')) {
-        safeLink = safeLink.replace('http://localhost:3000', 'https://98c4-2407-d000-d-e659-1090-6c77-99cf-a170.ngrok-free.app');
+        safeLink = safeLink.replace('http://localhost:3000', 'https://ductless-case-overproficiently.ngrok-free.dev');
       }
 
       // Build WhatsApp link and explicitly map the new popup window to the wa.me schema
@@ -456,7 +460,7 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
       if (member.phone) {
         let safeLink = data.magicLink;
         if (typeof window !== 'undefined' && window.location.origin.includes('localhost')) {
-          safeLink = safeLink.replace('http://localhost:3000', 'https://98c4-2407-d000-d-e659-1090-6c77-99cf-a170.ngrok-free.app');
+          safeLink = safeLink.replace('http://localhost:3000', 'https://ductless-case-overproficiently.ngrok-free.dev');
         }
 
         const waLink = buildWhatsAppStaffInviteLink(member.phone, data.name, safeLink)

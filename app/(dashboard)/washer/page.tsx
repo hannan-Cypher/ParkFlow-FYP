@@ -464,22 +464,19 @@ function ShiftStatusBar({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset ${
-                isOnBreak
-                  ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-700"
-                  : "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-700"
-              }`}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset ${isOnBreak
+                ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:ring-amber-700"
+                : "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:ring-emerald-700"
+                }`}
             >
               <span className="relative flex h-2 w-2">
                 <span
-                  className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${
-                    isOnBreak ? "bg-amber-400" : "bg-emerald-400"
-                  }`}
+                  className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${isOnBreak ? "bg-amber-400" : "bg-emerald-400"
+                    }`}
                 />
                 <span
-                  className={`relative inline-flex h-2 w-2 rounded-full ${
-                    isOnBreak ? "bg-amber-500" : "bg-emerald-500"
-                  }`}
+                  className={`relative inline-flex h-2 w-2 rounded-full ${isOnBreak ? "bg-amber-500" : "bg-emerald-500"
+                    }`}
                 />
               </span>
               {isOnBreak ? "On Break" : "Shift Active"}
@@ -804,10 +801,10 @@ function WashTaskCard({
   const washDurationMin =
     task.started_at && task.completed_at
       ? Math.round(
-          (new Date(task.completed_at).getTime() -
-            new Date(task.started_at).getTime()) /
-            60000
-        )
+        (new Date(task.completed_at).getTime() -
+          new Date(task.started_at).getTime()) /
+        60000
+      )
       : null;
 
   return (
@@ -1093,7 +1090,7 @@ function WashTaskCard({
                 ` (${Math.round(
                   (new Date(task.completed_at).getTime() -
                     new Date(task.started_at).getTime()) /
-                    60000
+                  60000
                 )} min)`}
             </span>
           </div>
@@ -1109,7 +1106,6 @@ type TabKey = "tasks" | "completed" | "shift";
 
 export default function WasherDashboard() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = React.useState<TabKey>("tasks");
   const [washer, setWasher] = React.useState<WasherInfo | null>(null);
   const [stats, setStats] = React.useState<WashStats | null>(null);
   const [tasks, setTasks] = React.useState<WashTask[]>([]);
@@ -1605,7 +1601,7 @@ export default function WasherDashboard() {
             variants={container}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6"
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6"
           >
             {[
               {
@@ -1636,13 +1632,6 @@ export default function WasherDashboard() {
                 color: "text-violet-600 dark:text-violet-400",
                 bg: "bg-violet-50 dark:bg-violet-900/20",
               },
-              {
-                label: "Today's Earnings",
-                value: `PKR ${todayEarnings.toLocaleString()}`,
-                icon: <TrendingUp className="w-4 h-4" />,
-                color: "text-emerald-600 dark:text-emerald-400",
-                bg: "bg-emerald-50 dark:bg-emerald-900/20",
-              },
             ].map((s) => (
               <motion.div
                 key={s.label}
@@ -1667,373 +1656,322 @@ export default function WasherDashboard() {
           </motion.div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab.key
-                  ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-              {tab.key === "tasks" && tasks.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold">
-                  {tasks.length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
 
-        {/* Tab content */}
-        <AnimatePresence mode="wait">
-          {activeTab === "tasks" && (
-            <motion.div
-              key="tasks"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* Search + filter bar */}
-              <div className="mb-5 space-y-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by plate number…"
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
+        {/* Shift Section */}
+        <div className="space-y-4 mb-6">
+
+
+
+          {/* No shift yet — start shift button */}
+          {!activeShift && shiftConfig && (
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mx-auto">
+                <Sunrise className="w-7 h-7 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-white mb-1">
+                  Ready to Start?
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Scheduled{" "}
+                  {fmt12(shiftConfig.shift_start_time)} &ndash;{" "}
+                  {fmt12(shiftConfig.shift_end_time)}
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={handleStartShift}
+                disabled={shiftStarting}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {shiftStarting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                {shiftStarting ? "Starting..." : "Start My Shift"}
+              </motion.button>
+            </div>
+          )}
+
+          {/* Shift summary (shown after ending) */}
+          {shiftSummary && !activeShift && (
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
+              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
+                Last Shift Summary
+              </h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Total Time</p>
+                  <p className="font-semibold dark:text-white">{fmtMinutes(shiftSummary.total_minutes)}</p>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  {(["", "basic", "full", "premium"] as const).map((type) => {
-                    const badge = type ? washTypeBadge(type) : null;
-                    const isActive = washTypeFilter === type;
-                    return (
-                      <button
-                        key={type || "all"}
-                        onClick={() => setWashTypeFilter(type)}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ring-1 ring-inset transition-all ${
-                          isActive
-                            ? badge
-                              ? badge.bg
-                              : "bg-slate-800 text-white ring-slate-700 dark:bg-white dark:text-slate-900 dark:ring-slate-200"
-                            : "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:ring-slate-600 hover:ring-slate-300"
-                        }`}
-                      >
-                        {type ? washTypeBadge(type).label : "All"}
-                      </button>
-                    );
-                  })}
+                <div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Net Work Time</p>
+                  <p className="font-semibold dark:text-white">{fmtMinutes(shiftSummary.net_minutes)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Break Time</p>
+                  <p className="font-semibold dark:text-white">{fmtMinutes(shiftSummary.total_break_minutes)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Shift Period</p>
+                  <p className="font-semibold dark:text-white">
+                    {new Date(shiftSummary.shift_start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {" "}&ndash;{" "}
+                    {new Date(shiftSummary.shift_end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </p>
                 </div>
               </div>
-
-              {/* No match message */}
-              {filteredTasks.length === 0 && tasks.length > 0 && (
-                <div className="text-center py-8 text-sm text-slate-400 dark:text-slate-500">
-                  No tasks match your filters.{" "}
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setWashTypeFilter("");
-                    }}
-                    className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
-                  >
-                    Clear filters
-                  </button>
-                </div>
-              )}
-
-              {/* In-progress section */}
-              {filteredActiveTasks.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Droplets className="w-4 h-4 text-sky-500" />
-                    In Progress ({filteredActiveTasks.length})
-                  </h3>
-                  <div className="space-y-3">
-                    {filteredActiveTasks.map((task) => (
-                      <WashTaskCard
-                        key={task.id}
-                        task={task}
-                        onStart={handleStartWash}
-                        onComplete={handleCompleteWash}
-                        actionLoading={actionLoading}
-                        isExpanded={expandedTaskId === task.id}
-                        onToggleExpand={(id) =>
-                          setExpandedTaskId((p) => (p === id ? null : id))
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Pending section */}
-              {filteredPendingTasks.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-500" />
-                    Pending ({filteredPendingTasks.length})
-                  </h3>
-                  <div className="space-y-3">
-                    {filteredPendingTasks.map((task) => (
-                      <WashTaskCard
-                        key={task.id}
-                        task={task}
-                        onStart={handleStartWash}
-                        onComplete={handleCompleteWash}
-                        actionLoading={actionLoading}
-                        isExpanded={expandedTaskId === task.id}
-                        onToggleExpand={(id) =>
-                          setExpandedTaskId((p) => (p === id ? null : id))
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {tasks.length === 0 && (
-                <div className="text-center py-16">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                    <Sparkles className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    No tasks right now
-                  </h3>
-                  <p className="text-sm text-slate-400 dark:text-slate-500">
-                    New wash requests will appear here automatically.
-                  </p>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={() => {
-                      fetchTasks();
-                      fetchStats();
-                    }}
-                    className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Refresh
-                  </motion.button>
-                </div>
-              )}
-            </motion.div>
+            </div>
           )}
 
-          {activeTab === "completed" && (
-            <motion.div
-              key="completed"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              {stats && (
-                <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
-                  <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
-                    Performance Summary
-                  </h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                        {stats.completed_today}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Today
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-extrabold text-slate-800 dark:text-white">
-                        {stats.total_completed}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        All Time
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-extrabold text-violet-600 dark:text-violet-400">
-                        {stats.avg_duration_minutes}m
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Avg Duration
-                      </p>
-                    </div>
-                  </div>
+        </div>
+
+        {/* Tasks Section */}
+        <div className="space-y-6 mb-6">
+
+          {/* Search + filter bar */}
+          <div className="mb-5 space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by plate number…"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {(["", "basic", "full", "premium"] as const).map((type) => {
+                const badge = type ? washTypeBadge(type) : null;
+                const isActive = washTypeFilter === type;
+                return (
+                  <button
+                    key={type || "all"}
+                    onClick={() => setWashTypeFilter(type)}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ring-1 ring-inset transition-all ${isActive
+                      ? badge
+                        ? badge.bg
+                        : "bg-slate-800 text-white ring-slate-700 dark:bg-white dark:text-slate-900 dark:ring-slate-200"
+                      : "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700 dark:text-slate-400 dark:ring-slate-600 hover:ring-slate-300"
+                      }`}
+                  >
+                    {type ? washTypeBadge(type).label : "All"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* No match message */}
+          {filteredTasks.length === 0 && tasks.length > 0 && (
+            <div className="text-center py-8 text-sm text-slate-400 dark:text-slate-500">
+              No tasks match your filters.{" "}
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setWashTypeFilter("");
+                }}
+                className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+
+          {/* In-progress section */}
+          {filteredActiveTasks.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Droplets className="w-4 h-4 text-sky-500" />
+                In Progress ({filteredActiveTasks.length})
+              </h3>
+              <div className="space-y-3">
+                {filteredActiveTasks.map((task) => (
+                  <WashTaskCard
+                    key={task.id}
+                    task={task}
+                    onStart={handleStartWash}
+                    onComplete={handleCompleteWash}
+                    actionLoading={actionLoading}
+                    isExpanded={expandedTaskId === task.id}
+                    onToggleExpand={(id) =>
+                      setExpandedTaskId((p) => (p === id ? null : id))
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pending section */}
+          {filteredPendingTasks.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-500" />
+                Pending ({filteredPendingTasks.length})
+              </h3>
+              <div className="space-y-3">
+                {filteredPendingTasks.map((task) => (
+                  <WashTaskCard
+                    key={task.id}
+                    task={task}
+                    onStart={handleStartWash}
+                    onComplete={handleCompleteWash}
+                    actionLoading={actionLoading}
+                    isExpanded={expandedTaskId === task.id}
+                    onToggleExpand={(id) =>
+                      setExpandedTaskId((p) => (p === id ? null : id))
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tasks.length === 0 && (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 mb-1">
+                No tasks right now
+              </h3>
+              <p className="text-sm text-slate-400 dark:text-slate-500">
+                New wash requests will appear here automatically.
+              </p>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => {
+                  fetchTasks();
+                  fetchStats();
+                }}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </motion.button>
+            </div>
+          )}
+
+        </div>
+
+        {/* Completed/Performance Section */}
+        <div className="mt-8">
+
+          {stats && (
+            <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
+              <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
+                Performance Summary
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+                    {stats.completed_today}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Today
+                  </p>
                 </div>
-              )}
+                <div className="text-center">
+                  <p className="text-2xl font-extrabold text-slate-800 dark:text-white">
+                    {stats.total_completed}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    All Time
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-extrabold text-violet-600 dark:text-violet-400">
+                    {stats.avg_duration_minutes}m
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Avg Duration
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
-              {/* Wash type breakdown */}
-              {completedTasks.length > 0 && (() => {
-                const breakdown = (["basic", "full", "premium"] as const)
-                  .map((type) => ({
-                    type,
-                    badge: washTypeBadge(type),
-                    count: completedTasks.filter((t) => t.wash_type === type).length,
-                    revenue: completedTasks
-                      .filter((t) => t.wash_type === type)
-                      .reduce((s, t) => s + (t.cost ?? 0), 0),
-                  }))
-                  .filter((b) => b.count > 0);
+          {/* Wash type breakdown */}
+          {completedTasks.length > 0 && (() => {
+            const breakdown = (["basic", "full", "premium"] as const)
+              .map((type) => ({
+                type,
+                badge: washTypeBadge(type),
+                count: completedTasks.filter((t) => t.wash_type === type).length,
+                revenue: completedTasks
+                  .filter((t) => t.wash_type === type)
+                  .reduce((s, t) => s + (t.cost ?? 0), 0),
+              }))
+              .filter((b) => b.count > 0);
 
-                return breakdown.length > 0 ? (
-                  <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
-                    <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
-                      By Wash Type
-                    </h3>
-                    <div className="space-y-2">
-                      {breakdown.map((b) => (
-                        <div key={b.type} className="flex items-center justify-between">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ring-1 ring-inset ${b.badge.bg}`}
-                          >
-                            <Sparkles className="w-3 h-3" />
-                            {b.badge.label}
+            return breakdown.length > 0 ? (
+              <div className="mb-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
+                <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
+                  By Wash Type
+                </h3>
+                <div className="space-y-2">
+                  {breakdown.map((b) => (
+                    <div key={b.type} className="flex items-center justify-between">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ring-1 ring-inset ${b.badge.bg}`}
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        {b.badge.label}
+                      </span>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-slate-600 dark:text-slate-300 font-medium">
+                          {b.count} wash{b.count !== 1 ? "es" : ""}
+                        </span>
+                        {b.revenue > 0 && (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                            PKR {b.revenue.toLocaleString()}
                           </span>
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="text-slate-600 dark:text-slate-300 font-medium">
-                              {b.count} wash{b.count !== 1 ? "es" : ""}
-                            </span>
-                            {b.revenue > 0 && (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                                PKR {b.revenue.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ) : null;
-              })()}
-
-              {completedTasks.length > 0 ? (
-                <div className="space-y-3">
-                  {completedTasks.map((task) => (
-                    <WashTaskCard
-                      key={task.id}
-                      task={task}
-                      onStart={handleStartWash}
-                      onComplete={handleCompleteWash}
-                      actionLoading={actionLoading}
-                      isExpanded={expandedTaskId === task.id}
-                      onToggleExpand={(id) =>
-                        setExpandedTaskId((p) => (p === id ? null : id))
-                      }
-                    />
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-16">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                    <ListChecks className="w-8 h-8 text-slate-300 dark:text-slate-600" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    No completed washes yet
-                  </h3>
-                  <p className="text-sm text-slate-400 dark:text-slate-500">
-                    Completed wash tasks will appear here.
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          )}
+              </div>
+            ) : null;
+          })()}
 
-          {activeTab === "shift" && (
-            <motion.div
-              key="shift"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-4"
-            >
-              {/* Active shift — live timer + break/end controls */}
-              {activeShift && shiftConfig && (
-                <ShiftStatusBar
-                  shift={activeShift}
-                  config={shiftConfig}
-                  onBreakStart={handleBreakStart}
-                  onBreakEnd={handleBreakEnd}
-                  onEndShift={handleEndShift}
-                  actionLoading={shiftActionLoading}
+          {completedTasks.length > 0 ? (
+            <div className="space-y-3">
+              {completedTasks.map((task) => (
+                <WashTaskCard
+                  key={task.id}
+                  task={task}
+                  onStart={handleStartWash}
+                  onComplete={handleCompleteWash}
+                  actionLoading={actionLoading}
+                  isExpanded={expandedTaskId === task.id}
+                  onToggleExpand={(id) =>
+                    setExpandedTaskId((p) => (p === id ? null : id))
+                  }
                 />
-              )}
-
-              {/* No shift yet — start shift button */}
-              {!activeShift && shiftConfig && (
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-center space-y-4">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mx-auto">
-                    <Sunrise className="w-7 h-7 text-emerald-500" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-800 dark:text-white mb-1">
-                      Ready to Start?
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Scheduled{" "}
-                      {fmt12(shiftConfig.shift_start_time)} &ndash;{" "}
-                      {fmt12(shiftConfig.shift_end_time)}
-                    </p>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    onClick={handleStartShift}
-                    disabled={shiftStarting}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {shiftStarting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Play className="w-4 h-4" />
-                    )}
-                    {shiftStarting ? "Starting..." : "Start My Shift"}
-                  </motion.button>
-                </div>
-              )}
-
-              {/* Shift summary (shown after ending) */}
-              {shiftSummary && !activeShift && (
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5">
-                  <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-3">
-                    Last Shift Summary
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Total Time</p>
-                      <p className="font-semibold dark:text-white">{fmtMinutes(shiftSummary.total_minutes)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Net Work Time</p>
-                      <p className="font-semibold dark:text-white">{fmtMinutes(shiftSummary.net_minutes)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Break Time</p>
-                      <p className="font-semibold dark:text-white">{fmtMinutes(shiftSummary.total_break_minutes)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mb-0.5">Shift Period</p>
-                      <p className="font-semibold dark:text-white">
-                        {new Date(shiftSummary.shift_start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        {" "}&ndash;{" "}
-                        {new Date(shiftSummary.shift_end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <ListChecks className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-400 dark:text-slate-500 mb-1">
+                No completed washes yet
+              </h3>
+              <p className="text-sm text-slate-400 dark:text-slate-500">
+                Completed wash tasks will appear here.
+              </p>
+            </div>
           )}
-        </AnimatePresence>
+
+        </div>
+
       </main>
 
       {/* Task Completion Modal */}

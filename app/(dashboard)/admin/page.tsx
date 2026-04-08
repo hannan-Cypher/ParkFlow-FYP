@@ -67,7 +67,7 @@ export default function AdminDashboardPage() {
 
   // Supervisor sees: Overview, Staff, Locations (read-only), Live Feed, ANPR
   // Admin sees all 7 tabs
-  const ALL_TABS = ['Overview', 'Analytics', 'Staff', 'Customers', 'Locations', 'Live Feed', 'ANPR', 'Settings']
+  const ALL_TABS = ['Overview', 'Analytics', 'Staff', 'Customers', 'Locations', 'Live Feed', 'Settings']
   const SUPERVISOR_HIDDEN = ['Analytics', 'Settings']
 
   const tabs = useMemo(
@@ -239,17 +239,6 @@ export default function AdminDashboardPage() {
             {activeTab === 'Live Feed' && (
               <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-6 shadow-sm">
                 <LiveFeedWidget />
-              </div>
-            )}
-            {activeTab === 'ANPR' && (
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-6 shadow-sm">
-                <div className="mb-4 sm:mb-6">
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">License Plate Recognition</h2>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Upload an image or use your camera to detect and read Pakistani license plates using the AI model.
-                  </p>
-                </div>
-                <ANPRDetector />
               </div>
             )}
           </motion.div>

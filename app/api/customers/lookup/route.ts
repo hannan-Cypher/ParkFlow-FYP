@@ -97,8 +97,9 @@ export async function GET(request: NextRequest) {
 
     // ── Plate lookup ──────────────────────────────────────────────────────
     if (rawPlate) {
-      // Normalize: uppercase + replace spaces with hyphens
-      const plate = rawPlate.toUpperCase().replace(/\s+/g, "-").trim();
+      // Normalize: uppercase + strip ALL spaces and hyphens so that
+      // "ABC 123", "ABC-123", and "ABC123" all resolve to the same key.
+      const plate = rawPlate.toUpperCase().replace(/[\s\-]+/g, '');
 
       const plateResult = await pool.query(
         `SELECT
@@ -116,10 +117,10 @@ export async function GET(request: NextRequest) {
           (SELECT COUNT(*)
            FROM parking_sessions ps
            JOIN vehicles veh ON ps.vehicle_id = veh.id
-           WHERE UPPER(veh.license_plate) = $1) AS plate_visit_count
+           WHERE REPLACE(REPLACE(UPPER(veh.license_plate), ' ', ''), '-', '') = $1) AS plate_visit_count
          FROM vehicles v
          LEFT JOIN users u ON v.owner_id = u.id
-         WHERE UPPER(v.license_plate) = $1
+         WHERE REPLACE(REPLACE(UPPER(v.license_plate), ' ', ''), '-', '') = $1
          LIMIT 1`,
         [plate]
       );

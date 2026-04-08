@@ -25,3 +25,20 @@
 
 6. **Database Transactions:**
    Always use parameterized queries (`$1, $2`) to prevent SQL injection. Use the `FOR UPDATE SKIP LOCKED` pattern for slot allocation to prevent concurrent check-in race conditions.
+
+7. **Role Values — DB ↔ App Sync:**
+   The ONLY valid user roles are: `customer`, `driver`, `washer`, `supervisor`, `admin`. The old `valet_staff` role is DEPRECATED and must NEVER be used in seed data or migrations. The DB has a `users_role_check` CHECK constraint enforcing this. When writing seed SQL, always use the expanded roles (`driver`/`washer`/`supervisor`), never the legacy `valet_staff`. The admin staff API filters by `WHERE role IN ('driver','washer','supervisor')`.
+
+8. **Migration ↔ API Column Sync:**
+   Before inserting into any table from an API route, verify every column referenced in the INSERT statement actually exists in the table's migration. Missing columns cause silent 500 errors (e.g., `staff_invitations.staff_role` was missing from the migration but used in the API).
+
+35. **License Plate Canonical Format:**
+   All license plates MUST be stored and queried in a single canonical format: **uppercase with all spaces and hyphens stripped** (e.g., `ABC123`, not `ABC 123` or `ABC-123`). Apply `plate.trim().toUpperCase().replace(/[\s\-]+/g, '')` before any INSERT or SELECT. The `customers/lookup` SQL query uses `REPLACE(REPLACE(UPPER(...), ' ', ''), '-', '')` on both sides of the comparison to remain backward-compatible with any legacy data.
+
+10. **SMS Code Lookup Checkout:**
+    Staff dashboard filters active sessions locally for checkout using the `sms_code`, `license_plate`, and `customer_name`. The `sms_code` is fetched alongside other session details from `GET /api/sessions`.
+
+11. **Staff Email Domain Standard:**
+    All staff members (`driver`, `washer`, `supervisor`) MUST have their email accounts created under the `@parkflowpk.com` domain. Venue-specific subdomains (e.g., `@centaurus.parkflow.com`) are obsolete. No other email handler for staff members should exist.
+11. **Staff Email Domain Standard:**
+    All staff members (`driver`, `washer`, `supervisor`) MUST have their email accounts created under the `@parkflowpk.com` domain. Venue-specific subdomains (e.g., `@centaurus.parkflow.com`) are obsolete. No other email handler for staff members should exist.

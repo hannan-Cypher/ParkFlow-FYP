@@ -2117,7 +2117,7 @@ function CheckInTab({
                   if (baseUrl.includes("localhost")) {
                     // Injecting Ngrok URL so WhatsApp treats it as a clickable 
                     // hyperlink instead of plain text that requires messy copy-pasting
-                    baseUrl = "https://98c4-2407-d000-d-e659-1090-6c77-99cf-a170.ngrok-free.app";
+                    baseUrl = "https://ductless-case-overproficiently.ngrok-free.dev";
                   }
                   const ticketData = {
                     sessionId: sess.id,
@@ -2549,6 +2549,7 @@ interface CheckoutTile {
   slot: { slot_number: string; floor_level: string | null; zone: string | null } | null;
   venue: { name: string };
   customer_name: string;
+  sms_code: string | null;
 }
 
 type TileStep = "idle" | "confirming" | "delivering" | "done";
@@ -2586,6 +2587,7 @@ function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
               slot: s.slot as CheckoutTile["slot"],
               venue: s.venue as CheckoutTile["venue"],
               customer_name: (s.customer_name as string) || "Walk-in",
+              sms_code: (s.sms_code as string | null) ?? null,
             };
           })
         );
@@ -2661,7 +2663,8 @@ function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
     const q = query.toLowerCase();
     return (
       s.vehicle.license_plate.toLowerCase().includes(q) ||
-      s.customer_name.toLowerCase().includes(q)
+      s.customer_name.toLowerCase().includes(q) ||
+      (s.sms_code && s.sms_code.toLowerCase().includes(q))
     );
   });
 
@@ -2681,7 +2684,7 @@ function CheckOutTab({ onSuccess }: { onSuccess: () => void }) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by plate or customer…"
+            placeholder="Search by plate, customer, or SMS code…"
             className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 pl-9 pr-4 py-2.5 text-sm focus:border-sky-500 focus:ring-1 focus:ring-sky-500 outline-none dark:text-white dark:placeholder-slate-400"
           />
         </div>

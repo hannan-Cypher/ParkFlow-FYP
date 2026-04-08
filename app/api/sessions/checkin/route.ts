@@ -77,7 +77,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const plate = license_plate.trim().toUpperCase();
+        // Normalize plate: strip spaces & hyphens so storage is always consistent (e.g. "ABC123")
+        const plate = license_plate.trim().toUpperCase().replace(/[\s\-]+/g, '');
 
         // ── Start transaction ───────────────────────────────────────────────────
         await client.query('BEGIN');

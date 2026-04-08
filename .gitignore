@@ -77,3 +77,4 @@ __tests__
 .claude/commands 
 test-results/
 playwright.config.ts/
+scripts

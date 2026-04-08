@@ -29649,5 +29649,693 @@
       514,
       833
     ]
+  },
+  {
+    "plate_id": 714,
+    "timestamp": "2026-04-07T13:25:00.634155",
+    "detection_confidence": 0.9058059453964233,
+    "ocr_text": "LEB-5700",
+    "ocr_confidence": 0.9765997529029846,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 7045.5,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LEB5700",
+        "cleaned": "LEB-5700",
+        "validated": "LEB-5700",
+        "confidence": 0.9766,
+        "elapsed_ms": 11.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LEBPUNNAB5200",
+        "cleaned": "NNAB-5200",
+        "validated": "NNAB-5200",
+        "confidence": 1.2277,
+        "elapsed_ms": 3631.3
+      },
+      "split_combined": {
+        "raw": "LCD5700",
+        "validated": "LCD-5700",
+        "confidence": 1.1075,
+        "elapsed_ms": 3402.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 7045.5
+    },
+    "plate_filename": "plate_714_20260407_132453_LEB-5700_conf91%.jpg",
+    "full_frame_filename": "frame_20260407_132453.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      22,
+      497,
+      376,
+      703
+    ]
+  },
+  {
+    "plate_id": 715,
+    "timestamp": "2026-04-07T13:25:03.881329",
+    "detection_confidence": 0.8922064304351807,
+    "ocr_text": "LEB-70",
+    "ocr_confidence": 0.863921968772023,
+    "ocr_method": "easyocr",
+    "ocr_elapsed_ms": 7301.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "TBB770O",
+        "cleaned": "TBB-770",
+        "validated": "TBB-770",
+        "confidence": 0.6645,
+        "elapsed_ms": 11.5,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LEB70G8",
+        "cleaned": "LEB-70",
+        "validated": "LEB-70",
+        "confidence": 0.8639,
+        "elapsed_ms": 3261.3
+      },
+      "split_combined": {
+        "raw": "LCDAA570",
+        "validated": "CDAA-570",
+        "confidence": 0.2159,
+        "elapsed_ms": 4028.0
+      },
+      "selected": "easyocr",
+      "total_ms": 7301.0
+    },
+    "plate_filename": "plate_715_20260407_132456_LEB-70_conf89%.jpg",
+    "full_frame_filename": "frame_20260407_132456.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      0,
+      543,
+      233,
+      754
+    ]
+  },
+  {
+    "plate_id": 716,
+    "timestamp": "2026-04-07T13:25:09.099097",
+    "detection_confidence": 0.8096083402633667,
+    "ocr_text": "LER-1234",
+    "ocr_confidence": 0.9636601805686951,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 8462.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LER1234",
+        "cleaned": "LER-1234",
+        "validated": "LER-1234",
+        "confidence": 0.9637,
+        "elapsed_ms": 6.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LERF2U1234",
+        "cleaned": "LERF-2",
+        "validated": "CIFU-1234",
+        "confidence": 0.6508,
+        "elapsed_ms": 3755.5
+      },
+      "split_combined": {
+        "raw": "LCIFU1234",
+        "validated": "CIFU-1234",
+        "confidence": 0.6508,
+        "elapsed_ms": 4701.2
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 8462.9
+    },
+    "plate_filename": "plate_716_20260407_132453_LER-1234_conf81%.jpg",
+    "full_frame_filename": "frame_20260407_132453.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      134,
+      803,
+      254,
+      871
+    ]
+  },
+  {
+    "plate_id": 717,
+    "timestamp": "2026-04-07T13:25:21.898360",
+    "detection_confidence": 0.9026342630386353,
+    "ocr_text": "LEB-5700",
+    "ocr_confidence": 0.9774774312973022,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 22576.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LEB5700",
+        "cleaned": "LEB-5700",
+        "validated": "LEB-5700",
+        "confidence": 0.9775,
+        "elapsed_ms": 6.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LEBPUNJAB5200",
+        "cleaned": "LEB-5200",
+        "validated": "LCDU-5200",
+        "confidence": 0.6545,
+        "elapsed_ms": 10803.3
+      },
+      "split_combined": {
+        "raw": "LCDU5200",
+        "validated": "LCDU-5200",
+        "confidence": 0.6545,
+        "elapsed_ms": 11767.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 22576.9
+    },
+    "plate_filename": "plate_717_20260407_132459_LEB-5700_conf90%.jpg",
+    "full_frame_filename": "frame_20260407_132459.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      23,
+      100,
+      500,
+      378
+    ]
+  },
+  {
+    "plate_id": 718,
+    "timestamp": "2026-04-07T13:25:22.119584",
+    "detection_confidence": 0.9048231244087219,
+    "ocr_text": "LEB-5700",
+    "ocr_confidence": 0.9735283255577087,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 17771.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LEB5700",
+        "cleaned": "LEB-5700",
+        "validated": "LEB-5700",
+        "confidence": 0.9735,
+        "elapsed_ms": 15.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LEBRUNJAB5200",
+        "cleaned": "LEBRUNJAB5200",
+        "validated": "LEBRUNJAB5200",
+        "confidence": 1.2218,
+        "elapsed_ms": 9065.6
+      },
+      "split_combined": {
+        "raw": "UCD5700",
+        "validated": "UCD-5700",
+        "confidence": 0.7482,
+        "elapsed_ms": 8689.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 17771.0
+    },
+    "plate_filename": "plate_718_20260407_132504_LEB-5700_conf90%.jpg",
+    "full_frame_filename": "frame_20260407_132504.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      71,
+      86,
+      441,
+      315
+    ]
+  },
+  {
+    "plate_id": 719,
+    "timestamp": "2026-04-07T13:25:23.326469",
+    "detection_confidence": 0.9017412066459656,
+    "ocr_text": "LEB-5700",
+    "ocr_confidence": 0.9744253158569336,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 21008.1,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LEB5700",
+        "cleaned": "LEB-5700",
+        "validated": "LEB-5700",
+        "confidence": 0.9744,
+        "elapsed_ms": 10.9,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LEB06PUNJAB520",
+        "cleaned": "LEB-520",
+        "validated": "LCD-5700",
+        "confidence": 1.1561,
+        "elapsed_ms": 10854.3
+      },
+      "split_combined": {
+        "raw": "LCD5700",
+        "validated": "LCD-5700",
+        "confidence": 1.1561,
+        "elapsed_ms": 10142.7
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 21008.1
+    },
+    "plate_filename": "plate_719_20260407_132502_LEB-5700_conf90%.jpg",
+    "full_frame_filename": "frame_20260407_132502.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      27,
+      145,
+      498,
+      423
+    ]
+  },
+  {
+    "plate_id": 720,
+    "timestamp": "2026-04-07T13:25:24.348285",
+    "detection_confidence": 0.897425651550293,
+    "ocr_text": "LEB-5700",
+    "ocr_confidence": 0.9812254309654236,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 16910.8,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LEB5700",
+        "cleaned": "LEB-5700",
+        "validated": "LEB-5700",
+        "confidence": 0.9812,
+        "elapsed_ms": 7.9,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LEB6BA5206",
+        "cleaned": "LEB-6",
+        "validated": "UCDU-5700",
+        "confidence": 0.5893,
+        "elapsed_ms": 9351.9
+      },
+      "split_combined": {
+        "raw": "UCDU5700",
+        "validated": "UCDU-5700",
+        "confidence": 0.5893,
+        "elapsed_ms": 7550.7
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 16910.8
+    },
+    "plate_filename": "plate_720_20260407_132507_LEB-5700_conf90%.jpg",
+    "full_frame_filename": "frame_20260407_132507.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      16,
+      204,
+      331,
+      396
+    ]
+  },
+  {
+    "plate_id": 721,
+    "timestamp": "2026-04-07T13:25:26.362010",
+    "detection_confidence": 0.912711501121521,
+    "ocr_text": "LEB-5700",
+    "ocr_confidence": 0.981906533241272,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 15999.1,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LEB5700",
+        "cleaned": "LEB-5700",
+        "validated": "LEB-5700",
+        "confidence": 0.9819,
+        "elapsed_ms": 11.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LEB0NM5706R",
+        "cleaned": "LEB-0",
+        "validated": "LCD-570",
+        "confidence": 0.5245,
+        "elapsed_ms": 11745.2
+      },
+      "split_combined": {
+        "raw": "LCD570",
+        "validated": "LCD-570",
+        "confidence": 0.5245,
+        "elapsed_ms": 4242.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 15999.1
+    },
+    "plate_filename": "plate_721_20260407_132510_LEB-5700_conf91%.jpg",
+    "full_frame_filename": "frame_20260407_132510.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      129,
+      291,
+      473,
+      515
+    ]
+  },
+  {
+    "plate_id": 722,
+    "timestamp": "2026-04-07T13:25:27.039358",
+    "detection_confidence": 0.8347715735435486,
+    "ocr_text": "LER-1234",
+    "ocr_confidence": 0.9636586308479309,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 4918.2,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LER1234",
+        "cleaned": "LER-1234",
+        "validated": "LER-1234",
+        "confidence": 0.9637,
+        "elapsed_ms": 8.4,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LER1237",
+        "cleaned": "LER-1237",
+        "validated": "LCKF-1234",
+        "confidence": 0.8051,
+        "elapsed_ms": 3182.8
+      },
+      "split_combined": {
+        "raw": "LCKF1234",
+        "validated": "LCKF-1234",
+        "confidence": 0.8051,
+        "elapsed_ms": 1726.8
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 4918.2
+    },
+    "plate_filename": "plate_722_20260407_132504_LER-1234_conf83%.jpg",
+    "full_frame_filename": "frame_20260407_132504.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      201,
+      409,
+      314,
+      477
+    ]
+  },
+  {
+    "plate_id": 723,
+    "timestamp": "2026-04-07T13:25:27.128122",
+    "detection_confidence": 0.861674964427948,
+    "ocr_text": "LER-1234",
+    "ocr_confidence": 0.9620000123977661,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 5226.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LER1234",
+        "cleaned": "LER-1234",
+        "validated": "LER-1234",
+        "confidence": 0.962,
+        "elapsed_ms": 6.8,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LER1232",
+        "cleaned": "LER-1232",
+        "validated": "LCK-1234",
+        "confidence": 0.9657,
+        "elapsed_ms": 3380.1
+      },
+      "split_combined": {
+        "raw": "LCK1234",
+        "validated": "LCK-1234",
+        "confidence": 0.9657,
+        "elapsed_ms": 1839.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 5226.6
+    },
+    "plate_filename": "plate_723_20260407_132459_LER-1234_conf86%.jpg",
+    "full_frame_filename": "frame_20260407_132459.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      199,
+      505,
+      341,
+      583
+    ]
+  },
+  {
+    "plate_id": 724,
+    "timestamp": "2026-04-07T13:25:27.707737",
+    "detection_confidence": 0.8334684371948242,
+    "ocr_text": "LER-1234",
+    "ocr_confidence": 0.9570373296737671,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 4379.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LER1234",
+        "cleaned": "LER-1234",
+        "validated": "LER-1234",
+        "confidence": 0.957,
+        "elapsed_ms": 6.9,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "LERI1237",
+        "cleaned": "LERI-1237",
+        "validated": "LCIE-1234",
+        "confidence": 0.7068,
+        "elapsed_ms": 2486.3
+      },
+      "split_combined": {
+        "raw": "LCIE1234",
+        "validated": "LCIE-1234",
+        "confidence": 0.7068,
+        "elapsed_ms": 1886.0
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 4379.4
+    },
+    "plate_filename": "plate_724_20260407_132502_LER-1234_conf83%.jpg",
+    "full_frame_filename": "frame_20260407_132502.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      203,
+      540,
+      340,
+      614
+    ]
+  },
+  {
+    "plate_id": 725,
+    "timestamp": "2026-04-07T13:25:28.822152",
+    "detection_confidence": 0.900489091873169,
+    "ocr_text": "LED-5700",
+    "ocr_confidence": 0.8459424376487732,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 15603.4,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LED5700",
+        "cleaned": "LED-5700",
+        "validated": "LED-5700",
+        "confidence": 0.8459,
+        "elapsed_ms": 6.9,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "4W",
+        "cleaned": "4W",
+        "validated": "MW",
+        "confidence": 0.498,
+        "elapsed_ms": 8655.3
+      },
+      "split_combined": {
+        "raw": "MW",
+        "validated": "MW",
+        "confidence": 0.498,
+        "elapsed_ms": 6940.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 15603.4
+    },
+    "plate_filename": "plate_725_20260407_132513_LED-5700_conf90%.jpg",
+    "full_frame_filename": "frame_20260407_132513.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      11,
+      290,
+      316,
+      501
+    ]
+  },
+  {
+    "plate_id": 726,
+    "timestamp": "2026-04-07T13:25:29.235635",
+    "detection_confidence": 0.6730232834815979,
+    "ocr_text": "LER-1234",
+    "ocr_confidence": 0.8992732167243958,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 4883.3,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LER1234",
+        "cleaned": "LER-1234",
+        "validated": "LER-1234",
+        "confidence": 0.8993,
+        "elapsed_ms": 8.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "VRIN",
+        "cleaned": "VRIN",
+        "validated": "VRIN",
+        "confidence": 0.1061,
+        "elapsed_ms": 1944.1
+      },
+      "split_combined": {
+        "raw": "CIRB",
+        "validated": "CIRB",
+        "confidence": 0.0339,
+        "elapsed_ms": 2930.8
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 4883.3
+    },
+    "plate_filename": "plate_726_20260407_132507_LER-1234_conf67%.jpg",
+    "full_frame_filename": "frame_20260407_132507.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      130,
+      491,
+      239,
+      551
+    ]
+  },
+  {
+    "plate_id": 727,
+    "timestamp": "2026-04-07T13:25:29.337946",
+    "detection_confidence": 0.6782631278038025,
+    "ocr_text": "AFR",
+    "ocr_confidence": 0.9749225378036499,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 2206.3,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AFR2024",
+        "cleaned": "AFR",
+        "validated": "AFR",
+        "confidence": 0.9749,
+        "elapsed_ms": 6.2,
+        "pk_match": false
+      },
+      "easyocr": {
+        "raw": "AFR24PFO",
+        "cleaned": "AFR-24",
+        "validated": "AFR-24",
+        "confidence": 0.3554,
+        "elapsed_ms": 1407.7
+      },
+      "split_combined": {
+        "raw": "ERKL2024",
+        "validated": "ERKL",
+        "confidence": 0.2692,
+        "elapsed_ms": 790.1
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 2206.3
+    },
+    "plate_filename": "plate_727_20260407_132459_AFR_conf68%.jpg",
+    "full_frame_filename": "frame_20260407_132459.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      78,
+      542,
+      194,
+      593
+    ]
+  },
+  {
+    "plate_id": 728,
+    "timestamp": "2026-04-08T10:24:55.935232",
+    "detection_confidence": 0.8758088946342468,
+    "ocr_text": "YCA-12",
+    "ocr_confidence": 0.8378738402427647,
+    "ocr_method": "easyocr",
+    "ocr_elapsed_ms": 1159.0,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LEA12",
+        "cleaned": "LEA-12",
+        "validated": "LEA-12",
+        "confidence": 0.7832,
+        "elapsed_ms": 62.5,
+        "pk_match": false
+      },
+      "easyocr": {
+        "raw": "12LEH",
+        "cleaned": "12LEH",
+        "validated": "YCA-12",
+        "confidence": 0.8379,
+        "elapsed_ms": 577.8
+      },
+      "split_combined": {
+        "raw": "YCA12",
+        "validated": "YCA-12",
+        "confidence": 0.8379,
+        "elapsed_ms": 517.0
+      },
+      "selected": "easyocr",
+      "total_ms": 1159.0
+    },
+    "plate_filename": "plate_728_20260408_102454_YCA-12_conf88%.jpg",
+    "full_frame_filename": "frame_20260408_102454.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      221,
+      381,
+      309,
+      465
+    ]
+  },
+  {
+    "plate_id": 729,
+    "timestamp": "2026-04-08T10:25:15.716421",
+    "detection_confidence": 0.8681256771087646,
+    "ocr_text": "LEA-12",
+    "ocr_confidence": 0.9075954556465149,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 631.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "LEA12",
+        "cleaned": "LEA-12",
+        "validated": "LEA-12",
+        "confidence": 0.9076,
+        "elapsed_ms": 4.8,
+        "pk_match": false
+      },
+      "easyocr": {
+        "raw": "LEA12",
+        "cleaned": "LEA-12",
+        "validated": "LLA-12",
+        "confidence": 0.6232,
+        "elapsed_ms": 345.0
+      },
+      "split_combined": {
+        "raw": "LLA12",
+        "validated": "LLA-12",
+        "confidence": 0.6232,
+        "elapsed_ms": 281.9
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 631.9
+    },
+    "plate_filename": "plate_729_20260408_102515_LEA-12_conf87%.jpg",
+    "full_frame_filename": "frame_20260408_102515.jpg",
+    "user_info": "admin",
+    "coordinates": [
+      199,
+      243,
+      301,
+      335
+    ]
   }
 ]
