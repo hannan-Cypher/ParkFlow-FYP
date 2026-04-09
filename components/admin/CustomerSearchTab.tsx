@@ -88,6 +88,7 @@ interface Session {
     slot_number: string | null
     floor_level: string | null
     staff_name: string | null
+    damage_photos: Array<{ url: string; label?: string }> | null
 }
 
 interface WashRequest {
@@ -426,13 +427,13 @@ export default function CustomerSearchTab() {
                                             wash_amount: s.wash_amount ?? null,
                                             customer_name: detail?.full_name || null,
                                             customer_phone: detail?.phone || null,
-                                            damage_photos: null,
+                                            damage_photos: s.damage_photos,
                                             staff_name: s.staff_name
                                         };
                                         return (
-                                            <CollapsibleSessionCard 
-                                                key={s.id} 
-                                                session={sessionData} 
+                                            <CollapsibleSessionCard
+                                                key={s.id}
+                                                session={sessionData}
                                                 isExpanded={expandedSessionIds.has(s.id)}
                                                 onToggleExpand={toggleExpandSession}
                                                 viewerRole="admin"

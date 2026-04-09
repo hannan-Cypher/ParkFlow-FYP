@@ -1,56 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { calculateDynamicRate } from '@/lib/pricingEngine';
-import { generateMagicToken, normalizePhone } from '@/lib/auth';
+import { generateMagicToken } from '@/lib/auth';
+import {
+    normalizePlate,
+    resolveCustomerId,
+    findOrCreateVehicle,
+    allocateSlot,
+    assignStaff
+} from './utils';
 
 export const dynamic = 'force-dynamic';
 
-
 // ── SMS Code Generation ─────────────────────────────────────────────────────
-// 4-char alphanumeric, uppercase, avoids ambiguous characters (0/O, 1/I/L, 5/S, 8/B)
 const SAFE_CHARS = '2346799ACDEFGHJKMNPQRTUVWXYZ';
 
 function generateSmsCode(): string {
-  let code = '';
-  for (let i = 0; i < 4; i++) {
-    code += SAFE_CHARS[Math.floor(Math.random() * SAFE_CHARS.length)];
-  }
-  return code;
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+        code += SAFE_CHARS[Math.floor(Math.random() * SAFE_CHARS.length)];
+    }
+    return code;
 }
 
 /**
  * POST /api/sessions/checkin
  *
- * Check in a vehicle with:
- *   1. Slot-Type Priority Allocation — matches vehicle type to best slot type
- *   2. Auto Staff Assignment — picks the least-busy staff at the venue
- *
- * Body:
- *   license_plate          (required) — e.g. "LEA-1234"
- *   venue_id               (required) — UUID of the parking venue
- *   staff_id               (optional) — manually assign staff; otherwise auto-assigned
- *   customer_id            (optional) — UUID of the customer (if known)
- *   customer_phone         (optional) — phone number to look up / link the customer
- *   vehicle_type           (optional) — "sedan", "suv", "hatchback", "pickup", "van", "car"
- *   make                   (optional) — e.g. "Toyota"
- *   model                  (optional) — e.g. "Corolla"
- *   color                  (optional) — e.g. "White"
- *   entry_plate_confidence (optional) — ANPR confidence 0-1
- *   customer_notes         (optional) — text
+ * Check in a vehicle using modularized logic for slot allocation and staff assignment.
  */
-
-// ── Slot-Type Priority Map ──────────────────────────────────────────────────
-// Maps a vehicle type to preferred slot types in priority order.
-// The algorithm tries the first type, then falls back through the list.
-const SLOT_PRIORITY: Record<string, string[]> = {
-    sedan: ['standard', 'vip', 'electric', 'compact'],
-    suv: ['standard', 'vip', 'electric'],
-    pickup: ['standard', 'vip'],
-    van: ['standard', 'vip'],
-    hatchback: ['compact', 'standard', 'electric', 'vip'],
-    car: ['standard', 'compact', 'vip', 'electric'],
-}
-
 export async function POST(request: NextRequest) {
     const client = await pool.connect();
     try {
@@ -67,6 +44,7 @@ export async function POST(request: NextRequest) {
             color,
             entry_plate_confidence,
             customer_notes,
+            requested_class = 'standard',
         } = body;
 
         // ── Validation ──────────────────────────────────────────────────────────
@@ -77,18 +55,14 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Normalize plate: strip spaces & hyphens so storage is always consistent (e.g. "ABC123")
-        const plate = license_plate.trim().toUpperCase().replace(/[\s\-]+/g, '');
+        const plate = normalizePlate(license_plate);
 
         // ── Start transaction ───────────────────────────────────────────────────
         await client.query('BEGIN');
 
-        // ── 1. Check venue exists & fetch capacity ──────────────────────────────
+        // ── 1. Check venue exists ──────────────────────────────────────────────
         const venueResult = await client.query(
-            `SELECT id, name, address, contact_phone, total_slots,
-                    (SELECT COUNT(*) FROM parking_sessions ps
-                     WHERE ps.venue_id = v.id AND ps.status = 'active') AS active_sessions
-             FROM venues v WHERE v.id = $1`,
+            "SELECT id, name, address, contact_phone, total_slots FROM venues WHERE id = $1",
             [venue_id]
         );
         const venue = venueResult.rows[0];
@@ -97,29 +71,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Venue not found' }, { status: 404 });
         }
 
-        // ── 1b. Hard capacity guard ─────────────────────────────────────────────
-        // Guard against data drift: even if parking_slots statuses are somehow
-        // out of sync, block check-in when active sessions already fill the venue.
-        const activeSessions = Number(venue.active_sessions);
-        const totalSlots = Number(venue.total_slots);
-        if (totalSlots > 0 && activeSessions >= totalSlots) {
-            await client.query('ROLLBACK');
-            return NextResponse.json(
-                {
-                    error: `Parking is full at ${venue.name}. All ${totalSlots} spots are occupied. Please try another venue or wait for a spot to open.`,
-                    venue_name: venue.name,
-                    total_slots: totalSlots,
-                    active_sessions: activeSessions,
-                },
-                { status: 422 }
-            );
-        }
-
         // ── 2. Check for duplicate active session ───────────────────────────────
         const dupCheck = await client.query(
             `SELECT ps.id FROM parking_sessions ps
-       JOIN vehicles v ON v.id = ps.vehicle_id
-       WHERE v.license_plate = $1 AND ps.status = 'active'`,
+             JOIN vehicles v ON v.id = ps.vehicle_id
+             WHERE v.license_plate = $1 AND ps.status = 'active'`,
             [plate]
         );
         if (dupCheck.rows.length > 0) {
@@ -131,179 +87,35 @@ export async function POST(request: NextRequest) {
         }
 
         // ── 3. Resolve customer_id ──────────────────────────────────────────────
-        // Priority: explicit customer_id > phone lookup > vehicle owner
-        let resolvedCustomerId: string | null = customer_id || null;
-
-        if (!resolvedCustomerId && customer_phone) {
-            const normalizedCustomerPhone = normalizePhone(customer_phone.trim());
-            const phoneResult = await client.query(
-                `SELECT id FROM users WHERE phone = $1 AND role = 'customer' LIMIT 1`,
-                [normalizedCustomerPhone]
-            );
-            if (phoneResult.rows.length > 0) {
-                resolvedCustomerId = phoneResult.rows[0].id;
-            } else {
-                // New customer — leave customer_id as NULL
-                // Account will be created when customer registers via the ticket page magic link
-                resolvedCustomerId = null;
-            }
-        }
+        const resolvedCustomerId = await resolveCustomerId(client, customer_id, customer_phone);
 
         // ── 4. Find or create vehicle ───────────────────────────────────────────
-        let vehicleId: string;
-        let resolvedVehicleType = vehicle_type || 'car';
-        const vehicleResult = await client.query(
-            'SELECT id, owner_id, vehicle_type FROM vehicles WHERE license_plate = $1',
-            [plate]
+        const vehicleId = await findOrCreateVehicle(
+            client,
+            plate,
+            { vehicle_type, make, model, color },
+            resolvedCustomerId
         );
 
-        if (vehicleResult.rows.length > 0) {
-            vehicleId = vehicleResult.rows[0].id;
-            resolvedVehicleType = vehicleResult.rows[0].vehicle_type || resolvedVehicleType;
-
-            // Update make/model/color/owner if new info was provided
-            await client.query(
-                `UPDATE vehicles
-                 SET vehicle_type = COALESCE($1, vehicle_type),
-                     make         = COALESCE($2, make),
-                     model        = COALESCE($3, model),
-                     color        = COALESCE($4, color),
-                     owner_id     = COALESCE($5, owner_id)
-                 WHERE id = $6`,
-                [
-                    vehicle_type || null,
-                    make || null,
-                    model || null,
-                    color || null,
-                    resolvedCustomerId || vehicleResult.rows[0].owner_id || null,
-                    vehicleId,
-                ]
-            );
-        } else {
-            // New vehicle — insert with all available details
-            const newVehicle = await client.query(
-                `INSERT INTO vehicles (license_plate, vehicle_type, make, model, color, owner_id)
-                 VALUES ($1, $2, $3, $4, $5, $6)
-                 RETURNING id`,
-                [
-                    plate,
-                    resolvedVehicleType,
-                    make || null,
-                    model || null,
-                    color || null,
-                    resolvedCustomerId,
-                ]
-            );
-            vehicleId = newVehicle.rows[0].id;
-        }
-
-        // Fall back to vehicle's registered owner if no customer resolved yet
-        if (!resolvedCustomerId) {
-            resolvedCustomerId = vehicleResult.rows[0]?.owner_id || null;
-        }
-
-        // ── 5. SLOT-TYPE PRIORITY ALLOCATION ────────────────────────────────────
-        //
-        // Try each preferred slot type in order. If the preferred type has no
-        // available slots, fall back to the next type. Uses FOR UPDATE to lock
-        // the selected row and prevent race conditions.
-        //
-        const preferredTypes = SLOT_PRIORITY[resolvedVehicleType] || SLOT_PRIORITY['car'];
-        let slot: { id: string; slot_number: string; floor_level: string; zone: string; slot_type: string } | null = null;
-        let allocationMethod = 'fallback';
-
-        for (const slotType of preferredTypes) {
-            const slotResult = await client.query(
-                `SELECT id, slot_number, floor_level, zone, slot_type
-         FROM parking_slots
-         WHERE venue_id = $1 AND status = 'available' AND slot_type = $2
-         ORDER BY slot_number ASC
-         LIMIT 1
-         FOR UPDATE SKIP LOCKED`,
-                [venue_id, slotType]
-            );
-
-            if (slotResult.rows.length > 0) {
-                slot = slotResult.rows[0];
-                allocationMethod = `priority_${slotType}`;
-                break;
-            }
-        }
-
-        // Ultimate fallback: any available slot regardless of type
-        if (!slot) {
-            const fallbackResult = await client.query(
-                `SELECT id, slot_number, floor_level, zone, slot_type
-         FROM parking_slots
-         WHERE venue_id = $1 AND status = 'available'
-         ORDER BY slot_number ASC
-         LIMIT 1
-         FOR UPDATE SKIP LOCKED`,
-                [venue_id]
-            );
-
-            if (fallbackResult.rows.length > 0) {
-                slot = fallbackResult.rows[0];
-                allocationMethod = 'fallback_any';
-            }
-        }
-
-        if (!slot) {
+        // ── 5. Slot Allocation ──────────────────────────────────────────────────
+        let slot;
+        try {
+            slot = await allocateSlot(client, venue_id, requested_class);
+        } catch (err: any) {
             await client.query('ROLLBACK');
             return NextResponse.json(
-                { error: 'No available parking slots at this venue' },
+                { error: err.message === 'parking_full' ? `No ${requested_class} slots available.` : err.message },
                 { status: 422 }
             );
         }
 
-        // ── 6. Mark slot as occupied ────────────────────────────────────────────
-        await client.query(
-            `UPDATE parking_slots SET status = 'occupied' WHERE id = $1`,
-            [slot.id]
-        );
+        // ── 6. Staff Assignment ─────────────────────────────────────────────────
+        const staff = await assignStaff(client, venue_id, staff_id);
 
-        // ── 7. AUTO STAFF ASSIGNMENT ────────────────────────────────────────────
-        //
-        // If no staff_id was passed, pick the staff member at this venue who
-        // currently has the fewest active sessions (least busy).
-        //
-        let assignedStaffId = staff_id || null;
-        let assignedStaffName: string | null = null;
-
-        if (!assignedStaffId) {
-            const staffResult = await client.query(
-                `SELECT u.id, u.full_name,
-                COUNT(ps.id) FILTER (WHERE ps.status = 'active') AS active_tasks
-         FROM users u
-         LEFT JOIN parking_sessions ps ON ps.valet_staff_id = u.id AND ps.status = 'active'
-         WHERE u.role = 'driver'
-           AND u.venue_id = $1
-           AND u.is_active = true
-         GROUP BY u.id, u.full_name
-         ORDER BY active_tasks ASC, u.full_name ASC
-         LIMIT 1`,
-                [venue_id]
-            );
-
-            if (staffResult.rows.length > 0) {
-                assignedStaffId = staffResult.rows[0].id;
-                assignedStaffName = staffResult.rows[0].full_name;
-            }
-        } else {
-            // Look up the manually-assigned staff name
-            const manualStaff = await client.query(
-                'SELECT full_name FROM users WHERE id = $1',
-                [staff_id]
-            );
-            assignedStaffName = manualStaff.rows[0]?.full_name || null;
-        }
-
-        // ── 8. Create parking session ───────────────────────────────────────────
-        // Calculate dynamic rate (uses venue pricing config + current occupancy)
-        const pricingMeta = await calculateDynamicRate(venue_id);
+        // ── 7. Create parking session ───────────────────────────────────────────
+        const pricingMeta = await calculateDynamicRate(venue_id, requested_class as 'standard' | 'vip');
         const ratePerHour = pricingMeta.applied_rate;
 
-        // Generate a unique 4-char SMS code (retry up to 3 times on collision)
         let smsCode = generateSmsCode();
         for (let attempt = 0; attempt < 3; attempt++) {
             const collision = await client.query(
@@ -318,20 +130,21 @@ export async function POST(request: NextRequest) {
             `INSERT INTO parking_sessions
          (vehicle_id, customer_id, venue_id, slot_id, valet_staff_id,
           entry_plate_confidence, rate_per_hour, customer_notes, status, payment_status,
-          pricing_metadata, sms_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'pending', $9, $10)
+          pricing_metadata, sms_code, requested_class)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'pending', $9, $10, $11)
        RETURNING *`,
             [
                 vehicleId,
                 resolvedCustomerId,
                 venue_id,
                 slot.id,
-                assignedStaffId,
+                staff.id,
                 entry_plate_confidence ?? null,
                 ratePerHour,
                 customer_notes || null,
                 JSON.stringify(pricingMeta),
                 smsCode,
+                requested_class,
             ]
         );
 
@@ -351,14 +164,13 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // ── 9. Set qr_code = session id (for QR display) ────────────────────────
+        // ── 8. Set qr_code = session id (for QR display) ────────────────────────
         await client.query(
             `UPDATE parking_sessions SET qr_code = $1 WHERE id = $1`,
             [session.id]
         );
 
-        // ── 10. Generate magic link token for returning customers ────────────────
-        // Only for customers who already have an account (not guest/walk-ins)
+        // ── 9. Generate magic link token for returning customers ────────────────
         let magicToken: string | null = null;
         if (resolvedCustomerId) {
             magicToken = generateMagicToken();
@@ -367,16 +179,13 @@ export async function POST(request: NextRequest) {
                  VALUES ($1, $2, $3, NOW() + INTERVAL '24 hours')`,
                 [magicToken, resolvedCustomerId, session.id]
             );
-            // Opportunistic cleanup of stale expired tokens (older than 7 days)
             await client.query(
                 `DELETE FROM magic_links WHERE expires_at < NOW() - INTERVAL '7 days'`
             );
         }
 
-        // ── Commit ──────────────────────────────────────────────────────────────
         await client.query('COMMIT');
 
-        // ── Return enriched response ────────────────────────────────────────────
         return NextResponse.json(
             {
                 message: 'Vehicle checked in successfully',
@@ -389,8 +198,6 @@ export async function POST(request: NextRequest) {
                     entry_time: session.entry_time,
                     rate_per_hour: Number(session.rate_per_hour),
                     sms_code: session.sms_code,
-                    allocation_method: allocationMethod,
-                    // Flat fields for easy access in the success screen
                     venue_name: venue.name,
                     venue_address: venue.address ?? null,
                     venue_phone: venue.contact_phone ?? null,
@@ -401,13 +208,12 @@ export async function POST(request: NextRequest) {
                     customer_name: customerName,
                     customer_phone: customerPhone,
                     magic_token: magicToken,
-                    valet_staff_id: assignedStaffId,
-                    valet_staff_name: assignedStaffName,
-                    // Nested objects (kept for backward compatibility)
+                    valet_staff_id: staff.id,
+                    valet_staff_name: staff.full_name,
                     vehicle: {
                         id: vehicleId,
                         license_plate: plate,
-                        vehicle_type: resolvedVehicleType,
+                        vehicle_type: vehicle_type || 'car',
                         make: make || null,
                         model: model || null,
                         color: color || null,
@@ -425,15 +231,15 @@ export async function POST(request: NextRequest) {
                         address: venue.address ?? null,
                         phone: venue.contact_phone ?? null,
                     },
-                    staff: assignedStaffId
-                        ? { id: assignedStaffId, name: assignedStaffName }
+                    staff: staff.id
+                        ? { id: staff.id, name: staff.full_name }
                         : null,
                     customer: resolvedCustomerId
                         ? {
-                              id: resolvedCustomerId,
-                              name: customerName,
-                              phone: customerPhone,
-                          }
+                            id: resolvedCustomerId,
+                            name: customerName,
+                            phone: customerPhone,
+                        }
                         : null,
                     pricing: pricingMeta,
                     pricing_metadata: pricingMeta,

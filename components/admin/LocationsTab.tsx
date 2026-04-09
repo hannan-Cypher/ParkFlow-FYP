@@ -6,7 +6,7 @@ import {
     MapPin, Plus, Pencil, Trash2, X, CheckCircle, AlertCircle,
     Building2, Phone, Mail, Globe, Hash, Loader2, ChevronDown,
     ChevronRight, ChevronLeft, DoorOpen, Layers, LayoutGrid,
-    Clock, Coffee, Info,
+    Clock, Coffee, Info, Crown, TrendingUp
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ interface Location {
 
 interface GateFormData {
     name: string
-    zones: { slots: string }[]
+    zones: { slots: string; is_vip: boolean }[]
 }
 
 interface BasicFormData {
@@ -137,7 +137,7 @@ export default function LocationsTab({ readOnly = false }: { readOnly?: boolean 
     // Wizard state
     const [wizardStep, setWizardStep] = useState(0)
     const [basicForm, setBasicForm] = useState<BasicFormData>(defaultBasicForm)
-    const [gatesForm, setGatesForm] = useState<GateFormData[]>([{ name: '', zones: [{ slots: '' }] }])
+    const [gatesForm, setGatesForm] = useState<GateFormData[]>([{ name: '', zones: [{ slots: '', is_vip: false }] }])
     const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
     const stepLabels = ['Basic Info', 'Gates', 'Zones', 'Slots', 'Review']
@@ -155,7 +155,7 @@ export default function LocationsTab({ readOnly = false }: { readOnly?: boolean 
     // ─── Modal helpers ────────────────────────────────────────────────────────
     const openAddModal = () => {
         setEditTarget(null); setBasicForm(defaultBasicForm)
-        setGatesForm([{ name: '', zones: [{ slots: '' }] }])
+        setGatesForm([{ name: '', zones: [{ slots: '', is_vip: false }] }])
         setWizardStep(0); setFormErrors({}); setModalOpen(true)
     }
 
@@ -174,18 +174,18 @@ export default function LocationsTab({ readOnly = false }: { readOnly?: boolean 
             const res = await fetch(`/api/locations/${loc.id}/gates`)
             const data = await res.json()
             if (data.gates && data.gates.length > 0) {
-                setGatesForm(data.gates.map((g: { name: string; zones: { total_slots: number }[] }) => ({
+                setGatesForm(data.gates.map((g: { name: string; zones: { total_slots: number; is_vip: boolean }[] }) => ({
                     name: g.name,
-                    zones: g.zones.map((z: { total_slots: number }) => ({ slots: String(z.total_slots) })),
+                    zones: g.zones.map((z: { total_slots: number; is_vip: boolean }) => ({ slots: String(z.total_slots), is_vip: !!z.is_vip })),
                 })))
             } else {
-                setGatesForm([{ name: '', zones: [{ slots: '' }] }])
+                setGatesForm([{ name: '', zones: [{ slots: '', is_vip: false }] }])
             }
-        } catch { setGatesForm([{ name: '', zones: [{ slots: '' }] }]) }
+        } catch { setGatesForm([{ name: '', zones: [{ slots: '', is_vip: false }] }]) }
         setWizardStep(0); setFormErrors({}); setModalOpen(true)
     }
 
-    const closeModal = () => { if (saving) return; setModalOpen(false); setTimeout(() => { setEditTarget(null); setBasicForm(defaultBasicForm); setGatesForm([{ name: '', zones: [{ slots: '' }] }]); setWizardStep(0); setFormErrors({}) }, 300) }
+    const closeModal = () => { if (saving) return; setModalOpen(false); setTimeout(() => { setEditTarget(null); setBasicForm(defaultBasicForm); setGatesForm([{ name: '', zones: [{ slots: '', is_vip: false }] }]); setWizardStep(0); setFormErrors({}) }, 300) }
 
     // ─── Validation per step ──────────────────────────────────────────────────
     const validateStep = (step: number): boolean => {
@@ -222,20 +222,23 @@ export default function LocationsTab({ readOnly = false }: { readOnly?: boolean 
     const prevStep = () => setWizardStep(prev => Math.max(prev - 1, 0))
 
     // ─── Gate/Zone management ─────────────────────────────────────────────────
-    const addGate = () => setGatesForm(prev => [...prev, { name: '', zones: [{ slots: '' }] }])
+    const addGate = () => setGatesForm(prev => [...prev, { name: '', zones: [{ slots: '', is_vip: false }] }])
     const removeGate = (i: number) => setGatesForm(prev => prev.filter((_, idx) => idx !== i))
     const updateGateName = (i: number, name: string) => { setGatesForm(prev => prev.map((g, idx) => idx === i ? { ...g, name } : g)); setFormErrors(prev => { const n = { ...prev }; delete n[`gate_${i}`]; return n }) }
 
     const updateZoneCount = (gi: number, count: number) => {
         setGatesForm(prev => prev.map((g, idx) => {
             if (idx !== gi) return g
-            const newZones = Array.from({ length: Math.max(1, count) }, (_, zi) => g.zones[zi] || { slots: '' })
+            const newZones = Array.from({ length: Math.max(1, count) }, (_, zi) => g.zones[zi] || { slots: '', is_vip: false })
             return { ...g, zones: newZones }
         }))
     }
     const updateZoneSlots = (gi: number, zi: number, slots: string) => {
-        setGatesForm(prev => prev.map((g, gIdx) => gIdx !== gi ? g : { ...g, zones: g.zones.map((z, zIdx) => zIdx !== zi ? z : { slots }) }))
+        setGatesForm(prev => prev.map((g, gIdx) => gIdx !== gi ? g : { ...g, zones: g.zones.map((z, zIdx) => zIdx !== zi ? z : { ...z, slots }) }))
         setFormErrors(prev => { const n = { ...prev }; delete n[`gate_${gi}_zone_${zi}_slots`]; return n })
+    }
+    const updateZoneVip = (gi: number, zi: number, isVip: boolean) => {
+        setGatesForm(prev => prev.map((g, gIdx) => gIdx !== gi ? g : { ...g, zones: g.zones.map((z, zIdx) => zIdx !== zi ? z : { ...z, is_vip: isVip }) }))
     }
 
     // ─── Submit ───────────────────────────────────────────────────────────────
@@ -247,7 +250,7 @@ export default function LocationsTab({ readOnly = false }: { readOnly?: boolean 
                 ...basicForm,
                 max_break_minutes: parseInt(basicForm.max_break_minutes, 10) || 30,
                 enforce_shift_start_window: basicForm.enforce_shift_start_window,
-                gates: gatesForm.map(g => ({ name: g.name.trim(), zones: g.zones.map(z => ({ slots: Number(z.slots) })) })),
+                gates: gatesForm.map(g => ({ name: g.name.trim(), zones: g.zones.map(z => ({ slots: Number(z.slots), is_vip: z.is_vip })) })),
             }
             const url = editTarget ? `/api/locations/${editTarget.id}` : '/api/locations'
             const method = editTarget ? 'PUT' : 'POST'
@@ -301,6 +304,7 @@ export default function LocationsTab({ readOnly = false }: { readOnly?: boolean 
                     </select>
                 </div>
             </div>
+
 
             {/* Shift Configuration */}
             <div>
@@ -417,13 +421,28 @@ export default function LocationsTab({ readOnly = false }: { readOnly?: boolean 
                             <span className="font-semibold text-slate-800 dark:text-white text-sm">{gate.name || `Gate ${gi + 1}`}</span>
                         </div>
                         {gate.zones.map((zone, zi) => (
-                            <div key={zi} className="flex items-center gap-3 ml-6">
-                                <LayoutGrid className="w-4 h-4 text-sky-500 shrink-0" />
-                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 w-16">{prefix}{zi + 1}</span>
-                                <input type="number" min="1" value={zone.slots} onChange={e => updateZoneSlots(gi, zi, e.target.value)} placeholder="Slots"
-                                    className="w-24 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all text-center font-semibold" />
-                                <span className="text-xs text-slate-400">slots</span>
-                                {formErrors[`gate_${gi}_zone_${zi}_slots`] && <span className="text-red-500 text-xs">{formErrors[`gate_${gi}_zone_${zi}_slots`]}</span>}
+                            <div key={zi} className="flex flex-col ml-6 space-y-2">
+                                <div className="flex items-center gap-3">
+                                    <LayoutGrid className="w-4 h-4 text-sky-500 shrink-0" />
+                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300 w-16">{prefix}{zi + 1}</span>
+                                    <input type="number" min="1" value={zone.slots} onChange={e => updateZoneSlots(gi, zi, e.target.value)} placeholder="Slots"
+                                        className="w-24 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all text-center font-semibold" />
+                                    <span className="text-xs text-slate-400">slots</span>
+
+                                    {/* VIP Toggle */}
+                                    <div className="flex items-center gap-2 ml-4 px-3 py-1 rounded-full border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
+                                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-tight">VIP</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateZoneVip(gi, zi, !zone.is_vip)}
+                                            className={`relative inline-flex h-4 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${zone.is_vip ? 'bg-amber-500' : 'bg-slate-200 dark:bg-slate-600'}`}
+                                        >
+                                            <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow-md transition-transform duration-200 ${zone.is_vip ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                    </div>
+
+                                    {formErrors[`gate_${gi}_zone_${zi}_slots`] && <span className="text-red-500 text-xs ml-2">{formErrors[`gate_${gi}_zone_${zi}_slots`]}</span>}
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -455,11 +474,16 @@ export default function LocationsTab({ readOnly = false }: { readOnly?: boolean 
                             <div className="flex items-center gap-2 mb-2"><DoorOpen className="w-4 h-4 text-violet-500" /><span className="font-semibold text-sm text-slate-800 dark:text-white">{gate.name}</span></div>
                             <div className="ml-6 space-y-1">
                                 {gate.zones.map((z, zi) => (
-                                    <div key={zi} className="flex items-center gap-2 text-sm">
-                                        <Layers className="w-3.5 h-3.5 text-sky-500" />
-                                        <span className="font-medium text-slate-600 dark:text-slate-300">{prefix}{zi + 1}</span>
-                                        <span className="text-slate-400">→ {z.slots} slots</span>
-                                        <span className="text-xs text-slate-400">({prefix}{zi + 1}-001 to {prefix}{zi + 1}-{String(Number(z.slots)).padStart(3, '0')})</span>
+                                    <div key={zi} className="flex items-center gap-2 text-sm justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Layers className="w-3.5 h-3.5 text-sky-500" />
+                                            <span className="font-medium text-slate-600 dark:text-slate-300">{prefix}{zi + 1}</span>
+                                            <span className="text-slate-400">→ {z.slots} slots</span>
+                                            <span className="text-xs text-slate-400">({prefix}{zi + 1}-001 to {prefix}{zi + 1}-{String(Number(z.slots)).padStart(3, '0')})</span>
+                                        </div>
+                                        {z.is_vip && (
+                                            <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-200 dark:border-amber-800">VIP ZONE</span>
+                                        )}
                                     </div>
                                 ))}
                             </div>

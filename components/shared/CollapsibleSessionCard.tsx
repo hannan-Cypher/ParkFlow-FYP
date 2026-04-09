@@ -1,6 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
+import { useState } from 'react'
 import {
   Car,
   ChevronDown,
@@ -9,6 +10,7 @@ import {
   User,
   Camera,
 } from 'lucide-react'
+import { ImagePreviewModal } from './ImagePreviewModal'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -65,6 +67,7 @@ export function CollapsibleSessionCard({
   onToggleExpand: (id: string) => void;
   viewerRole: ViewerRole;
 }) {
+  const [previewPhoto, setPreviewPhoto] = useState<{ url: string; label?: string } | null>(null);
   const isCompleted = session.status === 'completed';
   const statusCfg = isCompleted
     ? { bg: 'bg-emerald-50 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-400', label: 'Completed' }
@@ -74,10 +77,10 @@ export function CollapsibleSessionCard({
   const timeStr = entryDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
   // Role-based visibility flags
-  const canSeePhone    = viewerRole === 'admin' || viewerRole === 'supervisor';
-  const canSeeBilling  = viewerRole === 'admin' || viewerRole === 'supervisor';
-  const canSeePhotos   = viewerRole === 'admin' || viewerRole === 'supervisor';
-  const canSeeStaff    = viewerRole === 'admin' || viewerRole === 'supervisor';
+  const canSeePhone = viewerRole === 'admin' || viewerRole === 'supervisor';
+  const canSeeBilling = viewerRole === 'admin' || viewerRole === 'supervisor';
+  const canSeePhotos = viewerRole === 'admin' || viewerRole === 'supervisor';
+  const canSeeStaff = viewerRole === 'admin' || viewerRole === 'supervisor';
 
   return (
     <motion.div
@@ -295,11 +298,12 @@ export function CollapsibleSessionCard({
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {session.damage_photos.map((photo, i) => (
-                        <a
+                        <button
                           key={i}
-                          href={photo.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewPhoto(photo);
+                          }}
                           className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 flex items-center justify-center hover:opacity-80 transition-opacity"
                         >
                           <img
@@ -310,7 +314,7 @@ export function CollapsibleSessionCard({
                               (e.target as HTMLImageElement).style.display = 'none';
                             }}
                           />
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -320,6 +324,13 @@ export function CollapsibleSessionCard({
           )}
         </AnimatePresence>
       </div>
+
+      <ImagePreviewModal
+        isOpen={!!previewPhoto}
+        onClose={() => setPreviewPhoto(null)}
+        imageUrl={previewPhoto?.url || ''}
+        imageAlt={previewPhoto?.label}
+      />
     </motion.div>
   );
 }

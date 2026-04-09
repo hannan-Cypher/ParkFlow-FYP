@@ -31283,5 +31283,91 @@
       218,
       306
     ]
+  },
+  {
+    "plate_id": 752,
+    "timestamp": "2026-04-09T16:07:04.083293",
+    "detection_confidence": 0.828085720539093,
+    "ocr_text": "AEK-694",
+    "ocr_confidence": 0.9684154391288757,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 2177.9,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AEK694",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.9684,
+        "elapsed_ms": 51.1,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AEK694SINDD",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.6028,
+        "elapsed_ms": 830.4
+      },
+      "split_combined": {
+        "raw": "AEK694",
+        "validated": "AEK-694",
+        "confidence": 0.849,
+        "elapsed_ms": 1294.5
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 2177.9
+    },
+    "plate_filename": "plate_752_20260409_160701_AEK-694_conf83%.jpg",
+    "full_frame_filename": "frame_20260409_160701.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      330,
+      417,
+      428,
+      470
+    ]
+  },
+  {
+    "plate_id": 753,
+    "timestamp": "2026-04-09T16:07:04.086822",
+    "detection_confidence": 0.8528823852539062,
+    "ocr_text": "AEK-694",
+    "ocr_confidence": 0.9668830037117004,
+    "ocr_method": "fast_plate_ocr",
+    "ocr_elapsed_ms": 1855.6,
+    "ocr_debug": {
+      "fast_plate_ocr": {
+        "raw": "AEK694",
+        "cleaned": "AEK-694",
+        "validated": "AEK-694",
+        "confidence": 0.9669,
+        "elapsed_ms": 5.7,
+        "pk_match": true
+      },
+      "easyocr": {
+        "raw": "AEK694SINDH",
+        "cleaned": "AEK-694",
+        "validated": "AEK-094",
+        "confidence": 1.3162,
+        "elapsed_ms": 564.8
+      },
+      "split_combined": {
+        "raw": "AEK094",
+        "validated": "AEK-094",
+        "confidence": 1.3162,
+        "elapsed_ms": 1284.8
+      },
+      "selected": "fast_plate_ocr",
+      "total_ms": 1855.6
+    },
+    "plate_filename": "plate_753_20260409_160702_AEK-694_conf85%.jpg",
+    "full_frame_filename": "frame_20260409_160702.jpg",
+    "user_info": "Unknown",
+    "coordinates": [
+      325,
+      433,
+      422,
+      483
+    ]
   }
 ]

@@ -32,6 +32,7 @@ import {
   Search,
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import { ImagePreviewModal } from "@/components/shared/ImagePreviewModal";
 
 // ── Animation Presets ────────────────────────────────────────────────────
 const container = {
@@ -786,6 +787,7 @@ function WashTaskCard({
   actionLoading,
   isExpanded,
   onToggleExpand,
+  onPreview,
 }: {
   task: WashTask;
   onStart: (id: string) => void;
@@ -793,6 +795,7 @@ function WashTaskCard({
   actionLoading: string | null;
   isExpanded: boolean;
   onToggleExpand: (id: string) => void;
+  onPreview: (url: string, label?: string) => void;
 }) {
   const wBadge = washTypeBadge(task.wash_type);
   const sBadge = statusBadge(task.status);
@@ -968,11 +971,12 @@ function WashTaskCard({
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {task.before_photos.map((url, i) => (
-                        <a
+                        <button
                           key={i}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPreview(url, `Before ${i + 1}`);
+                          }}
                           className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 flex items-center justify-center hover:opacity-80 transition-opacity"
                         >
                           <img
@@ -983,7 +987,7 @@ function WashTaskCard({
                               (e.target as HTMLImageElement).style.display = "none";
                             }}
                           />
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -997,11 +1001,12 @@ function WashTaskCard({
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {task.after_photos.map((url, i) => (
-                        <a
+                        <button
                           key={i}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPreview(url, `After ${i + 1}`);
+                          }}
                           className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 flex items-center justify-center hover:opacity-80 transition-opacity"
                         >
                           <img
@@ -1012,7 +1017,7 @@ function WashTaskCard({
                               (e.target as HTMLImageElement).style.display = "none";
                             }}
                           />
-                        </a>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -1132,6 +1137,7 @@ export default function WasherDashboard() {
   const [expandedTaskId, setExpandedTaskId] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [washTypeFilter, setWashTypeFilter] = React.useState<"" | "basic" | "full" | "premium">("");
+  const [previewPhoto, setPreviewPhoto] = React.useState<{ url: string; label?: string } | null>(null);
 
   // ── Data Fetching ──────────────────────────────────────────────────────
 
@@ -1723,6 +1729,7 @@ export default function WasherDashboard() {
                           onToggleExpand={(id) =>
                             setExpandedTaskId((p) => (p === id ? null : id))
                           }
+                          onPreview={(src, label) => setPreviewPhoto({ url: src, label })}
                         />
                       ))}
                     </div>
@@ -1748,6 +1755,7 @@ export default function WasherDashboard() {
                           onToggleExpand={(id) =>
                             setExpandedTaskId((p) => (p === id ? null : id))
                           }
+                          onPreview={(src, label) => setPreviewPhoto({ url: src, label })}
                         />
                       ))}
                     </div>
@@ -1833,6 +1841,7 @@ export default function WasherDashboard() {
                         onToggleExpand={(id) =>
                           setExpandedTaskId((p) => (p === id ? null : id))
                         }
+                        onPreview={(url, label) => setPreviewPhoto({ url, label })}
                       />
                     ))}
                   </div>
@@ -1877,6 +1886,13 @@ export default function WasherDashboard() {
           />
         )}
       </AnimatePresence>
+
+      <ImagePreviewModal
+        isOpen={!!previewPhoto}
+        onClose={() => setPreviewPhoto(null)}
+        imageUrl={previewPhoto?.url || ""}
+        imageAlt={previewPhoto?.label}
+      />
     </div>
   );
 }
@@ -1962,6 +1978,7 @@ function PerformanceTab({ stats }: { stats: WashStats }) {
           </div>
         </div>
       </div>
+
     </motion.div>
   );
 }

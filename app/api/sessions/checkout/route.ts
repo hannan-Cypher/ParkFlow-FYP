@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getAuthUser } from '@/lib/getUser';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
     const client = await pool.connect();
     try {
+        const user = await getAuthUser(request);
         const body = await request.json();
         const { session_id, license_plate } = body;
 

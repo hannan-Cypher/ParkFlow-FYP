@@ -207,7 +207,19 @@ function StatusBadge({ status, onDuty }: { status: StaffMember['status']; onDuty
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export default function StaffTab({ isSupervisor = false }: { isSupervisor?: boolean } = {}) {
+interface StaffTabProps {
+  isSupervisor?: boolean
+  supervisorVenueId?: string
+  supervisorName?: string
+  venueName?: string
+}
+
+export default function StaffTab({
+  isSupervisor = false,
+  supervisorVenueId,
+  supervisorName,
+  venueName
+}: StaffTabProps) {
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [venues, setVenues] = useState<Venue[]>([])
   const [loadingStaff, setLoadingStaff] = useState(true)
@@ -218,6 +230,14 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'deactivated'>('all')
   const [venueFilter, setVenueFilter] = useState('')
+
+  // Set default venue filter for supervisors
+  useEffect(() => {
+    if (isSupervisor && supervisorVenueId) {
+      setVenueFilter(supervisorVenueId)
+      setSelectedDutyVenueId(supervisorVenueId)
+    }
+  }, [isSupervisor, supervisorVenueId])
   const [expandedShiftId, setExpandedShiftId] = useState<string | null>(null)
   const [shiftHistories, setShiftHistories] = useState<Record<string, ShiftRecord[]>>({})
   const [loadingShifts, setLoadingShifts] = useState<string | null>(null)
@@ -682,8 +702,14 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl dark:text-slate-100 font-bold text-slate-800">Staff Management</h2>
-          <p className="dark:text-slate-500 text-sm mt-0.5">Invite and manage your valet team</p>
+          <h2 className="text-xl dark:text-slate-100 font-bold text-slate-800">
+            Staff Management {isSupervisor && venueName ? `— ${venueName}` : ''}
+          </h2>
+          <p className="dark:text-slate-500 text-sm mt-0.5">
+            {isSupervisor
+              ? `Team at ${venueName || 'your assigned location'}`
+              : 'Invite and manage your valet team'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -705,6 +731,19 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
           )}
         </div>
       </div>
+
+      {/* Unassigned Supervisor Notice */}
+      {isSupervisor && !supervisorVenueId && (
+        <div className="mb-6 p-6 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-2xl flex flex-col items-center text-center">
+          <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
+            <Building2 className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h3 className="text-lg font-bold text-amber-800 dark:text-amber-200 mb-2">No Venue Assigned</h3>
+          <p className="text-amber-700 dark:text-amber-300 max-w-md">
+            You are not currently assigned to any venue. Please contact your administrator to assign you to a location so you can manage your team.
+          </p>
+        </div>
+      )}
 
       {/* Late Arrivals — pending admin approval */}
       <AnimatePresence>
@@ -805,16 +844,22 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
                 {/* Venue selector */}
                 <div className="flex items-center gap-3 mb-5">
                   <Building2 className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                  <select
-                    value={selectedDutyVenueId}
-                    onChange={(e) => setSelectedDutyVenueId(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
-                  >
-                    <option value="">Select a venue...</option>
-                    {dutyVenues.map(v => (
-                      <option key={v.id} value={v.id}>{v.name}</option>
-                    ))}
-                  </select>
+                  {isSupervisor ? (
+                    <div className="flex-1 px-3 py-2 rounded-xl border border-gray-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-200 text-sm font-semibold">
+                      {venueName || 'Loading location...'}
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedDutyVenueId}
+                      onChange={(e) => setSelectedDutyVenueId(e.target.value)}
+                      className="flex-1 px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 outline-none"
+                    >
+                      <option value="">Select a venue...</option>
+                      {dutyVenues.map(v => (
+                        <option key={v.id} value={v.id}>{v.name}</option>
+                      ))}
+                    </select>
+                  )}
                   <button
                     onClick={fetchDutyBoard}
                     disabled={loadingDutyBoard}
@@ -1077,8 +1122,8 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
           ))}
         </div>
 
-        {/* Venue filter */}
-        {venues.length > 0 && (
+        {/* Venue filter — hide for supervisors */}
+        {venues.length > 0 && !isSupervisor && (
           <select
             value={venueFilter}
             onChange={(e) => setVenueFilter(e.target.value)}
@@ -1185,22 +1230,32 @@ export default function StaffTab({ isSupervisor = false }: { isSupervisor?: bool
                         <Loader2 className="w-3.5 h-3.5 text-sky-500 animate-spin" />
                       ) : (
                         <div className="flex items-center gap-1">
-                          <select
-                            value={member.venue_id ?? ''}
-                            onChange={(e) => handleAssignVenue(member.id, e.target.value || null)}
-                            disabled={assigningId === member.id}
-                            className="text-xs text-slate-600 dark:text-slate-300 bg-transparent border-0 outline-none cursor-pointer hover:text-sky-600 transition-colors pr-1 appearance-none"
-                          >
-                            <option value="">Unassigned</option>
-                            {venues.map((v) => (
-                              <option key={v.id} value={v.id}>{v.name}</option>
-                            ))}
-                          </select>
+                          {isSupervisor ? (
+                            <span className="text-xs text-slate-600 dark:text-slate-300">
+                              {member.venue_name || 'No Venue'}
+                            </span>
+                          ) : (
+                            <select
+                              value={member.venue_id ?? ''}
+                              onChange={(e) => handleAssignVenue(member.id, e.target.value || null)}
+                              disabled={assigningId === member.id}
+                              className="text-xs text-slate-600 dark:text-slate-300 bg-transparent border-0 outline-none cursor-pointer hover:text-sky-600 transition-colors pr-1 appearance-none"
+                            >
+                              <option value="">Unassigned</option>
+                              {venues.map((v) => (
+                                <option key={v.id} value={v.id}>{v.name}</option>
+                              ))}
+                            </select>
+                          )}
                           {member.zone_name && (
                             <span className="text-xs text-sky-500 dark:text-sky-400 font-medium">
                               → {member.zone_name}
                             </span>
-                          )}
+                          ) || (isSupervisor && member.venue_id && (
+                            <span className="text-xs text-slate-400 font-medium italic">
+                              (No Duty)
+                            </span>
+                          ))}
                         </div>
                       )}
                     </div>

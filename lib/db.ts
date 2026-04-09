@@ -26,19 +26,41 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
-// Initialize database tables
+// Initialize database tables using production-ready UUID schema
 export async function initializeDatabase() {
   const client = await pool.connect();
 
   try {
+    await client.query('BEGIN');
+
+    // Enable UUID extension
+    await client.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+
+    // Create venues table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS venues (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        name VARCHAR(255) NOT NULL,
+        address TEXT,
+        city VARCHAR(100),
+        contact_phone VARCHAR(20),
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Create users table
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         full_name VARCHAR(255) NOT NULL,
         phone VARCHAR(20),
+        role VARCHAR(50) DEFAULT 'customer',
+        venue_id UUID REFERENCES venues(id),
+        is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -47,8 +69,8 @@ export async function initializeDatabase() {
     // Create sessions table for authentication
     await client.query(`
       CREATE TABLE IF NOT EXISTS sessions (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
         token VARCHAR(255) UNIQUE NOT NULL,
         expires_at TIMESTAMP NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -60,8 +82,10 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     `);
 
-    console.log('Database tables initialized successfully');
+    await client.query('COMMIT');
+    console.log('Database tables initialized successfully with UUID schema');
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Error initializing database:', error);
     throw error;
   } finally {

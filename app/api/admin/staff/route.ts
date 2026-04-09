@@ -5,12 +5,12 @@ import { isAdminLike, isStaffRole } from '@/lib/roles';
 export const dynamic = 'force-dynamic';
 
 
-async function getAdminLikeUser(request: NextRequest): Promise<{ id: string; role: string } | null> {
+async function getAdminLikeUser(request: NextRequest): Promise<{ id: string; role: string; venue_id: string | null } | null> {
   const authToken = request.cookies.get('auth_token')?.value;
   if (!authToken) return null;
 
   const result = await pool.query(
-    `SELECT u.id, u.role FROM users u
+    `SELECT u.id, u.role, u.venue_id FROM users u
      INNER JOIN sessions s ON u.id = s.user_id
      WHERE s.token = $1 AND s.expires_at > NOW()`,
     [authToken]
@@ -26,6 +26,19 @@ export async function GET(request: NextRequest) {
     const adminUser = await getAdminLikeUser(request);
     if (!adminUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // ── Apply venue filter for supervisors ─────────────────────────────
+    let venueFilter = '';
+    const params: string[] = [];
+    if (adminUser.role === 'supervisor') {
+      if (adminUser.venue_id) {
+        venueFilter = 'AND u.venue_id = $1';
+        params.push(adminUser.venue_id);
+      } else {
+        // Unassigned supervisor sees NO staff
+        return NextResponse.json({ staff: [] });
+      }
     }
 
     const result = await pool.query(`
@@ -51,8 +64,9 @@ export async function GET(request: NextRequest) {
         LIMIT 1
       ) ss ON true
       WHERE u.role IN ('driver', 'washer', 'supervisor')
+      ${venueFilter}
       ORDER BY u.created_at DESC
-    `);
+    `, params);
 
     return NextResponse.json({ staff: result.rows });
   } catch (error) {

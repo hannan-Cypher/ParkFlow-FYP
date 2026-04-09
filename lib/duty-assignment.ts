@@ -11,6 +11,8 @@ export interface AssignmentInput {
     venue_id: string | null;
     zone_id: string | null;  // only for driver/washer
     caller_role: string;     // role of the person making the assignment
+    caller_venue_id: string | null; // venue of the person making the assignment
+    target_staff_venue_id: string | null; // current venue of the staff member being assigned
 }
 
 export interface AssignmentValidation {
@@ -73,6 +75,38 @@ export function validateAssignment(input: AssignmentInput): AssignmentValidation
             return { valid: false, error: 'Only admin can assign supervisors', resolved_venue_id: null, resolved_zone_id: null };
         }
         return { valid: false, error: 'No permission to assign staff', resolved_venue_id: null, resolved_zone_id: null };
+    }
+
+    // 4. Location check for supervisors
+    if (caller_role === 'supervisor') {
+        if (!input.caller_venue_id) {
+            return {
+                valid: false,
+                error: 'You must be assigned to a venue to manage staff duties. Contact admin to assign a venue.',
+                resolved_venue_id: null,
+                resolved_zone_id: null
+            };
+        }
+
+        // Supervisor can only assign to their own venue
+        if (venue_id && venue_id !== input.caller_venue_id) {
+            return {
+                valid: false,
+                error: 'You can only change duties for staff at your assigned venue.',
+                resolved_venue_id: null,
+                resolved_zone_id: null
+            };
+        }
+
+        // Supervisor can only manage staff already at their venue
+        if (input.target_staff_venue_id && input.target_staff_venue_id !== input.caller_venue_id) {
+            return {
+                valid: false,
+                error: 'You can only change duties for staff at your assigned venue.',
+                resolved_venue_id: null,
+                resolved_zone_id: null
+            };
+        }
     }
 
     // 4. Supervisor → venue only, zone is cleared

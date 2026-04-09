@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
         }
 
         const callerResult = await pool.query(
-            `SELECT u.id, u.role FROM users u
+            `SELECT u.id, u.role, u.venue_id FROM users u
              INNER JOIN sessions s ON u.id = s.user_id
              WHERE s.token = $1 AND s.expires_at > NOW()`,
             [authToken]
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
         // ── Verify the staff member exists and is staff ──────────────────
         const staffCheck = await pool.query(
-            `SELECT id, full_name, role FROM users WHERE id = $1`,
+            `SELECT id, full_name, role, venue_id FROM users WHERE id = $1`,
             [staff_id]
         );
 
@@ -70,6 +70,8 @@ export async function POST(request: NextRequest) {
             venue_id: venue_id || null,
             zone_id: zone_id || null,
             caller_role: caller.role,
+            caller_venue_id: caller.venue_id,
+            target_staff_venue_id: staffMember.venue_id,
         });
 
         if (!validation.valid) {

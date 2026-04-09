@@ -36,7 +36,10 @@ export async function GET(
          peak_hour_surcharge,
          max_rate_per_hour,
          min_rate_per_hour,
-         is_dynamic_enabled
+         is_dynamic_enabled,
+         vip_base_rate_per_hour,
+         vip_high_occupancy_multiplier,
+         vip_critical_occupancy_multiplier
        FROM venues WHERE id = $1`,
       [id]
     );
@@ -59,6 +62,9 @@ export async function GET(
       max_rate_per_hour: Number(row.max_rate_per_hour),
       min_rate_per_hour: Number(row.min_rate_per_hour),
       is_dynamic_enabled: row.is_dynamic_enabled,
+      vip_base_rate_per_hour: row.vip_base_rate_per_hour ? Number(row.vip_base_rate_per_hour) : null,
+      vip_high_occupancy_multiplier: row.vip_high_occupancy_multiplier ? Number(row.vip_high_occupancy_multiplier) : null,
+      vip_critical_occupancy_multiplier: row.vip_critical_occupancy_multiplier ? Number(row.vip_critical_occupancy_multiplier) : null,
     });
   } catch (error) {
     console.error('GET pricing error:', error);
@@ -85,6 +91,9 @@ export async function PUT(
       max_rate_per_hour,
       min_rate_per_hour,
       is_dynamic_enabled,
+      vip_base_rate_per_hour,
+      vip_high_occupancy_multiplier,
+      vip_critical_occupancy_multiplier,
     } = body;
 
     // ── Validation ──────────────────────────────────────────────────────────
@@ -124,6 +133,20 @@ export async function PUT(
       );
     }
 
+    // VIP Multiplier Validation
+    if (vip_high_occupancy_multiplier != null && vip_high_occupancy_multiplier < 1.0) {
+      return NextResponse.json(
+        { error: 'vip_high_occupancy_multiplier must be >= 1.0' },
+        { status: 400 }
+      );
+    }
+    if (vip_critical_occupancy_multiplier != null && vip_critical_occupancy_multiplier < 1.0) {
+      return NextResponse.json(
+        { error: 'vip_critical_occupancy_multiplier must be >= 1.0' },
+        { status: 400 }
+      );
+    }
+
     // ── Fetch existing to fill gaps (so partial updates work) ─────────────
     const existing = await pool.query(
       `SELECT * FROM venues WHERE id = $1`,
@@ -146,8 +169,11 @@ export async function PUT(
          max_rate_per_hour             = $8,
          min_rate_per_hour             = $9,
          is_dynamic_enabled            = $10,
+         vip_base_rate_per_hour        = $11,
+         vip_high_occupancy_multiplier = $12,
+         vip_critical_occupancy_multiplier = $13,
          updated_at                    = NOW()
-       WHERE id = $11
+       WHERE id = $14
        RETURNING
          id, name,
          base_rate_per_hour,
@@ -159,7 +185,10 @@ export async function PUT(
          peak_hour_surcharge,
          max_rate_per_hour,
          min_rate_per_hour,
-         is_dynamic_enabled`,
+         is_dynamic_enabled,
+         vip_base_rate_per_hour,
+         vip_high_occupancy_multiplier,
+         vip_critical_occupancy_multiplier`,
       [
         base_rate_per_hour ?? current.base_rate_per_hour,
         high_occupancy_threshold ?? current.high_occupancy_threshold,
@@ -171,6 +200,9 @@ export async function PUT(
         max_rate_per_hour ?? current.max_rate_per_hour,
         min_rate_per_hour ?? current.min_rate_per_hour,
         is_dynamic_enabled ?? current.is_dynamic_enabled,
+        vip_base_rate_per_hour ?? current.vip_base_rate_per_hour,
+        vip_high_occupancy_multiplier ?? current.vip_high_occupancy_multiplier,
+        vip_critical_occupancy_multiplier ?? current.vip_critical_occupancy_multiplier,
         id,
       ]
     );
@@ -190,6 +222,9 @@ export async function PUT(
       max_rate_per_hour: Number(row.max_rate_per_hour),
       min_rate_per_hour: Number(row.min_rate_per_hour),
       is_dynamic_enabled: row.is_dynamic_enabled,
+      vip_base_rate_per_hour: row.vip_base_rate_per_hour ? Number(row.vip_base_rate_per_hour) : null,
+      vip_high_occupancy_multiplier: row.vip_high_occupancy_multiplier ? Number(row.vip_high_occupancy_multiplier) : null,
+      vip_critical_occupancy_multiplier: row.vip_critical_occupancy_multiplier ? Number(row.vip_critical_occupancy_multiplier) : null,
     });
   } catch (error) {
     console.error('PUT pricing error:', error);

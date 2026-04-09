@@ -1,6 +1,7 @@
 import pool from './db';
 
 export interface PricingMetadata {
+  requested_class: 'standard' | 'vip';
   base_rate: number;
   applied_rate: number;
   occupancy_percent: number;
@@ -41,29 +42,30 @@ function isInWindow(timeStr: string, start: string, end: string): boolean {
  * Calculates the dynamic rate for a given venue and returns both the rate
  * and a full metadata snapshot suitable for storing on parking_sessions.
  *
+ * Parameters:
+ *   venueId: string
+ *   requestedClass: 'standard' | 'vip'
+ *
  * Pakistan Standard Time is UTC+5.
  */
-export async function calculateDynamicRate(venueId: string): Promise<PricingMetadata> {
-  // Fetch venue pricing config + occupied slot count in one query
+export async function calculateDynamicRate(
+  venueId: string,
+  requestedClass: 'standard' | 'vip' = 'standard'
+): Promise<PricingMetadata> {
+  // Fetch venue pricing config + occupied slot counts per class in one query
   const venueResult = await pool.query(
     `SELECT
-       v.total_slots,
-       v.base_rate_per_hour,
-       v.high_occupancy_threshold,
-       v.high_occupancy_multiplier,
-       v.critical_occupancy_threshold,
-       v.critical_occupancy_multiplier,
-       v.peak_hours,
-       v.peak_hour_surcharge,
-       v.max_rate_per_hour,
-       v.min_rate_per_hour,
-       v.is_dynamic_enabled,
-       COUNT(ps.id) AS active_sessions
+       v.*,
+       (SELECT COUNT(*) FROM parking_slots s 
+        WHERE s.venue_id = v.id AND s.slot_type = 'standard' AND s.status != 'maintenance') AS total_standard_slots,
+       (SELECT COUNT(*) FROM parking_slots s 
+        WHERE s.venue_id = v.id AND s.slot_type = 'vip' AND s.status != 'maintenance') AS total_vip_slots,
+       (SELECT COUNT(*) FROM parking_sessions ps
+        WHERE ps.venue_id = v.id AND ps.status = 'active' AND ps.requested_class = 'standard') AS active_standard,
+       (SELECT COUNT(*) FROM parking_sessions ps
+        WHERE ps.venue_id = v.id AND ps.status = 'active' AND ps.requested_class = 'vip') AS active_vip
      FROM venues v
-     LEFT JOIN parking_sessions ps
-       ON ps.venue_id = v.id AND ps.status = 'active'
-     WHERE v.id = $1
-     GROUP BY v.id`,
+     WHERE v.id = $1`,
     [venueId]
   );
 
@@ -72,17 +74,43 @@ export async function calculateDynamicRate(venueId: string): Promise<PricingMeta
   }
 
   const r = venueResult.rows[0];
-  const baseRate = Number(r.base_rate_per_hour);
-  const totalSlots = Number(r.total_slots) || 1;
-  const activeSessions = Number(r.active_sessions);
-  const occupancyPercent = (activeSessions / totalSlots) * 100;
+  const isVip = requestedClass === 'vip';
+
+  // Determine base rate and occupancy based on class
+  const baseRate = isVip
+    ? Number(r.vip_base_rate_per_hour || r.base_rate_per_hour * 2)
+    : Number(r.base_rate_per_hour);
+
+  const totalSlotsOfClass = isVip
+    ? Number(r.total_vip_slots)
+    : Number(r.total_standard_slots);
+
+  const activeSessionsOfClass = isVip
+    ? Number(r.active_vip)
+    : Number(r.active_standard);
+
+  const occupancyPercent = totalSlotsOfClass > 0
+    ? (activeSessionsOfClass / totalSlotsOfClass) * 100
+    : 0;
+
+  // Use class-specific multipliers
+  const highThreshold = Number(r.high_occupancy_threshold || 80);
+  const highMultiplier = isVip
+    ? Number(r.vip_high_occupancy_multiplier || 1.5)
+    : Number(r.high_occupancy_multiplier || 1.2);
+
+  const criticalThreshold = Number(r.critical_occupancy_threshold || 95);
+  const criticalMultiplier = isVip
+    ? Number(r.vip_critical_occupancy_multiplier || 2.0)
+    : Number(r.critical_occupancy_multiplier || 1.5);
 
   // If dynamic pricing is disabled, return flat base rate
   if (!r.is_dynamic_enabled) {
     return {
+      requested_class: requestedClass,
       base_rate: baseRate,
       applied_rate: baseRate,
-      occupancy_percent: occupancyPercent,
+      occupancy_percent: Math.round(occupancyPercent * 10) / 10,
       occupancy_multiplier_used: 1.0,
       peak_surcharge_applied: 0,
       is_peak_hour: false,
@@ -93,16 +121,16 @@ export async function calculateDynamicRate(venueId: string): Promise<PricingMeta
 
   // ── Occupancy multiplier ──────────────────────────────────────────────────
   let multiplierUsed = 1.0;
-  if (occupancyPercent >= Number(r.critical_occupancy_threshold)) {
-    multiplierUsed = Number(r.critical_occupancy_multiplier);
-  } else if (occupancyPercent >= Number(r.high_occupancy_threshold)) {
-    multiplierUsed = Number(r.high_occupancy_multiplier);
+  if (occupancyPercent >= criticalThreshold) {
+    multiplierUsed = criticalMultiplier;
+  } else if (occupancyPercent >= highThreshold) {
+    multiplierUsed = highMultiplier;
   }
 
   let rate = baseRate * multiplierUsed;
 
   // ── Peak hour surcharge ───────────────────────────────────────────────────
-  // Get current Pakistan Standard Time (UTC+5)
+  // Same for both classes unless user wants different peak surcharges per class later.
   const nowUtc = new Date();
   const pkMinutes = (nowUtc.getUTCHours() * 60 + nowUtc.getUTCMinutes() + 300) % (24 * 60);
   const pkHours = Math.floor(pkMinutes / 60);
@@ -118,18 +146,19 @@ export async function calculateDynamicRate(venueId: string): Promise<PricingMeta
     if (isInWindow(currentTimeStr, window.start, window.end)) {
       isPeakHour = true;
       peakLabel = window.label;
-      peakSurchargeApplied = Number(r.peak_hour_surcharge);
+      peakSurchargeApplied = Number(r.peak_hour_surcharge || 0);
       rate += peakSurchargeApplied;
       break;
     }
   }
 
   // ── Clamp to min/max ──────────────────────────────────────────────────────
-  const minRate = Number(r.min_rate_per_hour);
-  const maxRate = Number(r.max_rate_per_hour);
+  const minRate = Number(r.min_rate_per_hour || 0);
+  const maxRate = Number(r.max_rate_per_hour || 9999);
   rate = Math.min(Math.max(rate, minRate), maxRate);
 
   return {
+    requested_class: requestedClass,
     base_rate: baseRate,
     applied_rate: Math.round(rate * 100) / 100,
     occupancy_percent: Math.round(occupancyPercent * 10) / 10,

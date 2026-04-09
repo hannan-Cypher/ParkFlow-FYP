@@ -14,6 +14,13 @@ import ANPRDetector from '@/components/anpr/ANPRDetector'
 import LiveFeedWidget from '@/components/admin/LiveFeedWidget'
 import DarkModeToggle from '@/components/DarkModeToggle'
 import { getDashboardPath, getRoleLabel } from '@/lib/roles'
+import {
+  ShiftStartGate,
+  ShiftStatusBar,
+  ShiftSummaryModal,
+} from "@/components/shared/shift";
+import { useShift } from "@/components/shared/shift/useShift";
+import { Clock, Loader2, XCircle } from 'lucide-react';
 
 export default function AdminDashboardPage() {
   const router = useRouter()
@@ -21,6 +28,22 @@ export default function AdminDashboardPage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const [userRole, setUserRole] = useState<'admin' | 'supervisor'>('admin')
+  const [staffData, setStaffData] = useState<any>(null)
+
+  // ── Shift state (for supervisors) ─────────────────────────────────────────
+  const {
+    shiftStatus,
+    activeShift,
+    venueConfig,
+    actionLoading: shiftActionLoading,
+    shiftSummary,
+    setShiftSummary,
+    handleStartShift,
+    handleBreakStart,
+    handleBreakEnd,
+    handleEndShift,
+    resetShift,
+  } = useShift();
 
   // Guard: only allow admin or supervisor to access this page
   useEffect(() => {
@@ -46,6 +69,7 @@ export default function AdminDashboardPage() {
             return
           }
           setUserRole(role as 'admin' | 'supervisor')
+          setStaffData(data.staff)
           setAuthChecked(true)
         }
       } catch (error) {
@@ -68,7 +92,7 @@ export default function AdminDashboardPage() {
   // Supervisor sees: Overview, Staff, Locations (read-only), Live Feed, ANPR
   // Admin sees all 7 tabs
   const ALL_TABS = ['Overview', 'Analytics', 'Staff', 'Customers', 'Locations', 'Live Feed', 'Settings']
-  const SUPERVISOR_HIDDEN = ['Analytics', 'Settings']
+  const SUPERVISOR_HIDDEN = ['Analytics', 'Settings', 'Locations']
 
   const tabs = useMemo(
     () => isSupervisor ? ALL_TABS.filter((t) => !SUPERVISOR_HIDDEN.includes(t)) : ALL_TABS,
@@ -144,6 +168,108 @@ export default function AdminDashboardPage() {
         animate="visible"
         className="container-custom py-5 sm:py-8"
       >
+        {/* Shift Start Gate — blocks dashboard until shift started */}
+        <AnimatePresence>
+          {isSupervisor && shiftStatus === "none" && staffData && (
+            <ShiftStartGate
+              staffName={staffData.full_name}
+              venueName={staffData.venue?.name ?? "Your Venue"}
+              venueCity={staffData.venue?.city ?? ""}
+              config={venueConfig}
+              onStart={handleStartShift}
+              starting={shiftActionLoading === "start"}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Pending Approval Overlay — blocks dashboard, auto-polls for approval */}
+        <AnimatePresence>
+          {isSupervisor && shiftStatus === "pending_approval" && (
+            <motion.div
+              key="pending-approval"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ scale: 0.92, y: 24, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 260, damping: 24 }}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-red-300 dark:border-red-700 max-w-md w-full p-8 text-center"
+              >
+                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="w-8 h-8 text-red-500" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                  Awaiting Admin Approval
+                </h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">
+                  You were{" "}
+                  <span className="font-semibold text-red-500">
+                    {activeShift?.late_minutes ?? 0} minutes late
+                  </span>{" "}
+                  to your shift.
+                </p>
+                <p className="text-slate-400 dark:text-slate-500 text-sm mb-6">
+                  Your manager has been notified. The dashboard will unlock automatically once approved.
+                </p>
+                <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Checking for approval every 30 seconds…
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Rejected Overlay */}
+        <AnimatePresence>
+          {isSupervisor && shiftStatus === "rejected" && (
+            <motion.div
+              key="rejected"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+            >
+              <motion.div
+                initial={{ scale: 0.92, y: 24, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 260, damping: 24 }}
+                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-red-400 dark:border-red-600 max-w-md w-full p-8 text-center"
+              >
+                <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <XCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                  Shift Rejected
+                </h2>
+                <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                  Your shift request has been rejected by your manager. Please report to your manager for further instructions.
+                </p>
+                <button
+                  onClick={handleLogout}
+                  className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-sm transition-all"
+                >
+                  Logout
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Shift Summary Modal */}
+        <AnimatePresence>
+          {isSupervisor && shiftSummary && (
+            <ShiftSummaryModal
+              summary={shiftSummary}
+              staffName={staffData?.full_name ?? "Staff"}
+              onDone={resetShift}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Header */}
         <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
           {/* Left: badge + title */}
@@ -154,9 +280,11 @@ export default function AdminDashboardPage() {
             </div>
             <div className="min-w-0">
               <h1 className="text-xl sm:text-3xl font-display font-bold text-slate-900 dark:text-white leading-tight">
-                {isSupervisor ? 'Supervisor Dashboard' : 'Admin Dashboard'}
+                {isSupervisor ? `Supervisor: ${staffData?.full_name}` : 'Admin Dashboard'}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">ParkFlow Management Console</p>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                {isSupervisor ? staffData?.venue?.name || 'No Venue Assigned' : 'ParkFlow Management Console'}
+              </p>
             </div>
           </div>
 
@@ -189,6 +317,22 @@ export default function AdminDashboardPage() {
             </motion.button>
           </div>
         </motion.div>
+
+        {/* Shift Status Bar — shown when shift is active or on_break */}
+        <AnimatePresence>
+          {isSupervisor && (shiftStatus === "active" || shiftStatus === "on_break") && activeShift && (
+            <motion.div variants={itemVariants}>
+              <ShiftStatusBar
+                shift={activeShift}
+                config={venueConfig}
+                onBreakStart={handleBreakStart}
+                onBreakEnd={handleBreakEnd}
+                onEndShift={handleEndShift}
+                actionLoading={shiftActionLoading}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Tabs Navigation — scrollable on mobile */}
         <motion.div
@@ -224,7 +368,14 @@ export default function AdminDashboardPage() {
           >
             {activeTab === 'Overview' && <OverviewTab hideRevenue={isSupervisor} />}
             {activeTab === 'Analytics' && !isSupervisor && <AnalyticsTab />}
-            {activeTab === 'Staff' && <StaffTab isSupervisor={isSupervisor} />}
+            {activeTab === 'Staff' && (
+              <StaffTab
+                isSupervisor={isSupervisor}
+                supervisorVenueId={staffData?.venue?.id}
+                supervisorName={staffData?.full_name}
+                venueName={staffData?.venue?.name}
+              />
+            )}
             {activeTab === 'Customers' && (
               <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-6 shadow-sm">
                 <CustomerSearchTab />

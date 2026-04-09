@@ -15,6 +15,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(_request.url);
+    const requestedClass = (searchParams.get('class') === 'vip' ? 'vip' : 'standard') as 'standard' | 'vip';
 
     // Verify venue exists
     const venueCheck = await pool.query(
@@ -25,20 +27,28 @@ export async function GET(
       return NextResponse.json({ error: 'Venue not found' }, { status: 404 });
     }
 
-    // Count active sessions for display
+    // Count active sessions of requested class for display
     const occupiedResult = await pool.query(
       `SELECT COUNT(*) AS occupied FROM parking_sessions
-       WHERE venue_id = $1 AND status = 'active'`,
-      [id]
+       WHERE venue_id = $1 AND status = 'active' AND requested_class = $2`,
+      [id, requestedClass]
     );
     const occupied = Number(occupiedResult.rows[0].occupied);
-    const totalSlots = Number(venueCheck.rows[0].total_slots);
 
-    const metadata = await calculateDynamicRate(id);
+    // Get total slots of class
+    const totalSlotsResult = await pool.query(
+      `SELECT COUNT(*) AS total FROM parking_slots
+       WHERE venue_id = $1 AND slot_type = $2 AND status != 'maintenance'`,
+      [id, requestedClass]
+    );
+    const totalSlots = Number(totalSlotsResult.rows[0].total);
+
+    const metadata = await calculateDynamicRate(id, requestedClass);
 
     return NextResponse.json({
       venue_id: id,
       venue_name: venueCheck.rows[0].name,
+      requested_class: requestedClass,
       rate: metadata.applied_rate,
       base_rate: metadata.base_rate,
       occupancy_percent: metadata.occupancy_percent,

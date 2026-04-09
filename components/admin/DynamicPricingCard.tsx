@@ -38,6 +38,9 @@ interface PricingConfig {
   max_rate_per_hour: number
   min_rate_per_hour: number
   is_dynamic_enabled: boolean
+  vip_base_rate_per_hour: number | null
+  vip_high_occupancy_multiplier: number | null
+  vip_critical_occupancy_multiplier: number | null
 }
 
 interface LiveRate {
@@ -160,6 +163,7 @@ export default function DynamicPricingCard() {
   const [loadingLive, setLoadingLive] = useState(false)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const [selectedClass, setSelectedClass] = useState<'standard' | 'vip'>('standard')
 
   // ── Load venues ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -191,11 +195,11 @@ export default function DynamicPricingCard() {
     }
   }, [])
 
-  const loadLiveRate = useCallback(async (venueId: string) => {
+  const loadLiveRate = useCallback(async (venueId: string, className: 'standard' | 'vip' = 'standard') => {
     if (!venueId) return
     setLoadingLive(true)
     try {
-      const res = await fetch(`/api/venues/${venueId}/current-rate`)
+      const res = await fetch(`/api/venues/${venueId}/current-rate?class=${className}`)
       if (res.ok) setLiveRate(await res.json())
     } catch (e) {
       console.error(e)
@@ -207,8 +211,8 @@ export default function DynamicPricingCard() {
   useEffect(() => {
     if (!selectedVenueId) return
     loadConfig(selectedVenueId)
-    loadLiveRate(selectedVenueId)
-  }, [selectedVenueId, loadConfig, loadLiveRate])
+    loadLiveRate(selectedVenueId, selectedClass)
+  }, [selectedVenueId, selectedClass, loadConfig, loadLiveRate])
 
   // ── Save handler ───────────────────────────────────────────────────────
   const handleSave = async () => {
@@ -292,18 +296,36 @@ export default function DynamicPricingCard() {
             </div>
           </div>
 
-          {/* Venue selector */}
-          <div className="relative">
-            <select
-              value={selectedVenueId}
-              onChange={e => setSelectedVenueId(e.target.value)}
-              className="appearance-none pl-3 pr-9 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 outline-none focus:border-sky-400 cursor-pointer"
-            >
-              {venues.map(v => (
-                <option key={v.id} value={v.id}>{v.name}</option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <div className="flex items-center gap-4">
+            {/* Class Toggle */}
+            <div className="flex p-1 bg-slate-100 dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600">
+              <button
+                onClick={() => setSelectedClass('standard')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${selectedClass === 'standard' ? 'bg-white dark:bg-slate-600 text-sky-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Standard
+              </button>
+              <button
+                onClick={() => setSelectedClass('vip')}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${selectedClass === 'vip' ? 'bg-white dark:bg-slate-600 text-amber-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                VIP
+              </button>
+            </div>
+
+            {/* Venue selector */}
+            <div className="relative">
+              <select
+                value={selectedVenueId}
+                onChange={e => setSelectedVenueId(e.target.value)}
+                className="appearance-none pl-3 pr-9 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm font-medium text-slate-700 dark:text-slate-200 outline-none focus:border-sky-400 cursor-pointer"
+              >
+                {venues.map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            </div>
           </div>
         </div>
 
@@ -339,26 +361,34 @@ export default function DynamicPricingCard() {
                 </div>
 
                 {/* Base Rate — prominent */}
-                <div className="p-4 rounded-xl border-2 border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/20">
-                  <p className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wide mb-2">
-                    Base Rate (PKR / hr)
+                <div className={`p-4 rounded-xl border-2 transition-colors ${selectedClass === 'vip' ? 'border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20' : 'border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/20'}`}>
+                  <p className={`text-xs font-bold uppercase tracking-wide mb-2 ${selectedClass === 'vip' ? 'text-amber-600 dark:text-amber-400' : 'text-sky-600 dark:text-sky-400'}`}>
+                    {selectedClass === 'vip' ? 'VIP Base Rate' : 'Standard Base Rate'} (PKR / hr)
                   </p>
-                  <div className="flex items-center gap-2 border border-sky-300 dark:border-sky-600 rounded-xl overflow-hidden bg-white dark:bg-slate-800">
-                    <span className="px-3 py-3 text-sm font-semibold text-sky-500 bg-sky-50 dark:bg-sky-900/30 border-r border-sky-200 dark:border-sky-700">
+                  <div className={`flex items-center gap-2 border rounded-xl overflow-hidden bg-white dark:bg-slate-800 ${selectedClass === 'vip' ? 'border-amber-300 dark:border-amber-600' : 'border-sky-300 dark:border-sky-600'}`}>
+                    <span className={`px-3 py-3 text-sm font-semibold border-r ${selectedClass === 'vip' ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700' : 'text-sky-500 bg-sky-50 dark:bg-sky-900/30 border-sky-200 dark:border-sky-700'}`}>
                       Rs.
                     </span>
                     <input
                       type="number"
                       min={0}
                       step={10}
-                      value={config.base_rate_per_hour}
-                      onChange={e => setConfig({ ...config, base_rate_per_hour: Number(e.target.value) })}
+                      value={selectedClass === 'vip' ? (config.vip_base_rate_per_hour ?? 0) : config.base_rate_per_hour}
+                      onChange={e => {
+                        const val = Number(e.target.value)
+                        setConfig(selectedClass === 'vip'
+                          ? { ...config, vip_base_rate_per_hour: val }
+                          : { ...config, base_rate_per_hour: val }
+                        )
+                      }}
                       className="flex-1 px-3 py-3 text-xl font-extrabold text-slate-900 dark:text-white bg-transparent outline-none"
                     />
                     <span className="px-3 py-3 text-xs text-slate-400">/hr</span>
                   </div>
                   {!config.is_dynamic_enabled && (
-                    <p className="text-xs text-sky-600 dark:text-sky-400 mt-2">This flat rate is used when dynamic pricing is off.</p>
+                    <p className={`text-xs mt-2 ${selectedClass === 'vip' ? 'text-amber-600 dark:text-amber-400' : 'text-sky-600 dark:text-sky-400'}`}>
+                      This flat rate is used when dynamic pricing is off.
+                    </p>
                   )}
                 </div>
               </div>
@@ -440,10 +470,13 @@ export default function DynamicPricingCard() {
                   />
                   <NumInput
                     label="Multiplier"
-                    value={config.high_occupancy_multiplier}
-                    onChange={v => setConfig({ ...config, high_occupancy_multiplier: v })}
+                    value={selectedClass === 'vip' ? (config.vip_high_occupancy_multiplier ?? 1.5) : config.high_occupancy_multiplier}
+                    onChange={v => setConfig(selectedClass === 'vip'
+                      ? { ...config, vip_high_occupancy_multiplier: v }
+                      : { ...config, high_occupancy_multiplier: v }
+                    )}
                     min={1} step={0.1} suffix="×"
-                    hint={`Rate: Rs.${config.base_rate_per_hour} × ${config.high_occupancy_multiplier} = Rs.${Math.round(config.base_rate_per_hour * config.high_occupancy_multiplier)}`}
+                    hint={`Rate: Rs.${selectedClass === 'vip' ? (config.vip_base_rate_per_hour || 0) : config.base_rate_per_hour} × ${selectedClass === 'vip' ? (config.vip_high_occupancy_multiplier || 1.5) : config.high_occupancy_multiplier} = Rs.${Math.round((selectedClass === 'vip' ? (config.vip_base_rate_per_hour || 0) : config.base_rate_per_hour) * (selectedClass === 'vip' ? (config.vip_high_occupancy_multiplier || 1.5) : config.high_occupancy_multiplier))}`}
                   />
                 </div>
 
@@ -459,10 +492,13 @@ export default function DynamicPricingCard() {
                   />
                   <NumInput
                     label="Multiplier"
-                    value={config.critical_occupancy_multiplier}
-                    onChange={v => setConfig({ ...config, critical_occupancy_multiplier: v })}
+                    value={selectedClass === 'vip' ? (config.vip_critical_occupancy_multiplier ?? 2.0) : config.critical_occupancy_multiplier}
+                    onChange={v => setConfig(selectedClass === 'vip'
+                      ? { ...config, vip_critical_occupancy_multiplier: v }
+                      : { ...config, critical_occupancy_multiplier: v }
+                    )}
                     min={1} step={0.1} suffix="×"
-                    hint={`Rate: Rs.${config.base_rate_per_hour} × ${config.critical_occupancy_multiplier} = Rs.${Math.round(config.base_rate_per_hour * config.critical_occupancy_multiplier)}`}
+                    hint={`Rate: Rs.${selectedClass === 'vip' ? (config.vip_base_rate_per_hour || 0) : config.base_rate_per_hour} × ${selectedClass === 'vip' ? (config.vip_critical_occupancy_multiplier || 2.0) : config.critical_occupancy_multiplier} = Rs.${Math.round((selectedClass === 'vip' ? (config.vip_base_rate_per_hour || 0) : config.base_rate_per_hour) * (selectedClass === 'vip' ? (config.vip_critical_occupancy_multiplier || 2.0) : config.critical_occupancy_multiplier))}`}
                   />
                 </div>
               </div>
