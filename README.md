@@ -75,7 +75,7 @@ The frontend will be available at `http://localhost:3000`.
 cd model
 
 # Activate the virtual environment
-source venv/bin/activate
+source venv311/bin/activate
 
 # Start the Flask API
 python app.py
