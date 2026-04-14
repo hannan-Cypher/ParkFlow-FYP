@@ -42,10 +42,8 @@ print("Loading YOLO model...")
 model = YOLO(MODEL_PATH)
 print("Model loaded.")
 
-# Initialize EasyOCR (gpu=False for broad hardware compatibility)
-print("Loading OCR reader...")
-reader = easyocr.Reader(['en'], gpu=False)
-print("OCR reader loaded.")
+# Note: EasyOCR is now lazily initialized in hybrid_ocr() fallback path.
+reader = None
 
 # Pre-warm fast-plate-ocr model (downloads ONNX weights on first run)
 print("Pre-warming fast-plate-ocr model...")

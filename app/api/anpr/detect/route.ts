@@ -25,10 +25,21 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json()
     return NextResponse.json(data)
-  } catch (err) {
+  } catch (err: any) {
     console.error('[ANPR detect] error:', err)
+
+    // Check if it's a connection refused error
+    const isConnRefused = err?.cause?.code === 'ECONNREFUSED' ||
+      err?.code === 'ECONNREFUSED' ||
+      err?.message?.includes('ECONNREFUSED');
+
     return NextResponse.json(
-      { success: false, error: 'Failed to reach AI service. Is it running?' },
+      {
+        success: false,
+        error: isConnRefused
+          ? 'AI service is unreachable on port 8080. Please run the AI server (./model/start_anpr.sh).'
+          : 'Failed to reach AI service. Internal error.'
+      },
       { status: 503 }
     )
   }

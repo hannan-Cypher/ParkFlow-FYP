@@ -20,7 +20,7 @@ const RTC_CONFIG: RTCConfiguration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
 }
 
-type Mode = 'mjpeg' | 'webrtc'
+type Mode = 'mjpeg' | 'webrtc' | 'ip-camera'
 
 // ─────────────────────────────────────────────
 // WebRTC Viewer (admin/staff side)
@@ -254,8 +254,8 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected }: { compact: b
                                     <strong className="text-slate-300">Start Streaming</strong>.
                                 </p>
                                 <div className={`mt-3 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full ${isListening
-                                        ? 'bg-emerald-900/60 text-emerald-400 border border-emerald-700'
-                                        : 'bg-slate-800 text-slate-500 border border-slate-700'
+                                    ? 'bg-emerald-900/60 text-emerald-400 border border-emerald-700'
+                                    : 'bg-slate-800 text-slate-500 border border-slate-700'
                                     }`}>
                                     <div className={`w-1.5 h-1.5 rounded-full ${isListening ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
                                     {isListening ? `Listening · ${pollCount} polls` : 'Not listening'}
@@ -545,8 +545,8 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                     <button
                         onClick={() => setMode('webrtc')}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'webrtc'
-                                ? 'bg-white dark:bg-slate-700 text-sky-700 dark:text-sky-400 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white dark:bg-slate-700 text-sky-700 dark:text-sky-400 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                     >
                         <Radio className="w-3 h-3" />
@@ -555,12 +555,22 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                     <button
                         onClick={() => setMode('mjpeg')}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'mjpeg'
-                                ? 'bg-white dark:bg-slate-700 text-sky-700 dark:text-sky-400 shadow-sm'
-                                : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white dark:bg-slate-700 text-sky-700 dark:text-sky-400 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
                             }`}
                     >
                         <Wifi className="w-3 h-3" />
                         MJPEG
+                    </button>
+                    <button
+                        onClick={() => setMode('ip-camera')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'ip-camera'
+                            ? 'bg-white dark:bg-slate-700 text-rose-700 dark:text-rose-400 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        <ScanLine className="w-3 h-3" />
+                        IP Camera
                     </button>
                 </div>
             </div>
@@ -569,7 +579,9 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
             <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">
                 {mode === 'webrtc'
                     ? '~100–200ms latency · H.264 · No app needed'
-                    : '~500ms–1.5s latency · MJPEG · Requires IP Webcam / Camo'}
+                    : mode === 'ip-camera'
+                        ? 'AI Processed Feed · YOLOv8 Real-time · Hikvision RTSP'
+                        : '~500ms–1.5s latency · MJPEG · Requires IP Webcam / Camo'}
             </p>
 
             {/* Venue picker for unassigned admins (WebRTC mode only) */}
@@ -618,9 +630,131 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                         No venue assigned. Contact your administrator.
                     </p>
                 ) : null
+            ) : mode === 'ip-camera' ? (
+                <IPCameraViewer compact={compact} />
             ) : (
                 <MJPEGViewer compact={compact} />
             )}
+        </div>
+    )
+}
+
+// ─────────────────────────────────────────────
+// IP Camera Viewer (AI Processed Feed)
+// ─────────────────────────────────────────────
+function IPCameraViewer({ compact }: { compact: boolean }) {
+    const streamUrl = "/api/camera/stream"
+    const [isConnected, setIsConnected] = React.useState(false)
+    const [isLoading, setIsLoading] = React.useState(true)
+    const [lastDetection, setLastDetection] = React.useState<{ text: string; conf: string } | null>(null)
+    const [isTriggering, setIsTriggering] = React.useState(false)
+    const imgRef = React.useRef<HTMLImageElement>(null)
+
+    const triggerSnapshot = async () => {
+        setIsTriggering(true)
+        try {
+            const res = await fetch("/api/camera/trigger", { method: 'POST' })
+            const data = await res.json()
+            if (data.success) {
+                setLastDetection({ text: data.text, conf: data.confidence })
+            }
+        } catch (e) {
+            console.error("Failed to trigger snapshot", e)
+        } finally {
+            setIsTriggering(false)
+        }
+    }
+
+    return (
+        <div className="space-y-3">
+            <div
+                className={`rounded-2xl border border-slate-200 bg-black overflow-hidden relative ${compact ? 'max-h-[300px]' : 'max-h-[500px]'
+                    }`}
+            >
+                {/* LIVE badge */}
+                <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <motion.div
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="w-2 h-2 bg-rose-500 rounded-full"
+                    />
+                    <span className="text-xs font-semibold text-white">PROCESSED FEED</span>
+                </div>
+
+                {/* Connection Status */}
+                <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <Radio className={`w-3 h-3 ${isConnected ? 'text-emerald-400' : 'text-slate-400'}`} />
+                    <span className="text-xs font-medium text-white/80">
+                        {isConnected ? 'Stream Active' : 'Connecting…'}
+                    </span>
+                </div>
+
+                <img
+                    ref={imgRef}
+                    src={streamUrl}
+                    alt="Processed IP Camera feed"
+                    className={`w-full h-auto object-contain ${compact ? 'min-h-[200px]' : 'min-h-[300px]'}`}
+                    onLoad={() => { setIsConnected(true); setIsLoading(false) }}
+                    onError={() => { setIsConnected(false); setIsLoading(false) }}
+                />
+
+                {!isConnected && !isLoading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90">
+                        <WifiOff className="w-10 h-10 text-slate-400 mb-3" />
+                        <p className="text-white font-medium text-sm mb-1">Backend Offline</p>
+                        <p className="text-slate-400 text-xs text-center max-w-xs">
+                            Start the camera streamer script: <br />
+                            <code className="bg-slate-800 px-1 rounded mt-1 block font-mono">python model/camera_streamer.py</code>
+                        </p>
+                    </div>
+                )}
+
+                {isLoading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90">
+                        <Loader2 className="w-8 h-8 text-sky-500 animate-spin mb-2" />
+                        <p className="text-white text-sm font-medium">Initializing Stream…</p>
+                    </div>
+                )}
+
+                {/* Automation Overlay */}
+                {isConnected && (
+                    <div className="absolute bottom-3 left-3 z-10 flex flex-col gap-2">
+                        {lastDetection && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex items-center gap-2 bg-emerald-900/90 backdrop-blur-sm border border-emerald-500/50 px-3 py-2 rounded-xl shadow-lg"
+                            >
+                                <div className="p-1 bg-emerald-500 rounded-lg">
+                                    <ScanLine className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider">Last Detection</span>
+                                    <span className="text-sm font-black text-white font-mono">{lastDetection.text}</span>
+                                </div>
+                                <span className="ml-2 text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded-md border border-emerald-500/30">
+                                    {lastDetection.conf}
+                                </span>
+                            </motion.div>
+                        )}
+
+                        <button
+                            onClick={triggerSnapshot}
+                            disabled={isTriggering}
+                            className="group flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 px-4 py-2 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                        >
+                            {isTriggering ? (
+                                <Loader2 className="w-4 h-4 text-rose-400 animate-spin" />
+                            ) : (
+                                <ScanLine className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+                            )}
+                            <span className="text-xs font-bold text-white uppercase tracking-tight">
+                                {isTriggering ? 'Processing...' : 'Manual Trigger'}
+                            </span>
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

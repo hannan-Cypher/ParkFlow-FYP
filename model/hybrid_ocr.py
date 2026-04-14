@@ -31,6 +31,7 @@ Performance
 from __future__ import annotations
 
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -135,7 +136,7 @@ _YEAR_RE = re.compile(
 )
 
 # fast-plate-ocr confidence threshold to prefer it over EasyOCR
-FPOCR_CONFIDENCE_THRESHOLD = 0.75
+FPOCR_CONFIDENCE_THRESHOLD = float(os.environ.get('FPOCR_GATE_THRESHOLD', 0.70))
 
 # Total OCR function budget in seconds
 OCR_TIMEOUT_SECONDS = 1.5
@@ -213,41 +214,11 @@ def get_easyocr_reader() -> easyocr.Reader:
 
 
 # ============================================================================
-# TIMEOUT — thread-safe via concurrent.futures (SIGALRM only works in
-# main thread; Flask uses worker threads so SIGALRM crashes every request)
+# TIMEOUT — Removed (Sequential execution replaces parallel Pool)
 # ============================================================================
 
-import concurrent.futures as _cf
 
-class _TimeoutError(Exception):
-    pass
-
-
-_ocr_executor = _cf.ThreadPoolExecutor(max_workers=2, thread_name_prefix="ocr_")
-
-
-def _run_with_timeout(fn, seconds: float, *args, **kwargs):
-    """
-    Run `fn(*args, **kwargs)` with a wall-clock timeout enforced via
-    concurrent.futures.Future.result(timeout=).  Thread-safe — works inside
-    Flask worker threads unlike signal.SIGALRM.
-
-    Parameters
-    ----------
-    fn      : Callable to execute.
-    seconds : Maximum allowed wall-clock time in seconds.
-    *args, **kwargs : Forwarded to fn.
-
-    Raises
-    ------
-    _TimeoutError if fn does not complete within `seconds`.
-    """
-    future = _ocr_executor.submit(fn, *args, **kwargs)
-    try:
-        return future.result(timeout=seconds)
-    except _cf.TimeoutError:
-        future.cancel()
-        raise _TimeoutError(f"{fn.__name__} timed out after {seconds}s")
+# (Function _run_with_timeout removed)
 
 
 
@@ -932,11 +903,62 @@ def hybrid_ocr(
         )
 
     ocr_reader = reader or get_easyocr_reader()
+    
+    # Read threshold dynamically (supports runtime change via env var)
+    try:
+        gate_threshold = float(os.environ.get('FPOCR_GATE_THRESHOLD', FPOCR_CONFIDENCE_THRESHOLD))
+    except (ValueError, TypeError):
+        gate_threshold = FPOCR_CONFIDENCE_THRESHOLD
 
-    # ── Run both engines ─────────────────────────────────────────────────────
+    stages_executed = ["fpocr"]
+
+    # ── Step 1: Run fast-plate-ocr (Primary Engine) ──────────────────────────
     t_fpocr_start = time.perf_counter()
     fpocr_raw, fpocr_conf = run_fast_plate_ocr(plate_crop_img)
     t_fpocr_ms = (time.perf_counter() - t_fpocr_start) * 1000
+
+    # Post-process fast-plate-ocr result immediately
+    fpocr_valid = full_postprocess(fpocr_raw)
+    fpocr_is_valid_pk = (
+        fpocr_valid not in ("UNREADABLE", "")
+        and is_valid_pakistani_plate(fpocr_valid)
+    )
+
+    # ── GATING CRITERIA: Sequential Exit ─────────────────────────────────────
+    # If fast-plate-ocr is confident AND result is valid, return immediately
+    # Rule: confidence >= threshold AND text must not be empty or unreadable
+    if fpocr_conf >= gate_threshold and fpocr_valid not in ("UNREADABLE", "") and fpocr_is_valid_pk:
+        elapsed_ms = (time.perf_counter() - t_start) * 1000
+        log.info(
+            f"[hybrid_ocr] GATED SUCCESS: FPOCR='{fpocr_valid}'({fpocr_conf:.2f}) "
+            f"→ '{fpocr_valid}' via fast_plate_ocr [GATED, {elapsed_ms:.0f} ms]"
+        )
+        return HybridOCRResult(
+            text=fpocr_valid,
+            confidence=fpocr_conf,
+            method="fast_plate_ocr",
+            elapsed_ms=elapsed_ms,
+            debug={
+                "fast_plate_ocr": {
+                    "raw":        fpocr_raw,
+                    "validated":  fpocr_valid,
+                    "confidence": round(fpocr_conf, 4),
+                    "elapsed_ms": round(t_fpocr_ms, 1),
+                    "pk_match":   fpocr_is_valid_pk,
+                },
+                "easyocr": {"status": "SKIPPED"},
+                "early_exit": True,
+                "stages_executed": stages_executed,
+                "selected": "fast_plate_ocr",
+                "total_ms": round(elapsed_ms, 1),
+                "gate_threshold": gate_threshold
+            }
+        )
+
+    # ── FALLBACK: Run EasyOCR (only if gate failed) ───────────────────────────
+    log.info(f"[hybrid_ocr] Gate failed (conf={fpocr_conf:.2f}, text='{fpocr_valid}'), running EasyOCR fallback...")
+    
+    stages_executed.extend(["easyocr", "split"])
 
     t_eocr_start = time.perf_counter()
     eocr_raw,  eocr_conf  = run_easyocr(plate_crop_img, ocr_reader)
@@ -947,14 +969,9 @@ def hybrid_ocr(
     split_raw, split_conf = run_multiline_easyocr(plate_crop_img, ocr_reader)
     t_split_ms = (time.perf_counter() - t_split_start) * 1000
 
-    # ── Post-process ALL raw results with full pipeline (all 5 fixes) ─────────
-    fpocr_valid = full_postprocess(fpocr_raw)
+    # ── Post-process Fallback Results ─────────────────────────────────────────
     eocr_valid  = full_postprocess(eocr_raw)
     split_valid = full_postprocess(split_raw)
-
-    # Aliases for debug (cleaned = same as valid in new pipeline)
-    fpocr_cleaned = fpocr_valid
-    eocr_cleaned  = eocr_valid
 
     # Upgrade EasyOCR if 3-zone split produced a longer, valid result
     if split_valid not in ("UNREADABLE", "") and split_valid != eocr_valid:
@@ -966,13 +983,9 @@ def hybrid_ocr(
             eocr_conf  = split_conf
             log.debug(f"[hybrid_ocr] 3-zone split upgraded EasyOCR → '{eocr_valid}'")
 
-    # ── Selection logic ───────────────────────────────────────────────────────
-    fpocr_is_valid_pk = (
-        fpocr_valid not in ("UNREADABLE", "")
-        and is_valid_pakistani_plate(fpocr_valid)
-    )
-
-    if fpocr_conf > FPOCR_CONFIDENCE_THRESHOLD and fpocr_is_valid_pk:
+    # ── Final Selection Logic (Same as original but for fallback results) ──
+    # Note: fpocr was already processed above
+    if fpocr_conf > 0.85 and fpocr_is_valid_pk: # Buffer for extremely high FPOCR
         winner_text   = fpocr_valid
         winner_conf   = fpocr_conf
         winner_method = "fast_plate_ocr"
@@ -992,11 +1005,9 @@ def hybrid_ocr(
 
     elapsed_ms = (time.perf_counter() - t_start) * 1000
 
-    # ── Debug payload (always logged) ────────────────────────────────────────
     debug = {
         "fast_plate_ocr": {
             "raw":        fpocr_raw,
-            "cleaned":    fpocr_cleaned,
             "validated":  fpocr_valid,
             "confidence": round(fpocr_conf, 4),
             "elapsed_ms": round(t_fpocr_ms, 1),
@@ -1004,7 +1015,6 @@ def hybrid_ocr(
         },
         "easyocr": {
             "raw":        eocr_raw,
-            "cleaned":    eocr_cleaned,
             "validated":  eocr_valid,
             "confidence": round(eocr_conf, 4),
             "elapsed_ms": round(t_eocr_ms, 1),
@@ -1015,12 +1025,15 @@ def hybrid_ocr(
             "confidence": round(split_conf, 4),
             "elapsed_ms": round(t_split_ms, 1),
         },
+        "early_exit": False,
+        "stages_executed": stages_executed,
         "selected": winner_method,
         "total_ms": round(elapsed_ms, 1),
+        "gate_threshold": gate_threshold
     }
 
     log.info(
-        f"[hybrid_ocr] "
+        f"[hybrid_ocr] FALLBACK COMPLETE: "
         f"FPOCR='{fpocr_valid}'({fpocr_conf:.2f}) "
         f"EOCR='{eocr_valid}'({eocr_conf:.2f}) "
         f"→ '{winner_text}' via {winner_method} "
