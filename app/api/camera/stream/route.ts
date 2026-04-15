@@ -7,6 +7,9 @@ export async function GET() {
         const upstreamUrl = process.env.CAMERA_STREAM_URL || 'http://localhost:8081/video_feed';
         const response = await fetch(upstreamUrl, {
             cache: 'no-store',
+            headers: {
+                'ngrok-skip-browser-warning': 'true',
+            },
         });
 
 
