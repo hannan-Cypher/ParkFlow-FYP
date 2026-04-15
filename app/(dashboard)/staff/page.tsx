@@ -1667,10 +1667,17 @@ function CheckInTab({
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   const sess = checkinResult!.session;
-                  let baseUrl = window.location.origin;
-                  if (baseUrl.includes("localhost")) {
-                    // Injecting Ngrok URL so WhatsApp treats it as a clickable 
-                    // hyperlink instead of plain text that requires messy copy-pasting
+                  // Force the WhatsApp Ticket Link to use the actual production URL (if configured)
+                  // rather than the URL the staff member happened to load the dashboard from.
+                  // This prevents `ngrok-free.app` URLs from slipping into customer SMS messages.
+                  let envUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+                  if (process.env.NEXT_PUBLIC_VERCEL_URL) envUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+
+                  let baseUrl = (envUrl && !envUrl.includes("localhost")) ? envUrl : window.location.origin;
+
+                  if (baseUrl.includes("localhost") || baseUrl.includes("ngrok")) {
+                    // You can replace this fixed string with your actual deployed URL (e.g. https://parkflow.vercel.app)
+                    // if you want local tests to ALSO generate proper production links.
                     baseUrl = "https://ductless-case-overproficiently.ngrok-free.dev";
                   }
                   const ticketData = {
