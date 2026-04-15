@@ -7,15 +7,23 @@ declare global {
   var _pgPool: Pool | undefined;
 }
 
-const pool: Pool = global._pgPool ?? new Pool({
-  user: 'Owner',
-  password: '1512147296110@Hm',
-  host: 'localhost',
-  port: 5432,
-  database: 'valet_parking',
-  max: 5,                // limit pool size to 5 connections
-  idleTimeoutMillis: 30000,  // close idle connections after 30s
-});
+const poolConfig = process.env.DATABASE_URL
+  ? {
+    connectionString: process.env.DATABASE_URL,
+    max: 5,
+    idleTimeoutMillis: 30000,
+  }
+  : {
+    user: process.env.POSTGRES_USER || 'Owner',
+    password: process.env.POSTGRES_PASSWORD || '1512147296110@Hm',
+    host: process.env.POSTGRES_HOST || 'localhost',
+    port: parseInt(process.env.POSTGRES_PORT || '5432'),
+    database: process.env.POSTGRES_DB || 'valet_parking',
+    max: 5,
+    idleTimeoutMillis: 30000,
+  };
+
+const pool: Pool = global._pgPool ?? new Pool(poolConfig);
 
 if (process.env.NODE_ENV !== 'production') {
   global._pgPool = pool;
