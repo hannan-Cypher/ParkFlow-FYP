@@ -28,6 +28,10 @@ CAM_PASS = os.environ.get('CAM_PASS', 'Admin123')
 RTSP_URL     = f'rtsp://{CAM_USER}:{CAM_PASS}@{CAM_IP}:554/Streaming/Channels/101'
 SNAPSHOT_URL = f'http://{CAM_IP}/ISAPI/Streaming/channels/101/picture'
 
+# Cloud webhook — send detected plates to the deployed Railway app
+CLOUD_URL = os.environ.get('CLOUD_URL', 'https://parkflow.up.railway.app')
+ANPR_WEBHOOK_SECRET = os.environ.get('ANPR_WEBHOOK_SECRET', 'change-me-in-production')
+
 MODEL_PATH = os.environ.get(
     'MODEL_PATH',
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'best.pt')
@@ -168,6 +172,25 @@ def yolo_worker():
                                 f"(conf={ocr_res.confidence:.2%}, "
                                 f"method={ocr_res.method})"
                             )
+                            # ── POST to Railway cloud ────────────────
+                            if ocr_res.text and ocr_res.confidence >= 0.60:
+                                try:
+                                    resp = requests.post(
+                                        f"{CLOUD_URL}/api/recognize",
+                                        json={
+                                            'plate':      ocr_res.text,
+                                            'confidence': round(ocr_res.confidence, 4),
+                                            'method':     ocr_res.method,
+                                            'secret':     ANPR_WEBHOOK_SECRET,
+                                        },
+                                        timeout=5,
+                                    )
+                                    if resp.status_code == 201:
+                                        log.info(f"☁️  Plate '{ocr_res.text}' sent to cloud.")
+                                    else:
+                                        log.warning(f"☁️  Cloud responded {resp.status_code}: {resp.text[:200]}")
+                                except Exception as cloud_err:
+                                    log.warning(f"☁️  Cloud POST failed: {cloud_err}")
                         threading.Thread(target=_run_ocr, daemon=True).start()
         else:
             annotated = frame
