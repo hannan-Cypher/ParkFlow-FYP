@@ -363,6 +363,12 @@ def venue_endpoint():
         with _venue_lock:
             _active_venue_id = data.get('venue_id')
             _active_venue_name = data.get('venue_name', '')
+        
+        # Clear latest detection when venue changes to avoid stale data on new location
+        with _latest_detection_lock:
+            global _latest_detection
+            _latest_detection = None
+            
         log.info(f"🏢 Venue set: {_active_venue_name} ({_active_venue_id})")
         return jsonify({'success': True, 'venue_id': _active_venue_id, 'venue_name': _active_venue_name})
 

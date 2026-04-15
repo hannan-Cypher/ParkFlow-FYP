@@ -20,11 +20,7 @@ interface Venue {
     city: string
 }
 
-// Camera streamer base URL — talks to camera_streamer.py (Flask on port 8081)
-// In production this goes through ngrok or similar tunnel
-const STREAMER_BASE = typeof window !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_CAMERA_STREAMER_URL || `${window.location.protocol}//${window.location.hostname}:8081`)
-    : 'http://localhost:8081'
+// In production this goes through the Next.js API handlers instead of direct port 8081 access
 
 export default function IPLocationPage() {
     // ── Venue selection ──────────────────────────────────────────────────────
@@ -68,9 +64,9 @@ export default function IPLocationPage() {
 
         setVenueName(venue.name)
 
-        // Tell camera_streamer.py which venue we're at
+        // Tell camera_streamer.py which venue we're at via our proxy endpoint
         try {
-            await fetch(`${STREAMER_BASE}/venue`, {
+            await fetch(`/api/camera/venue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -89,14 +85,15 @@ export default function IPLocationPage() {
         if (pollRef.current) clearInterval(pollRef.current)
         pollRef.current = setInterval(async () => {
             try {
-                const res = await fetch(`${STREAMER_BASE}/latest_detection`)
+                const res = await fetch(`/api/recognize?venue_id=${encodeURIComponent(venue.id)}&limit=1`)
                 const data = await res.json()
-                if (data.success && data.plate) {
-                    setLastPlate(data.plate)
-                    setLastConf(`${(data.confidence * 100).toFixed(0)}%`)
+                if (data.success && data.detections && data.detections.length > 0) {
+                    const det = data.detections[0]
+                    setLastPlate(det.plate_number)
+                    setLastConf(det.confidence ? `${(det.confidence * 100).toFixed(0)}%` : null)
                 }
             } catch {
-                // streamer offline — keep polling
+                // api offline — keep polling
             }
         }, 2000)
     }
@@ -197,8 +194,21 @@ export default function IPLocationPage() {
                         <span className="text-rose-300 text-xs font-medium">{venueName}</span>
                     </div>
                     <button
-                        onClick={() => {
+                        onClick={async () => {
                             if (pollRef.current) clearInterval(pollRef.current)
+                            // Notify streamer that we are changing location (reset venue)
+                            try {
+                                await fetch(`/api/camera/venue`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        venue_id: null,
+                                        venue_name: null,
+                                    }),
+                                })
+                            } catch (e) {
+                                console.error('Failed to reset venue on streamer:', e)
+                            }
                             setPhase('venue-select')
                             setLastPlate(null)
                             setIsConnected(false)
@@ -210,47 +220,47 @@ export default function IPLocationPage() {
                 </div>
 
                 {/* Raw camera stream */}
-                <div className="rounded-2xl border border-slate-700 bg-black overflow-hidden relative min-h-[300px]">
+                <div className="rounded-2xl border border-slate-700 bg-black overflow-hidden relative aspect-video w-full shadow-2xl">
                     {/* Status badges */}
-                    <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
                         {isConnected ? (
                             <>
-                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                                <span className="text-xs font-semibold text-white">LIVE</span>
+                                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                                <span className="text-[10px] font-bold text-white tracking-wider uppercase">LIVE</span>
                             </>
                         ) : (
                             <>
                                 <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
-                                <span className="text-xs font-semibold text-white">Connecting…</span>
+                                <span className="text-[10px] font-bold text-white tracking-wider uppercase">Connecting…</span>
                             </>
                         )}
                     </div>
 
-                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
                         {isConnected ? (
                             <Wifi className="w-3 h-3 text-emerald-400" />
                         ) : (
                             <WifiOff className="w-3 h-3 text-amber-400" />
                         )}
-                        <span className="text-xs font-medium text-white/80">
-                            {isConnected ? 'Stream Active' : 'Connecting…'}
+                        <span className="text-[10px] font-semibold text-white/90">
+                            {isConnected ? 'STREAM ACTIVE' : 'CONNECTING…'}
                         </span>
                     </div>
 
                     {/* ANPR active indicator */}
                     {isConnected && (
-                        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-emerald-500/30">
                             <ScanLine className="w-3 h-3 text-emerald-400" />
-                            <span className="text-xs font-medium text-emerald-400">ANPR Active</span>
+                            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-tight">ANPR Active</span>
                         </div>
                     )}
 
                     {/* Raw MJPEG stream */}
                     <img
                         ref={imgRef}
-                        src={`${STREAMER_BASE}/video_feed`}
+                        src={`/api/camera/stream?venue_id=setup`}
                         alt="IP Camera live feed"
-                        className="w-full h-auto object-contain min-h-[300px]"
+                        className="w-full h-full object-cover"
                         onLoad={() => { setIsConnected(true); setIsLoading(false) }}
                         onError={() => { setIsConnected(false); setIsLoading(false) }}
                     />

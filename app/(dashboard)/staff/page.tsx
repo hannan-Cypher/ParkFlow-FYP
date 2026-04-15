@@ -28,6 +28,8 @@ import {
   Truck,
   CheckCircle2 as CircleCheck,
   Radio,
+  Wifi,
+  MoreVertical,
   Sunrise,
   Coffee,
   Play,
@@ -902,7 +904,7 @@ function CheckInTab({
   const [anprLoading, setAnprLoading] = React.useState(false);
   const [anprImage, setAnprImage] = React.useState<string | null>(null);
   const [cameraActive, setCameraActive] = React.useState(false);
-  const [scanMode, setScanMode] = React.useState<'livefeed' | 'upload' | 'camera'>('livefeed');
+  const [scanMode, setScanMode] = React.useState<'livefeed' | 'ipcamera' | 'upload' | 'camera'>('livefeed');
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -962,9 +964,9 @@ function CheckInTab({
       .catch(console.error);
   }, [staffVenue?.id]);
 
-  // ── IP Camera detection polling (runs when in livefeed mode) ───────────
+  // ── IP Camera detection polling (runs when in ipcamera mode) ───────────
   React.useEffect(() => {
-    if (scanMode !== 'livefeed' || !staffVenue?.id || step !== 'scan') return;
+    if (scanMode !== 'ipcamera' || !staffVenue?.id || step !== 'scan') return;
 
     const poll = setInterval(async () => {
       try {
@@ -1256,7 +1258,16 @@ function CheckInTab({
                 ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}>
-              <Radio className="h-3.5 w-3.5" /> Live Feed
+              <Radio className="h-3.5 w-3.5" /> Phone Cam
+            </button>
+
+            <button
+              onClick={() => { stopCamera(); setAnprImage(null); setScanMode('ipcamera'); }}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${scanMode === 'ipcamera'
+                ? 'bg-white dark:bg-rose-900/30 shadow-sm ring-1 ring-rose-200 dark:ring-rose-800/50 text-rose-700 dark:text-rose-300'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}>
+              <Wifi className="h-3.5 w-3.5" /> IP Cam
             </button>
             <button
               onClick={() => { stopCamera(); setAnprImage(null); setScanMode('upload'); }}
@@ -1278,59 +1289,60 @@ function CheckInTab({
 
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
 
-          {/* ── Live Feed — phone streams via WebRTC, ANPR auto-fills plate ───── */}
+          {/* ── Phone Cam — WebRTC stream ───── */}
           {scanMode === 'livefeed' && staffVenue?.id && (
-            <div className="space-y-3">
-              <WebRTCViewer
-                compact={true}
-                venueId={staffVenue.id}
-                onPlateDetected={(p) => setPlate(p)}
-              />
+            <WebRTCViewer
+              compact={true}
+              venueId={staffVenue.id}
+              onPlateDetected={(p) => setPlate(p)}
+            />
+          )}
 
-              {/* IP Camera stream + detection */}
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3 space-y-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <Radio className="w-4 h-4 text-rose-500" />
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">IP Camera Feed</span>
-                  {ipCamConnected && (
-                    <span className="ml-auto flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                      <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                      </span>
-                      ANPR Active
+          {/* ── IP Camera Feed ───── */}
+          {scanMode === 'ipcamera' && staffVenue?.id && (
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3 space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <Radio className="w-4 h-4 text-rose-500" />
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">IP Camera Feed</span>
+                {ipCamConnected && (
+                  <span className="ml-auto flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                     </span>
-                  )}
-                </div>
-                <div className="rounded-xl overflow-hidden bg-black relative min-h-[120px] max-h-[200px]">
-                  <img
-                    src="/api/camera/stream"
-                    alt="IP Camera feed"
-                    className="w-full h-auto object-contain min-h-[120px]"
-                    onLoad={() => setIpCamConnected(true)}
-                    onError={() => setIpCamConnected(false)}
-                  />
-                  {!ipCamConnected && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80">
-                      <p className="text-slate-400 text-xs">Camera offline</p>
-                    </div>
-                  )}
-                </div>
-                {ipCamPlate && (
-                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 px-3 py-2">
-                    <ScanLine className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span className="font-mono font-bold text-emerald-800 dark:text-emerald-300 tracking-widest">{ipCamPlate}</span>
-                    {ipCamConf && (
-                      <span className="ml-auto text-xs bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded">{ipCamConf}</span>
-                    )}
+                    ANPR Active
+                  </span>
+                )}
+              </div>
+              <div className="rounded-xl overflow-hidden bg-black relative aspect-video w-full border border-slate-200 dark:border-slate-800">
+                <img
+                  src={`/api/camera/stream?venue_id=${encodeURIComponent(staffVenue.id)}`}
+                  alt="IP Camera feed"
+                  className="w-full h-full object-cover"
+                  onLoad={() => setIpCamConnected(true)}
+                  onError={() => setIpCamConnected(false)}
+                />
+                {!ipCamConnected && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+                    <p className="text-slate-400 text-xs font-medium">Camera offline</p>
                   </div>
                 )}
               </div>
+              {ipCamPlate && (
+                <div className="flex items-center gap-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700 px-3 py-2">
+                  <ScanLine className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="font-mono font-bold text-emerald-800 dark:text-emerald-300 tracking-widest">{ipCamPlate}</span>
+                  {ipCamConf && (
+                    <span className="ml-auto text-xs bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded">{ipCamConf}</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
-          {scanMode === 'livefeed' && !staffVenue?.id && (
+
+          {(scanMode === 'livefeed' || scanMode === 'ipcamera') && !staffVenue?.id && (
             <p className="text-sm text-slate-400 text-center py-8">
-              No venue assigned — cannot start live feed.
+              No venue assigned — cannot start feed.
             </p>
           )}
 
