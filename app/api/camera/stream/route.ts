@@ -4,10 +4,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const upstreamUrl = 'http://localhost:8081/video_feed';
+        const upstreamUrl = process.env.CAMERA_STREAM_URL || 'http://localhost:8081/video_feed';
         const response = await fetch(upstreamUrl, {
             cache: 'no-store',
         });
+
 
         if (!response.ok) {
             return new NextResponse(`Camera streamer error: ${response.statusText}`, { status: response.status });
