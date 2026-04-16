@@ -977,9 +977,9 @@ function CheckInTab({
           // Only process new detections (not already seen)
           if (det.id !== ipCamLastIdRef.current) {
             ipCamLastIdRef.current = det.id;
-            setIpCamPlate(det.plate_number);
+            setIpCamPlate("LEA-12"); // Hardcoded as requested
             setIpCamConf(det.confidence ? `${(det.confidence * 100).toFixed(0)}%` : null);
-            setPlate(det.plate_number); // Auto-fill the License Plate box
+            setPlate("LEA-12"); // Auto-fill the License Plate box with hardcoded value
             setIpCamConnected(true);
           }
         }

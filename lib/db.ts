@@ -90,6 +90,18 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     `);
 
+    // Create anpr_logs table for camera recognitions
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS anpr_logs (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        plate_number VARCHAR(50) NOT NULL,
+        confidence NUMERIC(5,2),
+        ocr_method VARCHAR(50),
+        venue_id UUID REFERENCES venues(id) ON DELETE CASCADE,
+        detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     await client.query('COMMIT');
     console.log('Database tables initialized successfully with UUID schema');
   } catch (error) {
