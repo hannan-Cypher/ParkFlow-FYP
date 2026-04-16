@@ -50,7 +50,7 @@ SNAPSHOT_URL = f'http://{CAM_IP}/ISAPI/Streaming/channels/101/picture'
 
 # Cloud webhook — send detected plates to the deployed Railway app
 CLOUD_URL = os.environ.get('CLOUD_URL', 'https://parkflow-fyp-production.up.railway.app')
-ANPR_WEBHOOK_SECRET = os.environ.get('ANPR_WEBHOOK_SECRET', 'change-me-in-production')
+ANPR_WEBHOOK_SECRET = os.environ.get('ANPR_WEBHOOK_SECRET', 'parkflow-anpr-secret-2024')
 
 MODEL_PATH = os.environ.get(
     'MODEL_PATH',
