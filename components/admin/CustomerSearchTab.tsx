@@ -20,6 +20,7 @@ import {
     Users,
 } from 'lucide-react'
 import { CollapsibleSessionCard, type CollapsibleSessionData } from '../shared/CollapsibleSessionCard'
+import { useRealtime } from '@/hooks/useRealtime'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -240,10 +241,7 @@ export default function CustomerSearchTab() {
     }, [query, performSearch])
 
     // ── Fetch customer details ────────────────────────────────────────────
-    const openDetail = async (customerId: string) => {
-        setSelectedCustomerId(customerId)
-        setDetailLoading(true)
-        setDetailTab('sessions')
+    const fetchCustomerDetail = useCallback(async (customerId: string) => {
         try {
             const res = await fetch(`/api/admin/customers/${customerId}`)
             if (res.ok) {
@@ -255,10 +253,23 @@ export default function CustomerSearchTab() {
             }
         } catch {
             // silently ignore
-        } finally {
-            setDetailLoading(false)
         }
+    }, [])
+
+    const openDetail = async (customerId: string) => {
+        setSelectedCustomerId(customerId)
+        setDetailLoading(true)
+        setDetailTab('sessions')
+        await fetchCustomerDetail(customerId)
+        setDetailLoading(false)
     }
+
+    // Real-time updates via SSE
+    useRealtime(useCallback((event) => {
+        if (selectedCustomerId && (event.table === 'parking_sessions' || event.table === 'service_requests' || event.table === 'vehicles')) {
+            fetchCustomerDetail(selectedCustomerId);
+        }
+    }, [selectedCustomerId, fetchCustomerDetail]), ['parking_sessions', 'service_requests', 'vehicles']);
 
     const closeDetail = () => {
         setSelectedCustomerId(null)

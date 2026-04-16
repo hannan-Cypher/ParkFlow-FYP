@@ -9,8 +9,11 @@ import {
   Clock,
   User,
   Camera,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from 'lucide-react'
 import { ImagePreviewModal } from './ImagePreviewModal'
+import { formatSessionDateTime, getArrowConfig } from '@/lib/dateTimeUtils'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -118,7 +121,7 @@ export function CollapsibleSessionCard({
           {/* Only supervisor / admin see billing */}
           {canSeeBilling && session.total_amount != null && (
             <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-              Rs.{Math.round(((session.total_amount ?? 0) + (session.wash_amount ?? 0))).toLocaleString()}
+              Rs.{Math.round((Number(session.total_amount ?? 0) + Number(session.wash_amount ?? 0))).toLocaleString()}
               {(session.wash_amount ?? 0) > 0 && (
                 <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 ml-1">
                   (incl. wash)
@@ -141,17 +144,31 @@ export function CollapsibleSessionCard({
 
       {/* ── Always-visible strip ────────────────────────────────────────── */}
       <div className="px-4 pb-3">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs text-slate-500 dark:text-slate-400">
-          {session.slot_display && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-[11px] font-medium">
+          {/* Check-in */}
+          <div className="flex items-center gap-1.5">
+            <div className={`flex h-5 w-5 items-center justify-center rounded-md ${getArrowConfig('in').bg}`}>
+              <ArrowDownLeft className={`h-3 w-3 ${getArrowConfig('in').text}`} />
+            </div>
+            <span className="text-slate-500 dark:text-slate-400">In: {formatSessionDateTime(session.entry_time)}</span>
+          </div>
+
+          {/* Check-out (if completed) */}
+          {session.status === 'completed' && session.exit_time && (
             <div className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <div className={`flex h-5 w-5 items-center justify-center rounded-md ${getArrowConfig('out').bg}`}>
+                <ArrowUpRight className={`h-3 w-3 ${getArrowConfig('out').text}`} />
+              </div>
+              <span className="text-slate-500 dark:text-slate-400">Out: {formatSessionDateTime(session.exit_time)}</span>
+            </div>
+          )}
+
+          {session.slot_display && (
+            <div className="flex items-center gap-1.5 text-slate-400 sm:ml-auto">
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{session.venue_name} • {session.slot_display}</span>
             </div>
           )}
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>In: {timeStr}</span>
-          </div>
         </div>
 
         {/* ── Expandable detail panel ───────────────────────────────────── */}
@@ -263,7 +280,7 @@ export function CollapsibleSessionCard({
                         <div className="border-t border-emerald-200 dark:border-emerald-700 pt-2 flex items-center justify-between text-xs">
                           <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Total Charged</span>
                           <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                            Rs.{Math.round(((session.total_amount ?? 0) + (session.wash_amount ?? 0))).toLocaleString()}
+                            Rs.{Math.round((Number(session.total_amount ?? 0) + Number(session.wash_amount ?? 0))).toLocaleString()}
                           </span>
                         </div>
                       </>

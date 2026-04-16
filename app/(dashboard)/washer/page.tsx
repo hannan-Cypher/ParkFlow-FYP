@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { ImagePreviewModal } from "@/components/shared/ImagePreviewModal";
+import { useRealtime } from "@/hooks/useRealtime";
 
 // ── Animation Presets ────────────────────────────────────────────────────
 const container = {
@@ -1233,14 +1234,16 @@ export default function WasherDashboard() {
     load();
   }, [fetchWasherInfo, fetchStats, fetchTasks, fetchShift]);
 
-  // Auto-refresh tasks every 30s
-  React.useEffect(() => {
-    const id = setInterval(() => {
+  // Real-time updates via SSE
+  useRealtime(React.useCallback((event) => {
+    if (event.table === 'service_requests') {
       fetchTasks();
       fetchStats();
-    }, 30000);
-    return () => clearInterval(id);
-  }, [fetchTasks, fetchStats]);
+    }
+    if (event.table === 'users') {
+      fetchShift();
+    }
+  }, [fetchTasks, fetchStats, fetchShift]), ['service_requests', 'users']);
 
   // ── Task Actions ───────────────────────────────────────────────────────
 

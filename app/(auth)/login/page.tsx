@@ -169,7 +169,7 @@ export default function LoginPage() {
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-right">
               <div className="flex items-center">
                 <input
                   id="remember-me"
@@ -180,11 +180,6 @@ export default function LoginPage() {
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-700 dark:text-slate-300">
                   Remember me
                 </label>
-              </div>
-              <div className="text-sm">
-                <Link href="/forgot-password" className="font-medium text-primary-500 hover:text-primary-600">
-                  Forgot password?
-                </Link>
               </div>
             </div>
 
@@ -206,16 +201,6 @@ export default function LoginPage() {
                 'Sign in'
               )}
             </button>
-
-            {/* Register Link */}
-            <div className="text-center pt-4">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Don&apos;t have an account?{' '}
-                <Link href="/register" className="font-medium text-primary-500 hover:text-primary-600">
-                  Create one
-                </Link>
-              </p>
-            </div>
           </form>
         </motion.div>
 

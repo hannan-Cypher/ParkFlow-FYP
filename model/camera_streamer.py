@@ -41,7 +41,7 @@ log = logging.getLogger(__name__)
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-CAM_IP   = os.environ.get('CAM_IP',   '192.168.18.58')
+CAM_IP   = os.environ.get('CAM_IP',   '192.168.137.50')
 CAM_USER = os.environ.get('CAM_USER', 'admin')
 CAM_PASS = os.environ.get('CAM_PASS', 'Admin123')
 

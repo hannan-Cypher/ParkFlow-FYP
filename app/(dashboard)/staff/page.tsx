@@ -37,8 +37,10 @@ import {
   Info,
   Timer,
   Crown,
+  ArrowDownLeft,
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import { formatSessionDateTime, getArrowConfig } from "@/lib/dateTimeUtils";
 import { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
 import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
 import PhoneInput from "@/components/staff/PhoneInput";
@@ -55,6 +57,7 @@ import {
   ShiftSummaryModal,
 } from "@/components/shared/shift";
 import { useShift } from "@/components/shared/shift/useShift";
+import { useRealtime } from "@/hooks/useRealtime";
 
 // ── Animation Presets ────────────────────────────────────────────────────
 const container = {
@@ -328,14 +331,16 @@ export default function StaffDashboardPage() {
     }
   }, [activeTab, fetchActiveVehicles]);
 
-  // Auto-refresh every 60s
-  React.useEffect(() => {
-    const interval = setInterval(() => {
+  // Real-time updates via SSE
+  useRealtime(React.useCallback((event) => {
+    if (event.table === 'parking_sessions') {
       fetchActiveVehicles();
+    }
+    if (event.table === 'service_requests' || event.table === 'users') {
       if (staffInfo?.id) fetchTasks();
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [fetchActiveVehicles, fetchStaffInfo, fetchTasks, staffInfo?.id]);
+      fetchStaffInfo();
+    }
+  }, [fetchActiveVehicles, fetchTasks, fetchStaffInfo, staffInfo?.id]), ['parking_sessions', 'service_requests', 'users']);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -762,12 +767,13 @@ function ActiveVehiclesTab({
                     <div className="font-bold font-mono tracking-wider dark:text-white">
                       {(v.vehicle as { license_plate: string }).license_plate}
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {v.customer_name} •{" "}
-                      {new Date(v.entry_time).toLocaleTimeString("en-US", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] font-medium">
+                      <div className={`flex h-4 w-4 items-center justify-center rounded-[4px] ${getArrowConfig('in').bg}`}>
+                        <ArrowDownLeft className={`h-2.5 w-2.5 ${getArrowConfig('in').text}`} />
+                      </div>
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {v.customer_name} • {formatSessionDateTime(v.entry_time)}
+                      </span>
                     </div>
                   </div>
                 </div>

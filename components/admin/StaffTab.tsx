@@ -26,6 +26,7 @@ import {
   Building2,
 } from 'lucide-react'
 import { buildWhatsAppStaffInviteLink } from '@/lib/whatsapp'
+import { useRealtime } from '@/hooks/useRealtime'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -368,11 +369,11 @@ export default function StaffTab({
     fetchPendingShifts()
   }, [fetchStaff, fetchVenues, fetchPendingShifts])
 
-  // Auto-poll for late arrivals every 30s
   useEffect(() => {
-    const id = setInterval(fetchPendingShifts, 30_000)
-    return () => clearInterval(id)
-  }, [fetchPendingShifts])
+    fetchStaff()
+    fetchVenues()
+    fetchPendingShifts()
+  }, [fetchStaff, fetchVenues, fetchPendingShifts])
 
   // ── Open modal ───────────────────────────────────────────────────────────
 
@@ -575,6 +576,15 @@ export default function StaffTab({
       setLoadingDutyBoard(false)
     }
   }, [selectedDutyVenueId])
+
+  // Real-time updates via SSE
+  useRealtime(useCallback((event) => {
+    if (event.table === 'users' || event.table === 'parking_sessions') {
+      fetchStaff();
+      fetchPendingShifts();
+      if (showDutyBoard) fetchDutyBoard();
+    }
+  }, [fetchStaff, fetchPendingShifts, fetchDutyBoard, showDutyBoard]), ['users', 'parking_sessions']);
 
   async function handleZoneAssign(staffId: string, venueId: string, zoneId: string) {
     setAssigningId(staffId)

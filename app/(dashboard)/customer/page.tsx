@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
+import { useRealtime } from "@/hooks/useRealtime";
 
 // ── Animation Presets ───────────────────────────────────────────────────────
 const container = {
@@ -240,13 +241,13 @@ export default function CustomerDashboardPage() {
     fetchCompletedSessions();
   }, [fetchActiveSessions, fetchCompletedSessions]);
 
-  // Auto-refresh every 15 seconds (faster to detect checkout quickly)
-  React.useEffect(() => {
-    const interval = setInterval(() => {
+  // Real-time updates via SSE
+  useRealtime(React.useCallback((event) => {
+    if (event.table === 'parking_sessions' || event.table === 'transactions' || event.table === 'service_requests') {
       fetchActiveSessions();
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [fetchActiveSessions]);
+      fetchCompletedSessions();
+    }
+  }, [fetchActiveSessions, fetchCompletedSessions]), ['parking_sessions', 'transactions', 'service_requests']);
 
   // ── Request vehicle retrieval ─────────────────────────────────────────────
   const handleRetrieveVehicle = async (sessionId: string) => {
@@ -1591,8 +1592,8 @@ function ServicesTab({ activeSessions }: { activeSessions: ActiveSession[] }) {
                     setBookingError(null);
                   }}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${selectedSession === s.id
-                      ? "bg-sky-600 text-white shadow-sm"
-                      : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                    ? "bg-sky-600 text-white shadow-sm"
+                    : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
                     }`}
                 >
                   <Car className="w-3 h-3" />
@@ -1663,8 +1664,8 @@ function ServicesTab({ activeSessions }: { activeSessions: ActiveSession[] }) {
                       whileHover="hover"
                       animate="rest"
                       className={`relative rounded-2xl border p-5 text-left transition-all ${isSelected
-                          ? `border-transparent ring-2 ${tier.ringColor} bg-white dark:bg-slate-800 shadow-md`
-                          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-sm"
+                        ? `border-transparent ring-2 ${tier.ringColor} bg-white dark:bg-slate-800 shadow-md`
+                        : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-sm"
                         }`}
                     >
                       {isSelected && (

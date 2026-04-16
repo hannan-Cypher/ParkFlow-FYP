@@ -16,6 +16,7 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react'
+import { useRealtime } from '@/hooks/useRealtime'
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
@@ -133,10 +134,14 @@ export default function OverviewTab({ hideRevenue = false }: { hideRevenue?: boo
 
   useEffect(() => {
     fetchData()
-    // Auto-refresh every 5 seconds
-    const interval = setInterval(() => fetchData(true), 5000)
-    return () => clearInterval(interval)
   }, [fetchData])
+
+  // Real-time updates via SSE
+  useRealtime(useCallback((event) => {
+    if (event.table === 'parking_sessions' || event.table === 'transactions' || event.table === 'service_requests') {
+      fetchData(true);
+    }
+  }, [fetchData]), ['parking_sessions', 'transactions', 'service_requests']);
 
   // ── Derived stats ─────────────────────────────────────────────────────────
 
@@ -241,14 +246,14 @@ export default function OverviewTab({ hideRevenue = false }: { hideRevenue?: boo
           },
           ...(!hideRevenue
             ? [
-                {
-                  label: "Today's Revenue",
-                  value: `Rs.${Math.round(todayRevenue).toLocaleString()}`,
-                  icon: Banknote,
-                  color: 'from-violet-500 to-purple-600',
-                  sub: 'Earned today',
-                },
-              ]
+              {
+                label: "Today's Revenue",
+                value: `Rs.${Math.round(todayRevenue).toLocaleString()}`,
+                icon: Banknote,
+                color: 'from-violet-500 to-purple-600',
+                sub: 'Earned today',
+              },
+            ]
             : []),
 
         ].map((card, i) => (
