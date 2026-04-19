@@ -121,18 +121,18 @@ PAKISTAN_NOISE_WORDS: list[str] = [
     'REG', 'NUM', 'MOT', 'VEH',
 ]
 
-# Pakistani plate patterns
+
+# Pakistani plate patterns updated for short numbers (Line 130)
 _PK_PATTERNS = [
-    re.compile(r'^[A-Z]{2,3}-\d{3,4}$'),     # Standard: ABC-1234
-    re.compile(r'^[A-Z]{1,2}-\d{4}$'),         # Government: AB-1234
-    re.compile(r'^\d{4}-[A-Z]{2,3}$'),          # Old format: 1234-ABC
+    re.compile(r'^[A-Z]{2,4}-\d{1,5}$'),     # Standard/Short: LEA-12, ABC-1234
+    re.compile(r'^[A-Z]{1,2}-\d{1,5}$'),     # Govt/Legacy: GAT-1, ID-444
+    re.compile(r'^\d{1,5}-[A-Z]{2,3}$'),     # Old format: 1234-LEA
 ]
 
-# Year strip regex: CITY(2-4 letters) + YY(00-26) + REG(1-5 digits)
 _YEAR_RE = re.compile(
-    r'^([A-Z]{2,4})'
-    r'(0\d|1\d|2[0-6])'
-    r'(\d{1,5})$'
+    r'^([A-Z]{2,4})'        # group 1 : city code  (2–4 letters)
+    r'(0\d|1\d|2[0-6])'     # group 2 : 2-digit year  00–26
+    r'(\d{1,5})$'           # group 3 : registration  1–5 digits
 )
 
 # fast-plate-ocr confidence threshold to prefer it over EasyOCR
@@ -288,56 +288,28 @@ def post_process_plate(raw: str) -> str:
 
 
 
-def validate_pakistan_plate(text: str) -> str:
-    """
-    Validate and reformat a cleaned plate string into standard Pakistani format.
-
-    Applies Layer-3 year-strip (removes embedded 2-digit registration year
-    between city code and number) and reformats to 'CITY-NUMBER'.
-
-    Examples
-    --------
-    'LZB9431'   → 'LZB-9431'  ✓
-    'LED161234' → 'LED-1234'   (year '16' stripped)
-    'PUNJABLZB' → 'UNREADABLE' (city noise leaked through)
-
-    Parameters
-    ----------
-    text : Post-processed plate string (alphanumeric only, no separators).
-
-    Returns
-    -------
-    Formatted plate string like 'ABC-1234', or 'UNREADABLE'.
-    """
+def validate_pakistan_plate(text):
     if not text or text == "UNREADABLE":
-        return "UNREADABLE"
+        return text
 
-    # Ensure clean alphanumeric
     text = re.sub(r'[^A-Z0-9]', '', text.upper())
+    text = re.sub(r'([A-Z]{2,4})[IB]{1,2}([0-9])', r'\1\2', text)
 
-    # Dot-separator correction: only strip a lone 'I' between exactly 2 letters
-    # and digits — avoids clobbering genuine 3-letter codes ending in B (e.g. LZB)
-    text = re.sub(r'^([A-Z]{2})I([0-9])', r'\1\2', text)
-
-    # Layer 3: strip embedded registration year (CITY + YY + REG)
+    # Because the OpenCV probe physically destroyed the stacked year badge,
+    # anything that hits this regex is a pure 1D line of text. 
     m = _YEAR_RE.match(text)
     if m:
-        stripped = m.group(1) + m.group(3)
-        log.debug(f"[year-strip] '{text}' → '{stripped}' (removed '{m.group(2)}')")
-        text = stripped
+        text = m.group(1) + m.group(3)
 
-    # Strict match: 2–4 letters + 1–5 digits
     match = re.match(r'^([A-Z]{2,4})([0-9]{1,5})$', text)
     if match:
         return f"{match.group(1)}-{match.group(2)}"
 
-    # Looser fallback (handles a couple of extra noise chars at edges)
     match = re.search(r'([A-Z]{2,4})([0-9]{1,5})', text)
     if match:
         return f"{match.group(1)}-{match.group(2)}"
 
     return "UNREADABLE"
-
 
 def matches_pk_pattern(text: str) -> bool:
     """
@@ -618,77 +590,43 @@ def is_in_city_box(bbox: list, img_w: int, img_h: int) -> bool:
 # ENGINE A — fast-plate-ocr runner
 # ============================================================================
 
-def run_fast_plate_ocr(
-    plate_img: np.ndarray,
-) -> tuple[str, float]:
+def run_fast_plate_ocr(plate_img: np.ndarray) -> tuple[str, float]:
     """
-    Run fast-plate-ocr on a single plate crop image.
-
-    Uses the global-plates-mobile-vit-v2-model singleton.
-    Per-character confidence scores are retrieved via return_confidence=True
-    and averaged to produce an overall confidence.
-
-    Parameters
-    ----------
-    plate_img : BGR or grayscale numpy array of the plate crop.
-
-    Returns
-    -------
-    Tuple of (raw_plate_text: str, confidence: float).
-    raw_plate_text may contain underscores (_) for empty slots.
-    Returns ("", 0.0) on any failure.
+    Run fast-plate-ocr v1.1.0+ and extract ONLY the plate string.
     """
     model = get_fpocr_model()
-    if model is None:
-        return ("", 0.0)
-
-    if plate_img is None or plate_img.size == 0:
+    if model is None or plate_img is None or plate_img.size == 0:
         return ("", 0.0)
 
     try:
-        # fast-plate-ocr global-plates model expects GRAYSCALE (1-channel).
-        # Convert BGR → grayscale explicitly — do NOT pass RGB or BGR 3-channel.
         if len(plate_img.shape) == 3:
             img_gray = cv2.cvtColor(plate_img, cv2.COLOR_BGR2GRAY)
         else:
             img_gray = plate_img.copy()
 
-        plates, confidences = model.run(img_gray, return_confidence=True)
+        # Get the Prediction object
+        res = model.run(img_gray, return_confidence=True)
 
-        if not plates:
-            return ("", 0.0)
-
-        raw_text = plates[0] if plates else ""
-        # confidences shape: (N, plate_slots) — take first image's scores
-        char_confs = confidences[0] if len(confidences) > 0 else np.array([])
-
-        # Remove underscore padding slots from the mean (they usually have high
-        # confidence for the '_' class which is just a blank placeholder)
-        text_chars = [c for c in raw_text if c != '_']
-        if len(text_chars) == 0:
-            return ("", 0.0)
-
-        # Average only the character positions that contributed to real output
-        n_real = len(text_chars)
-        if len(char_confs) >= n_real:
-            mean_conf = float(np.mean(char_confs[:n_real]))
+        # --- CORRECT ATTRIBUTE: .plate (not .text) ---
+        if hasattr(res, 'plate'):
+            # It's a single PlatePrediction object
+            raw_text = str(res.plate)
+            mean_conf = float(res.confidence) if hasattr(res, 'confidence') else 0.95
+        elif isinstance(res, list) and len(res) > 0 and hasattr(res[0], 'plate'):
+            # It's a list of PlatePrediction objects
+            raw_text = str(res[0].plate)
+            mean_conf = float(res[0].confidence) if hasattr(res[0], 'confidence') else 0.90
         else:
-            mean_conf = float(np.mean(char_confs)) if len(char_confs) > 0 else 0.0
+            # Emergency fallback: try to find the plate text in a stringified version
+            # or return empty to trigger fallback
+            return ("", 0.0)
 
-        # Strip underscores from text (blank-slot padding)
         clean_text = raw_text.replace('_', '').strip()
-
-        log.debug(
-            f"[fast-plate-ocr] raw='{raw_text}' clean='{clean_text}' "
-            f"conf={mean_conf:.3f}"
-        )
         return (clean_text, mean_conf)
 
     except Exception as exc:
-        log.error(f"[fast-plate-ocr] Inference error: {exc}")
+        log.error(f"[fast-plate-ocr] Extraction error: {exc}")
         return ("", 0.0)
-
-
 # ============================================================================
 # ENGINE B — EasyOCR pipeline runner
 # ============================================================================
@@ -956,6 +894,21 @@ def hybrid_ocr(
         )
 
     # ── FALLBACK: Run EasyOCR (only if gate failed) ───────────────────────────
+    # --- CPU-SAVER GATE (Add this here) ---
+    # If FPOCR is very confident (>0.85), skip EasyOCR even if format is invalid 
+    # This prevents the CPU-heavy fallback that causes your Segfault.
+    if fpocr_conf > 0.85:
+        elapsed_ms = (time.perf_counter() - t_start) * 1000
+        log.warning(f"[hybrid_ocr] High confidence ({fpocr_conf:.2f}) but invalid format. Skipping fallback to save CPU.")
+        return HybridOCRResult(
+            text=fpocr_valid,
+            confidence=fpocr_conf,
+            method="fast_plate_ocr",
+            elapsed_ms=elapsed_ms,
+            debug={"fast_plate_ocr": {"raw": fpocr_raw, "conf": fpocr_conf}, "early_exit": "cpu_saver"}
+        )
+
+    # ── FALLBACK: Run EasyOCR (Only runs if confidence < 0.85) ───────────────────
     log.info(f"[hybrid_ocr] Gate failed (conf={fpocr_conf:.2f}, text='{fpocr_valid}'), running EasyOCR fallback...")
     
     stages_executed.extend(["easyocr", "split"])

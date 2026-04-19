@@ -211,6 +211,39 @@ def mask_year_region(plate_img):
     masked[int(h * 0.85):h, 0:w] = 0
     return masked
 
+def fast_year_probe(plate_img):
+    """
+    Ultra-fast OpenCV check. 
+    Uses 'Tunnel Vision' to avoid the physical metal borders completely.
+    """
+    h, w = plate_img.shape[:2]
+    
+    # THE TUNNEL VISION BOX:
+    # Top bound: 5% to 35% (Ignores the top metal border)
+    # Width bound: 65% to 88% (Completely ignores the right metal border)
+    corner = plate_img[int(h * 0.05):int(h * 0.35), int(w * 0.65):int(w * 0.88)]
+    
+    if corner.size == 0:
+        return False
+
+    gray = cv2.cvtColor(corner, cv2.COLOR_BGR2GRAY)
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    text_pixels = cv2.countNonZero(binary)
+    total_pixels = corner.shape[0] * corner.shape[1]
+    
+    if total_pixels == 0:
+        return False
+        
+    ratio = text_pixels / total_pixels
+    
+    # If the safe inner zone is more than 10% black ink, it's a year badge.
+    if ratio > 0.10: 
+        log.info(f"   [Probe] Text detected (Ratio {ratio:.3f}). Applying mask.")
+        return True
+        
+    log.info(f"   [Probe] Corner is flat (Ratio {ratio:.3f}). Skipping mask.")
+    return False
 
 def is_in_city_box(bbox, img_w: int, img_h: int) -> bool:
     """
@@ -566,6 +599,41 @@ def serve_plate(filename):
 def serve_frame(filename):
     return send_from_directory(FRAMES_FOLDER, filename)
 
+
+
+    """
+    Unified hybrid OCR and validation function.
+    camera_streamer.py points directly here to process cropped plates.
+    """
+# ============================================================================
+# UNIFIED OCR BRIDGE (Called by camera_streamer.py)
+# ============================================================================
+def process_single_plate(plate_img):
+    try:
+        # 1. ALWAYS mask the city strip at the bottom ("ISLAMABAD" / "PUNJAB")
+        processed_crop = mask_city_strip_only(plate_img)
+
+        # 2. THE DYNAMIC PROBE
+        if fast_year_probe(plate_img):
+            # If a year badge is detected, forcefully black out that exact corner
+            h, w = processed_crop.shape[:2]
+            processed_crop[0:int(h * 0.40), int(w * 0.72):w] = 0
+
+        # 3. RUN THE FAST MODEL
+        ocr_result = hybrid_ocr(processed_crop, reader=reader)
+        plate_text = ocr_result.text
+        ocr_confidence = ocr_result.confidence
+        ocr_method = ocr_result.method
+        
+    except Exception as e:
+        log.error(f"hybrid_ocr failed, falling back to legacy OCR: {e}")
+        _fallback = extract_text_from_plate(plate_img)
+        plate_text = _fallback['text']
+        ocr_confidence = _fallback['confidence']
+        ocr_method = _fallback['method'] + '_fallback'
+
+    validated = validate_pakistan_plate(plate_text)
+    return validated, ocr_confidence, ocr_method
 
 # ============================================================================
 # START SERVER

@@ -18,6 +18,12 @@ import re
 import logging
 from typing import NamedTuple
 
+_YEAR_RE = re.compile(
+    r'^([A-Z]{2,4})'
+    r'(0\d|1\d|2[0-6])'
+    r'(\d{1,5})$'
+)
+
 import cv2
 import numpy as np
 
@@ -238,90 +244,31 @@ def is_valid_pakistani_plate(text: str) -> bool:
 
 
 def validate_pakistani_plate(text: str) -> str:
-    """
-    Validate and reformat a cleaned plate string into standard Pakistani format.
-
-    Steps
-    -----
-    1. Strip non-alphanumeric chars (except existing hyphens).
-    2. Apply dot-separator correction (lone I between 2 letters and digits).
-    3. Strip embedded 2-digit registration year (e.g. LED16→LED, then append digits).
-    4. Try strict regex match → return 'XY-NNN' format.
-    5. Looser regex search as final fallback.
-
-    Parameters
-    ----------
-    text : Semi-cleaned plate string (may contain hyphens).
-
-    Returns
-    -------
-    Formatted plate string like 'RI-423' or 'ABC-1234', or 'UNREADABLE'.
-
-    Examples
-    --------
-    >>> validate_pakistani_plate("RI423")
-    'RI-423'
-    >>> validate_pakistani_plate("LED161234")
-    'LED-1234'
-    >>> validate_pakistani_plate("JABR")
-    'UNREADABLE'
-    """
-    if not text or text in ("UNREADABLE", "ERROR"):
+    if not text or text == "UNREADABLE":
         return "UNREADABLE"
 
-    # Keep only alphanumeric
+    # 1. Basic Cleaning
     text = re.sub(r'[^A-Z0-9]', '', text.upper())
 
-    if not text:
-        return "UNREADABLE"
+    # 2. Leading Noise Stripper (The "E" Fix)
+    if len(text) >= 5 and re.match(r'^[EFI][A-Z]{2,3}[0-9]', text):
+        text = text[1:]
 
-    # Dot-separator correction: lone 'I' between exactly 2 letters and digits
-    # (e.g. LDI1234 → LD1234). Does NOT fire on 3-letter codes ending in I.
-    text = re.sub(r'^([A-Z]{2})I([0-9])', r'\1\2', text)
-
-    # Year-badge 'T' correction: OCR reads the year badge '1' as 'T', bleeding
-    # it into the city code.  Pattern: a 4-letter block ending in T + digits
-    # e.g. MNFT811 → MNF811 → MNF-811.
-    # CRITICAL: only fires when letter block is EXACTLY 4 long (3 real + 1 fake T).
-    # Does NOT fire on valid 3-letter codes ending in T like AGT, BGT, LDT, etc.
-    text = re.sub(r'^([A-Z]{3})T([0-9])', r'\1\2', text)
-
-
-    # Year-badge trailing '1' correction: the year badge digit (usually '1'
-    # from year '18', '17', '16' etc.) bleeds into the END of the digit run.
-    # e.g. LEA18361 is read as LEA3611 — strip the trailing '1'.
-    # Guard: only fires when the 3-digit core does NOT start with '1'.
-    # This prevents LEF1981 (genuine 4-digit where first 3 = '198' starting with 1)
-    # from being incorrectly trimmed.  Real bleed cases: 3611→361, 8111→811,
-    # 4271→427 — their 3-digit cores start with 3,8,4 (not 1).
-    m_trail = re.match(r'^([A-Z]{2,3})([2-9]\d{2})1$', text)
-    if m_trail:
-        text = m_trail.group(1) + m_trail.group(2)
-        log.debug(f"[trail-1-strip] removed trailing year-badge '1' → '{text}'")
-
-    # Embedded 2-digit year strip: CITY + YY + REG → CITY + REG
-    m = _EMBEDDED_YEAR_RE.match(text)
+    # 3. Year Stripping (City + YY + Number)
+    m = _YEAR_RE.match(text)
     if m:
-        stripped = m.group(1) + m.group(3)
-        log.debug(f"[year-strip] '{text}' → '{stripped}' (removed '{m.group(2)}')")
-        text = stripped
+        text = m.group(1) + m.group(3)
 
-    # Strict: 1–4 letters + 1–5 digits  →  'XX-NNN'
-    match = re.match(r'^([A-Z]{1,4})([0-9]{1,5})$', text)
+    # 4. THE FIX: Allow 1-5 digits for plates like LEA-12
+    match = re.match(r'^([A-Z]{2,4})([0-9]{1,5})$', text)
     if match:
-        letters, digits = match.group(1), match.group(2)
-        # Extra guard: reject if pure province fragment (e.g. 'JAB')
-        if _is_pure_province_fragment(letters):
+        letters, numbers = match.group(1), match.group(2)
+        
+        # Guard against province names
+        if letters in ("PUNJAB", "SINDH", "KPK", "ISLAMABAD"):
             return "UNREADABLE"
-        return f"{letters}-{digits}"
-
-    # Looser fallback: first alpha run + first digit run
-    match = re.search(r'([A-Z]{1,4})([0-9]{1,5})', text)
-    if match:
-        letters, digits = match.group(1), match.group(2)
-        if _is_pure_province_fragment(letters):
-            return "UNREADABLE"
-        return f"{letters}-{digits}"
+            
+        return f"{letters}-{numbers}"
 
     return "UNREADABLE"
 
