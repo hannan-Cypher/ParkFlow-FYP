@@ -76,8 +76,6 @@ __tests__
 .claude/commands 
 test-results/
 playwright.config.ts/
-migrations/
-scripts
 CLAUDE.md
 C:\\Users\\renat\\skills
 graphify-out
