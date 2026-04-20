@@ -32,6 +32,29 @@ CREATE TABLE IF NOT EXISTS venues (
     updated_at                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ── gates ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS gates (
+    id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    venue_id      UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
+    name          VARCHAR(100) NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(venue_id, name)
+);
+
+-- ── zones ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS zones (
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    gate_id     UUID REFERENCES gates(id) ON DELETE CASCADE NOT NULL,
+    venue_id    UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
+    name        VARCHAR(100) NOT NULL,
+    total_slots INTEGER NOT NULL DEFAULT 0,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(venue_id, name)
+);
+
 -- ── users ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
     id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -65,29 +88,6 @@ CREATE TABLE IF NOT EXISTS vehicles (
     notes           TEXT,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- ── gates ────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS gates (
-    id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    venue_id      UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
-    name          VARCHAR(100) NOT NULL,
-    display_order INTEGER DEFAULT 0,
-    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(venue_id, name)
-);
-
--- ── zones ────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS zones (
-    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    gate_id     UUID REFERENCES gates(id) ON DELETE CASCADE NOT NULL,
-    venue_id    UUID REFERENCES venues(id) ON DELETE CASCADE NOT NULL,
-    name        VARCHAR(100) NOT NULL,
-    total_slots INTEGER NOT NULL DEFAULT 0,
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(venue_id, name)
 );
 
 -- ── parking_slots ────────────────────────────────────────────
