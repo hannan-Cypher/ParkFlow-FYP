@@ -12,14 +12,21 @@ services:
       - "5432:5432" # Ensure local mapping if you need to connect from outside, else 5432 is fine
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
-      - ./migrations/init_data_manual.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./components/database/init.sql:/docker-entrypoint-initdb.d/00_init.sql
+      - ./migrations/init_data_manual.sql:/docker-entrypoint-initdb.d/01_init_data.sql
+      - ./migrations/008_capacity_enforcement.sql:/docker-entrypoint-initdb.d/02_008_capacity.sql
+      - ./migrations/009_supervisor_shift_tracking.sql:/docker-entrypoint-initdb.d/03_009_supervisor.sql
+      - ./migrations/011_vip_zone_support.sql:/docker-entrypoint-initdb.d/04_011_vip.sql
+      - ./migrations/012_anpr_logs.sql:/docker-entrypoint-initdb.d/05_012_anpr.sql
+      - ./migrations/013_realtime_sse_triggers.sql:/docker-entrypoint-initdb.d/06_013_sse.sql
     networks:
       - parkflow-network-prod
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U Owner -d valet_parking" ]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 60s
     restart: unless-stopped
 
   app:
