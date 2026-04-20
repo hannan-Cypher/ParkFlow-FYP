@@ -9,14 +9,14 @@ services:
       POSTGRES_PASSWORD: 1512147296110@Hm
       POSTGRES_DB: valet_parking
     ports:
-      - "5432:5432"  # Ensure local mapping if you need to connect from outside, else 5432 is fine
+      - "5432:5432" # Ensure local mapping if you need to connect from outside, else 5432 is fine
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./migrations/init_data_manual.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - parkflow-network-prod
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U Owner -d valet_parking"]
+      test: [ "CMD-SHELL", "pg_isready -U Owner -d valet_parking" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -32,7 +32,7 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://Owner:1512147296110@Hm@postgres:5432/valet_parking
-      - NEXTAUTH_URL=http://localhost:3000  # Note: Must be updated to public IP/Domain in production
+      - NEXTAUTH_URL=http://localhost:3000 # Note: Must be updated to public IP/Domain in production
       # - NEXTAUTH_SECRET= # Pass via .env
       # FLASK_AI_URL is not needed here as UI will not hit AI directly in this flow, or if it does, point to local Mac IP (often via ngrok/tailscale or public IP)
     depends_on:
