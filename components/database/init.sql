@@ -28,6 +28,13 @@ CREATE TABLE IF NOT EXISTS venues (
     max_rate_per_hour             DECIMAL(10,2) DEFAULT 500.00,
     min_rate_per_hour             DECIMAL(10,2) DEFAULT 100.00,
     is_dynamic_enabled            BOOLEAN       DEFAULT true,
+    open_time                     TIME          DEFAULT '09:00:00',
+    close_time                    TIME          DEFAULT '22:00:00',
+    grace_period_minutes          INTEGER       DEFAULT 30,
+    is_vip_enabled                BOOLEAN       DEFAULT false,
+    vip_base_rate_per_hour        NUMERIC       DEFAULT 0,
+    vip_high_occupancy_multiplier NUMERIC       DEFAULT 1.5,
+    vip_critical_occupancy_multiplier NUMERIC   DEFAULT 2.0,
     created_at                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
