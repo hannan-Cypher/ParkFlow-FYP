@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Clear auth cookie
     response.cookies.set('auth_token', '', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: request.nextUrl.protocol === 'https:',
       sameSite: 'lax',
       maxAge: 0,
       path: '/',

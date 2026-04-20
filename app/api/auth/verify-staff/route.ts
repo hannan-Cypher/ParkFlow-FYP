@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set('auth_token', sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: request.nextUrl.protocol === 'https:',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60,
       path: '/',
