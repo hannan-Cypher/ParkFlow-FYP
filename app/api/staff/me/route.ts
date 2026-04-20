@@ -14,10 +14,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
     try {
-        const rawCookie = request.cookies.get('auth_token')?.value;
-        console.log('[staff/me] cookie present:', !!rawCookie, '| cookie length:', rawCookie?.length ?? 0);
         const user = await getAuthUser(request)
-        console.log('[staff/me] auth result:', user ? `OK (id=${user.id}, role=${user.role})` : 'NULL (no valid session)');
 
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
