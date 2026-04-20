@@ -52,7 +52,7 @@ else
 fi
 
 echo "Activating virtual environment and installing python packages..."
-source venv/bin/activate
+source venv311/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 cd ..

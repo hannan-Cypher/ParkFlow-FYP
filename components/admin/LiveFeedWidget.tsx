@@ -642,8 +642,8 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
 // ─────────────────────────────────────────────
 // IP Camera Viewer (AI Processed Feed)
 // ─────────────────────────────────────────────
-function IPCameraViewer({ compact }: { compact: boolean }) {
-    const streamUrl = "/api/camera/stream"
+function IPCameraViewer({ compact, venueId }: { compact: boolean; venueId?: string }) {
+    const streamUrl = venueId ? `/api/camera/stream?venue_id=${venueId}` : "/api/camera/stream"
     const [isConnected, setIsConnected] = React.useState(false)
     const [isLoading, setIsLoading] = React.useState(true)
     const [lastDetection, setLastDetection] = React.useState<{ text: string; conf: string } | null>(null)
