@@ -18,7 +18,7 @@ services:
       - ./migrations/011_vip_zone_support.sql:/docker-entrypoint-initdb.d/03_011_vip.sql
       - ./migrations/012_anpr_logs.sql:/docker-entrypoint-initdb.d/04_012_anpr.sql
       - ./migrations/013_realtime_sse_triggers.sql:/docker-entrypoint-initdb.d/05_013_sse.sql
-      - ./migrations/init_data_manual.sql:/docker-entrypoint-initdb.d/06_init_data.sql
+      - ./migrations/006_seed_data_clean.sql:/docker-entrypoint-initdb.d/06_init_data.sql
     networks:
       - parkflow-network-prod
     healthcheck:

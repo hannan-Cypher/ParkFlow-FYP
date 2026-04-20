@@ -103,14 +103,14 @@ CREATE TABLE IF NOT EXISTS parking_slots (
     slot_number VARCHAR(50) NOT NULL,
     floor_level VARCHAR(20),
     zone        VARCHAR(50),
-    zone_id     UUID REFERENCES zones(id) ON DELETE CASCADE,
-    gate_id     UUID REFERENCES gates(id) ON DELETE CASCADE,
     slot_type   VARCHAR(50) DEFAULT 'standard',
     status      VARCHAR(20) DEFAULT 'available',
     camera_id   VARCHAR(100),
     coordinates JSONB,
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    zone_id     UUID REFERENCES zones(id) ON DELETE CASCADE,
+    gate_id     UUID REFERENCES gates(id) ON DELETE CASCADE,
     UNIQUE(venue_id, slot_number)
 );
 
