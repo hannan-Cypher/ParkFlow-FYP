@@ -13,11 +13,12 @@ CREATE TABLE IF NOT EXISTS venues (
     city                          VARCHAR(100) NOT NULL,
     country                       VARCHAR(100) NOT NULL DEFAULT 'Pakistan',
     total_slots                   INTEGER NOT NULL DEFAULT 0,
-    gates                         INTEGER NOT NULL DEFAULT 1,
     contact_phone                 VARCHAR(20),
     contact_email                 VARCHAR(255),
     status                        VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'maintenance')),
-    -- Dynamic pricing
+    created_at                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    gates                         INTEGER NOT NULL DEFAULT 1,
     base_rate_per_hour            DECIMAL(10,2) DEFAULT 150.00,
     high_occupancy_threshold      INTEGER       DEFAULT 80,
     high_occupancy_multiplier     DECIMAL(4,2)  DEFAULT 1.5,
@@ -34,9 +35,7 @@ CREATE TABLE IF NOT EXISTS venues (
     is_vip_enabled                BOOLEAN       DEFAULT false,
     vip_base_rate_per_hour        NUMERIC       DEFAULT 0,
     vip_high_occupancy_multiplier NUMERIC       DEFAULT 1.5,
-    vip_critical_occupancy_multiplier NUMERIC   DEFAULT 2.0,
-    created_at                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at                    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    vip_critical_occupancy_multiplier NUMERIC   DEFAULT 2.0
 );
 
 -- ── gates ────────────────────────────────────────────────────
