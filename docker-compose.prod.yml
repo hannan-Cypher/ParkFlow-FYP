@@ -23,10 +23,10 @@ services:
       - parkflow-network-prod
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U Owner -d valet_parking" ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
     restart: unless-stopped
 
   app:
@@ -43,8 +43,7 @@ services:
       # - NEXTAUTH_SECRET= # Pass via .env
       # FLASK_AI_URL is not needed here as UI will not hit AI directly in this flow, or if it does, point to local Mac IP (often via ngrok/tailscale or public IP)
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     networks:
       - parkflow-network-prod
     restart: unless-stopped
