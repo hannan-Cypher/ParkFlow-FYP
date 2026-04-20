@@ -50,5 +50,5 @@ FOR EACH ROW EXECUTE FUNCTION notify_realtime_event();
 -- Users (Shift Status/Duty)
 DROP TRIGGER IF EXISTS trigger_notify_users_duty ON users;
 CREATE TRIGGER trigger_notify_users_duty
-AFTER UPDATE OF is_active, venue_id, status ON users
+AFTER UPDATE OF is_active, venue_id ON users
 FOR EACH ROW EXECUTE FUNCTION notify_realtime_event();
