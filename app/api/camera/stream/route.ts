@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     }
 
     const upstreamUrl = process.env.CAMERA_STREAM_URL || 'http://localhost:8081/video_feed';
+    console.log(`[CameraProxy] Connecting to upstream: ${upstreamUrl} for venue: ${requestedVenue}`);
 
     try {
         // Build venue URL robustly
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
         const venueUrl = `${baseUrl}/venue`;
 
         // 1. Fetch current assignment from streamer
+        console.log(`[CameraProxy] Verifying venue at: ${venueUrl}`);
         const venueResponse = await fetch(venueUrl, {
             cache: 'no-store',
             headers: { 'ngrok-skip-browser-warning': 'true' },
@@ -26,14 +28,17 @@ export async function GET(request: Request) {
         });
 
         if (!venueResponse.ok) {
-            return new NextResponse('Failed to reach camera streamer for verification', { status: 502 });
+            console.error(`[CameraProxy] Venue check failed (${venueResponse.status}) at: ${venueUrl}`);
+            return new NextResponse(`Failed to reach camera streamer at ${venueUrl} for verification. Status: ${venueResponse.status}`, { status: 502 });
         }
 
         const currentAssignment = await venueResponse.json();
         const activeVenueId = currentAssignment.venue_id;
+        console.log(`[CameraProxy] Streamer is currently assigned to venue: ${activeVenueId}`);
 
         // 2. Authorization logic
         if (requestedVenue !== 'setup' && requestedVenue !== activeVenueId) {
+            console.warn(`[CameraProxy] Authorization mismatch. Requested: ${requestedVenue}, Active: ${activeVenueId}`);
             return new NextResponse(`Unauthorized: Camera assigned to ${currentAssignment.venue_name || 'another location'}`, { status: 403 });
         }
 
@@ -43,10 +48,11 @@ export async function GET(request: Request) {
 
         // Sever the upstream connection when the client disconnects
         request.signal.addEventListener('abort', () => {
-            console.log('Client disconnected from camera stream proxy, aborting upstream fetch');
+            console.log('[CameraProxy] Client disconnected, aborting upstream fetch');
             controller.abort();
         });
 
+        console.log(`[CameraProxy] Proxying stream from: ${upstreamUrl}`);
         const response = await fetch(upstreamUrl, {
             cache: 'no-store',
             headers: {
@@ -57,7 +63,8 @@ export async function GET(request: Request) {
         });
 
         if (!response.ok || !response.body) {
-            return new NextResponse(`Camera streamer error: ${response.statusText}`, { status: response.status || 502 });
+            console.error(`[CameraProxy] Upstream MJPEG fetch failed (${response.status}): ${response.statusText}`);
+            return new NextResponse(`Camera streamer error at ${upstreamUrl}: ${response.statusText}`, { status: response.status || 502 });
         }
 
         // 4. Return the stream directly with zero-buffering headers
@@ -74,7 +81,7 @@ export async function GET(request: Request) {
         if (error.name === 'AbortError') {
             return new NextResponse(null, { status: 499 }); // Client Closed Request
         }
-        console.error('Camera stream proxy error:', error);
-        return new NextResponse('Failed to connect to camera streamer. Ensure python model/camera_streamer.py is running.', { status: 502 });
+        console.error('[CameraProxy] Unexpected error:', error);
+        return new NextResponse(`Failed to connect to camera streamer at ${upstreamUrl}. Error: ${error.message}`, { status: 502 });
     }
 }
