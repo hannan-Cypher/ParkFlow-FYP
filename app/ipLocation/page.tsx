@@ -4,15 +4,16 @@
  * /ipLocation — IP Camera location selection + raw feed page.
  *
  * Step 1: Pick which mall this IP camera is located at.
- * Step 2: Show the raw camera feed and start sending detections to that venue.
+ * Step 2: Pick which gate at that mall the camera is at.
+ * Step 3: Show the raw camera feed and start sending detections to that venue+gate.
  *
  * Mirrors the /camera page pattern exactly but for IP cameras instead of phones.
  */
 
 import React, { useState, useEffect, useRef } from 'react'
-import { MapPin, ChevronRight, Loader2, Wifi, WifiOff, ScanLine, Radio } from 'lucide-react'
+import { MapPin, ChevronRight, Loader2, Wifi, WifiOff, ScanLine, Radio, ArrowLeft, DoorOpen } from 'lucide-react'
 
-type Phase = 'venue-select' | 'stream'
+type Phase = 'venue-select' | 'gate-select' | 'stream'
 
 interface Venue {
     id: string
@@ -20,7 +21,20 @@ interface Venue {
     city: string
 }
 
-// In production this goes through the Next.js API handlers instead of direct port 8081 access
+interface GateZone {
+    id: string
+    name: string
+    total_slots: number
+    available_slots: number
+    occupied_slots: number
+}
+
+interface Gate {
+    id: string
+    name: string
+    display_order: number
+    zones: GateZone[]
+}
 
 export default function IPLocationPage() {
     // ── Venue selection ──────────────────────────────────────────────────────
@@ -29,6 +43,12 @@ export default function IPLocationPage() {
     const [selectedVenueId, setSelectedVenueId] = useState('')
     const [venueName, setVenueName] = useState('')
     const [phase, setPhase] = useState<Phase>('venue-select')
+
+    // ── Gate selection ────────────────────────────────────────────────────────
+    const [gates, setGates] = useState<Gate[]>([])
+    const [gatesLoading, setGatesLoading] = useState(false)
+    const [selectedGateId, setSelectedGateId] = useState('')
+    const [gateName, setGateName] = useState('')
 
     // ── Stream state ─────────────────────────────────────────────────────────
     const [isConnected, setIsConnected] = useState(false)
@@ -56,26 +76,50 @@ export default function IPLocationPage() {
             .finally(() => setVenuesLoading(false))
     }, [])
 
-    // ── Confirm venue & start stream ─────────────────────────────────────────
+    // ── Confirm venue & load gates ───────────────────────────────────────────
     const confirmVenue = async () => {
         if (!selectedVenueId) return
         const venue = venues.find(v => v.id === selectedVenueId)
         if (!venue) return
 
         setVenueName(venue.name)
+        setGatesLoading(true)
+        setSelectedGateId('')
 
-        // Tell camera_streamer.py which venue we're at via our proxy endpoint
+        try {
+            const res = await fetch(`/api/locations/${selectedVenueId}/gates`)
+            const data = await res.json()
+            setGates(data.gates ?? [])
+        } catch {
+            setGates([])
+        } finally {
+            setGatesLoading(false)
+        }
+
+        setPhase('gate-select')
+    }
+
+    // ── Confirm gate & start stream ──────────────────────────────────────────
+    const confirmGate = async () => {
+        if (!selectedGateId) return
+        const gate = gates.find(g => g.id === selectedGateId)
+        if (!gate) return
+
+        setGateName(gate.name)
+
+        // Tell camera_streamer.py which venue AND gate we're at
         try {
             await fetch(`/api/camera/venue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    venue_id: venue.id,
-                    venue_name: venue.name,
+                    venue_id: selectedVenueId,
+                    venue_name: venueName,
+                    gate_id: selectedGateId,
                 }),
             })
         } catch (e) {
-            console.error('Failed to set venue on streamer:', e)
+            console.error('Failed to set venue+gate on streamer:', e)
         }
 
         setPhase('stream')
@@ -85,7 +129,7 @@ export default function IPLocationPage() {
         if (pollRef.current) clearInterval(pollRef.current)
         pollRef.current = setInterval(async () => {
             try {
-                const res = await fetch(`/api/recognize?venue_id=${encodeURIComponent(venue.id)}&limit=1`)
+                const res = await fetch(`/api/recognize?venue_id=${encodeURIComponent(selectedVenueId)}&limit=1`)
                 const data = await res.json()
                 if (data.success && data.detections && data.detections.length > 0) {
                     const det = data.detections[0]
@@ -106,7 +150,7 @@ export default function IPLocationPage() {
     }, [])
 
     // ════════════════════════════════════════════════════════════════════════
-    // PHASE 1: Venue Selection (same UI as /camera)
+    // PHASE 1: Venue Selection
     // ════════════════════════════════════════════════════════════════════════
     if (phase === 'venue-select') {
         return (
@@ -173,7 +217,7 @@ export default function IPLocationPage() {
                         disabled={!selectedVenueId}
                         className="w-full py-3.5 rounded-xl bg-rose-600 text-white font-bold text-base active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                        Start Camera Feed
+                        Select Gate
                         <ChevronRight className="w-5 h-5" />
                     </button>
                 </div>
@@ -182,21 +226,116 @@ export default function IPLocationPage() {
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    // PHASE 2: Raw Camera Stream
+    // PHASE 2: Gate Selection
+    // ════════════════════════════════════════════════════════════════════════
+    if (phase === 'gate-select') {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-5">
+                <div className="w-full max-w-sm space-y-5">
+                    {/* Header with back button */}
+                    <div className="text-center">
+                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-600 mb-4">
+                            <DoorOpen className="w-8 h-8 text-white" />
+                        </div>
+                        <h1 className="text-white text-xl font-bold">Select Gate</h1>
+                        <p className="text-slate-400 text-sm mt-1">
+                            <span className="text-rose-400 font-medium">{venueName}</span> — Which gate is the camera at?
+                        </p>
+                    </div>
+
+                    {/* Gate picker */}
+                    <div className="rounded-2xl bg-slate-900 border border-slate-700 overflow-hidden">
+                        {gatesLoading ? (
+                            <div className="flex items-center justify-center py-10">
+                                <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
+                                <span className="text-slate-400 text-sm ml-2">Loading gates…</span>
+                            </div>
+                        ) : gates.length === 0 ? (
+                            <p className="text-slate-400 text-sm text-center py-8 px-4">
+                                No gates configured for this venue.
+                            </p>
+                        ) : (
+                            gates.map((gate, i) => {
+                                const totalSlots = gate.zones.reduce((s, z) => s + z.total_slots, 0)
+                                const availSlots = gate.zones.reduce((s, z) => s + z.available_slots, 0)
+                                return (
+                                    <button
+                                        key={gate.id}
+                                        onClick={() => setSelectedGateId(gate.id)}
+                                        className={`w-full flex items-center gap-3 px-4 py-4 text-left transition-colors ${i < gates.length - 1 ? 'border-b border-slate-800' : ''
+                                            } ${selectedGateId === gate.id
+                                                ? 'bg-amber-900/40'
+                                                : 'hover:bg-slate-800'
+                                            }`}
+                                    >
+                                        <div
+                                            className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${selectedGateId === gate.id
+                                                ? 'border-amber-500 bg-amber-500'
+                                                : 'border-slate-600'
+                                                }`}
+                                        >
+                                            {selectedGateId === gate.id && (
+                                                <div className="w-2 h-2 rounded-full bg-white" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-white font-medium text-sm truncate">{gate.name}</p>
+                                            <p className="text-slate-400 text-xs mt-0.5">
+                                                {gate.zones.length} zones · {availSlots}/{totalSlots} slots free
+                                            </p>
+                                        </div>
+                                        {selectedGateId === gate.id && (
+                                            <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                                        )}
+                                    </button>
+                                )
+                            })
+                        )}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => { setPhase('venue-select'); setSelectedGateId(''); }}
+                            className="flex items-center justify-center gap-1 px-4 py-3.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-medium hover:bg-slate-800 transition-colors"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Back
+                        </button>
+                        <button
+                            onClick={confirmGate}
+                            disabled={!selectedGateId}
+                            className="flex-1 py-3.5 rounded-xl bg-amber-600 text-white font-bold text-base active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            Start Camera Feed
+                            <ChevronRight className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // PHASE 3: Raw Camera Stream
     // ════════════════════════════════════════════════════════════════════════
     return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
             <div className="w-full max-w-2xl space-y-4">
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 bg-slate-800 rounded-full px-3 py-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-rose-400" />
-                        <span className="text-rose-300 text-xs font-medium">{venueName}</span>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 bg-slate-800 rounded-full px-3 py-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                            <span className="text-rose-300 text-xs font-medium">{venueName}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-slate-800 rounded-full px-3 py-1.5">
+                            <DoorOpen className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-amber-300 text-xs font-medium">{gateName}</span>
+                        </div>
                     </div>
                     <button
                         onClick={async () => {
                             if (pollRef.current) clearInterval(pollRef.current)
-                            // Notify streamer that we are changing location (reset venue)
                             try {
                                 await fetch(`/api/camera/venue`, {
                                     method: 'POST',
@@ -204,12 +343,14 @@ export default function IPLocationPage() {
                                     body: JSON.stringify({
                                         venue_id: null,
                                         venue_name: null,
+                                        gate_id: null,
                                     }),
                                 })
                             } catch (e) {
                                 console.error('Failed to reset venue on streamer:', e)
                             }
                             setPhase('venue-select')
+                            setSelectedGateId('')
                             setLastPlate(null)
                             setIsConnected(false)
                         }}

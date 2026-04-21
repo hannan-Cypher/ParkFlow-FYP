@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        const { plate, confidence, method, secret, venue_id } = body;
+        const { plate, confidence, method, secret, venue_id, gate_id } = body;
 
         // ── Authentication ──────────────────────────────────────────────
         const expectedSecret = process.env.ANPR_WEBHOOK_SECRET;
@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
         // This table acts as a real-time feed of detected plates.
         // The frontend can query this to show live camera detections.
         const result = await pool.query(
-            `INSERT INTO anpr_logs (plate_number, confidence, ocr_method, detected_at, venue_id)
-             VALUES ($1, $2, $3, NOW(), $4)
-             RETURNING id, plate_number, confidence, ocr_method, detected_at, venue_id`,
-            [normalizedPlate, confidence ?? null, method ?? null, venue_id ?? null]
+            `INSERT INTO anpr_logs (plate_number, confidence, ocr_method, detected_at, venue_id, gate_id)
+             VALUES ($1, $2, $3, NOW(), $4, $5)
+             RETURNING id, plate_number, confidence, ocr_method, detected_at, venue_id, gate_id`,
+            [normalizedPlate, confidence ?? null, method ?? null, venue_id ?? null, gate_id ?? null]
         );
 
         const log = result.rows[0];
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
                 ocr_method: log.ocr_method,
                 detected_at: log.detected_at,
                 venue_id: log.venue_id ?? null,
+                gate_id: log.gate_id ?? null,
             },
         }, { status: 201 });
 
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
 
         const result = venueFilter
             ? await pool.query(
-                `SELECT id, plate_number, confidence, ocr_method, detected_at, venue_id
+                `SELECT id, plate_number, confidence, ocr_method, detected_at, venue_id, gate_id
                  FROM anpr_logs
                  WHERE venue_id = $1
                  ORDER BY detected_at DESC
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest) {
                 [venueFilter, limit]
             )
             : await pool.query(
-                `SELECT id, plate_number, confidence, ocr_method, detected_at, venue_id
+                `SELECT id, plate_number, confidence, ocr_method, detected_at, venue_id, gate_id
                  FROM anpr_logs
                  ORDER BY detected_at DESC
                  LIMIT $1`,
@@ -111,6 +112,7 @@ export async function GET(request: NextRequest) {
                 ocr_method: row.ocr_method,
                 detected_at: row.detected_at,
                 venue_id: row.venue_id ?? null,
+                gate_id: row.gate_id ?? null,
             })),
         });
 

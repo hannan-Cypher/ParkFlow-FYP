@@ -921,6 +921,7 @@ function CheckInTab({
   const [ipCamConf, setIpCamConf] = React.useState<string | null>(null);
   const ipCamLastIdRef = React.useRef<string | null>(null);
   const [ipCamConnected, setIpCamConnected] = React.useState(false);
+  const [ipCamGateId, setIpCamGateId] = React.useState<string | null>(null);
 
   // Step 2 — Phone lookup
   const [customerPhone, setCustomerPhone] = React.useState("");
@@ -984,10 +985,11 @@ function CheckInTab({
           // Only process new detections (not already seen)
           if (det.id !== ipCamLastIdRef.current) {
             ipCamLastIdRef.current = det.id;
-            setIpCamPlate("LEA-12"); // Hardcoded as requested
+            setIpCamPlate(det.plate_number);
             setIpCamConf(det.confidence ? `${(det.confidence * 100).toFixed(0)}%` : null);
-            setPlate("LEA-12"); // Auto-fill the License Plate box with hardcoded value
+            setPlate(det.plate_number); // Auto-fill the License Plate box with detected plate
             setIpCamConnected(true);
+            if (det.gate_id) setIpCamGateId(det.gate_id);
           }
         }
       } catch {
@@ -1162,6 +1164,7 @@ function CheckInTab({
         body: JSON.stringify({
           license_plate: plate,
           venue_id: selectedVenue,
+          gate_id: ipCamGateId || undefined,
           vehicle_type: vehicleType,
           make: make || undefined,
           model: model || undefined,
@@ -1186,7 +1189,7 @@ function CheckInTab({
       setStep("slot");
     } catch { setErrorMsg("Network error. Please try again."); }
     finally { setCheckinLoading(false); }
-  }, [plate, selectedVenue, vehicleType, make, model, color, customerPhone, customerLookup, staffId]);
+  }, [plate, selectedVenue, vehicleType, make, model, color, customerPhone, customerLookup, staffId, ipCamGateId]);
 
   // ── Damage photo upload ──────────────────────────────────────────────────
   const handleDamageFile = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1228,6 +1231,7 @@ function CheckInTab({
     setCheckinResult(null); setDamagePhotos([]); setDamageNotes("");
     setDamageUploaded(false); setIsParkingFull(false); stopCamera();
     setRequestedClass('standard');
+    setIpCamGateId(null);
   };
 
   return (

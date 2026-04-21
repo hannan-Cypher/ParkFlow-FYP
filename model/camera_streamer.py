@@ -58,6 +58,7 @@ CORS(app_streamer)
 _venue_lock = threading.Lock()
 _active_venue_id = None
 _active_venue_name = None
+_active_gate_id = None
 
 _latest_raw_lock  = threading.Lock()
 _latest_raw_frame = None
@@ -193,6 +194,7 @@ def yolo_worker():
                     if ocr_confidence >= 0.40:
                         with _venue_lock:
                             vid = _active_venue_id
+                            gid = _active_gate_id
                         try:
                             resp = requests.post(
                                 f"{CLOUD_URL}/api/recognize",
@@ -202,6 +204,7 @@ def yolo_worker():
                                     'method': ocr_method,
                                     'secret': ANPR_WEBHOOK_SECRET,
                                     'venue_id': vid,
+                                    'gate_id': gid,
                                 },
                                 timeout=5,
                             )
@@ -247,18 +250,19 @@ def video_feed():
 
 @app_streamer.route('/venue', methods=['GET', 'POST'])
 def venue_endpoint():
-    global _active_venue_id, _active_venue_name
+    global _active_venue_id, _active_venue_name, _active_gate_id
     if request.method == 'POST':
         data = request.json or {}
         with _venue_lock:
             _active_venue_id = data.get('venue_id')
             _active_venue_name = data.get('venue_name', '')
+            _active_gate_id = data.get('gate_id')
         with _latest_detection_lock:
             global _latest_detection
             _latest_detection = None
-        return jsonify({'success': True, 'venue_id': _active_venue_id})
+        return jsonify({'success': True, 'venue_id': _active_venue_id, 'gate_id': _active_gate_id})
     with _venue_lock:
-        return jsonify({'venue_id': _active_venue_id, 'venue_name': _active_venue_name})
+        return jsonify({'venue_id': _active_venue_id, 'venue_name': _active_venue_name, 'gate_id': _active_gate_id})
 
 @app_streamer.route('/latest_detection')
 def latest_detection():

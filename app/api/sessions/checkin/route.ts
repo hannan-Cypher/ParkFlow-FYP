@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
         const {
             license_plate,
             venue_id,
+            gate_id,
             staff_id,
             customer_id,
             customer_phone,
@@ -97,10 +98,10 @@ export async function POST(request: NextRequest) {
             resolvedCustomerId
         );
 
-        // ── 5. Slot Allocation ──────────────────────────────────────────────────
+        // ── 5. Slot Allocation (gate-aware cascade) ────────────────────────────
         let slot;
         try {
-            slot = await allocateSlot(client, venue_id, requested_class);
+            slot = await allocateSlot(client, venue_id, requested_class, gate_id);
         } catch (err: any) {
             await client.query('ROLLBACK');
             return NextResponse.json(
@@ -109,8 +110,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── 6. Staff Assignment ─────────────────────────────────────────────────
-        const staff = await assignStaff(client, venue_id, staff_id);
+        // ── 6. Staff Assignment (zone-aware load balanced) ──────────────────────
+        const staff = await assignStaff(client, venue_id, staff_id, slot.zone_id);
 
         // ── 7. Create parking session ───────────────────────────────────────────
         const pricingMeta = await calculateDynamicRate(venue_id, requested_class as 'standard' | 'vip');
@@ -130,8 +131,8 @@ export async function POST(request: NextRequest) {
             `INSERT INTO parking_sessions
          (vehicle_id, customer_id, venue_id, slot_id, valet_staff_id,
           entry_plate_confidence, rate_per_hour, customer_notes, status, payment_status,
-          pricing_metadata, sms_code, requested_class)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'pending', $9, $10, $11)
+          pricing_metadata, sms_code, requested_class, gate_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', 'pending', $9, $10, $11, $12)
        RETURNING *`,
             [
                 vehicleId,
@@ -145,6 +146,7 @@ export async function POST(request: NextRequest) {
                 JSON.stringify(pricingMeta),
                 smsCode,
                 requested_class,
+                gate_id || null,
             ]
         );
 
