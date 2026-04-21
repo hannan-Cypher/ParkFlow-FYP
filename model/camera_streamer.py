@@ -23,8 +23,10 @@ from requests.auth import HTTPDigestAuth
 # ============================================================================
 from app import model, process_single_plate 
 
-# Load .env.local from project root
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env.local'))
+# Load env from project root — try .env.local (dev) then .env.prod (VPS)
+_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(_root, '.env.local'))   # dev machine
+load_dotenv(os.path.join(_root, '.env.prod'))    # VPS production
 
 # ============================================================================
 # LOGGING & CONFIG

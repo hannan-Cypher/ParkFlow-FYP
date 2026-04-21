@@ -41,8 +41,11 @@ services:
       - DATABASE_URL=postgresql://Owner:1512147296110@Hm@postgres:5432/valet_parking
       - NEXTAUTH_URL=http://213.136.67.148:3000
       - NEXT_PUBLIC_APP_URL=http://213.136.67.148:3000
+      # Flask AI service (Mac via Tailscale)
+      - FLASK_AI_URL=http://100.90.165.47:8080
+      - CAMERA_STREAM_URL=http://100.90.165.47:8081/video_feed
+      - CLOUD_URL=http://213.136.67.148:3000
       # - NEXTAUTH_SECRET= # Pass via .env
-      # FLASK_AI_URL is not needed here as UI will not hit AI directly in this flow, or if it does, point to local Mac IP (often via ngrok/tailscale or public IP)
     depends_on:
       - postgres
     networks:
