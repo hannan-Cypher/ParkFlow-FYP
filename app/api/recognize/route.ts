@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const normalizedPlate = plate.trim().toUpperCase().replace(/[\s\-]+/g, '');
+        const normalizedPlate = plate.trim().toUpperCase().replace(/\s+/g, '');
 
         // ── Insert into anpr_logs table ─────────────────────────────────
         // This table acts as a real-time feed of detected plates.
