@@ -45,7 +45,7 @@ services:
       - FLASK_AI_URL=http://100.90.165.47:8080
       - CAMERA_STREAM_URL=http://100.90.165.47:8081/video_feed
       - CLOUD_URL=http://213.136.67.148:3000
-      - ANPR_WEBHOOK_SECRET=${ANPR_WEBHOOK_SECRET}
+      - ANPR_WEBHOOK_SECRET=parkflow-anpr-secret-2024
       # - NEXTAUTH_SECRET= # Pass via .env
     depends_on:
       - postgres

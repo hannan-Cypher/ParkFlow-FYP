@@ -214,6 +214,8 @@ def yolo_worker():
                             )
                             if resp.status_code == 201:
                                 log.info(f"☁️  Plate '{validated}' sent to cloud.")
+                            else:
+                                log.warning(f"☁️  Cloud POST returned {resp.status_code}: {resp.text[:200]}")
                         except Exception as cloud_err:
                             log.warning(f"☁️  Cloud POST failed: {cloud_err}")
 
