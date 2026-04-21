@@ -9,13 +9,36 @@ export async function GET(req: NextRequest) {
     const stream = new ReadableStream({
         async start(controller) {
             const client = await pool.connect();
+            let isClosed = false;
+            let heartbeat: NodeJS.Timeout;
+
+            const safeClose = () => {
+                if (isClosed) return;
+                isClosed = true;
+                if (heartbeat) clearInterval(heartbeat);
+                try {
+                    client.query('UNLISTEN realtime_updates').catch(() => { });
+                } catch (e) { }
+                try {
+                    client.release();
+                } catch (e) { }
+                try {
+                    controller.close();
+                } catch (e) { }
+            };
 
             const sendEvent = (data: any) => {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+                if (isClosed) return;
+                try {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+                } catch (e) {
+                    safeClose();
+                }
             };
 
             // Handle PostgreSQL notifications
             client.on('notification', (msg) => {
+                if (isClosed) return;
                 if (msg.channel === 'realtime_updates' && msg.payload) {
                     try {
                         const payload = JSON.parse(msg.payload);
@@ -26,21 +49,26 @@ export async function GET(req: NextRequest) {
                 }
             });
 
-            // Start listening
-            await client.query('LISTEN realtime_updates');
+            try {
+                // Start listening
+                await client.query('LISTEN realtime_updates');
 
-            // Keep connection alive with a heartbeat
-            const heartbeat = setInterval(() => {
-                controller.enqueue(encoder.encode(': heartbeat\n\n'));
-            }, 30000);
+                // Keep connection alive with a heartbeat
+                heartbeat = setInterval(() => {
+                    if (isClosed) return;
+                    try {
+                        controller.enqueue(encoder.encode(': heartbeat\n\n'));
+                    } catch (e) {
+                        safeClose();
+                    }
+                }, 30000);
 
-            // Clean up on close
-            req.signal.addEventListener('abort', () => {
-                clearInterval(heartbeat);
-                client.query('UNLISTEN realtime_updates');
-                client.release();
-                controller.close();
-            });
+                // Clean up on close
+                req.signal.addEventListener('abort', safeClose);
+            } catch (e) {
+                console.error('SSE setup error', e);
+                safeClose();
+            }
         },
     });
 

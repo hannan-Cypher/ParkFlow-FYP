@@ -10,7 +10,7 @@ declare global {
 const poolConfig = process.env.DATABASE_URL
   ? {
     connectionString: process.env.DATABASE_URL,
-    max: 5,
+    max: 50,
     idleTimeoutMillis: 30000,
   }
   : {
@@ -19,7 +19,7 @@ const poolConfig = process.env.DATABASE_URL
     host: process.env.POSTGRES_HOST || 'localhost',
     port: parseInt(process.env.POSTGRES_PORT || '5432'),
     database: process.env.POSTGRES_DB || 'valet_parking',
-    max: 5,
+    max: 50,
     idleTimeoutMillis: 30000,
   };
 
