@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 
+// Force Next.js not to cache or buffer this infinite stream route
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
+export const fetchCache = 'force-no-store';
+export const maxDuration = 3600; // Allow long-running streams (1 hour)
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -58,8 +60,12 @@ export async function GET(request: Request) {
             headers: {
                 'ngrok-skip-browser-warning': 'true',
                 'Accept': 'multipart/x-mixed-replace; boundary=frame',
+                'Cache-Control': 'no-cache',
             },
             signal,
+            // Bypass Next.js internal fetch patched defaults for streaming
+            // @ts-ignore
+            duplex: 'half',
         });
 
         if (!response.ok || !response.body) {
@@ -67,21 +73,24 @@ export async function GET(request: Request) {
             return new NextResponse(`Camera streamer error at ${upstreamUrl}: ${response.statusText}`, { status: response.status || 502 });
         }
 
-        // 4. Return the stream directly with zero-buffering headers
-        return new NextResponse(response.body, {
+        // 4. Return the stream directly with native Response to avoid Next.js caching bugs
+        return new Response(response.body, {
+            status: 200,
             headers: {
-                'Content-Type': 'multipart/x-mixed-replace; boundary=frame',
+                'Content-Type': response.headers.get('Content-Type') || 'multipart/x-mixed-replace; boundary=frame',
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0',
                 'Connection': 'keep-alive',
+                'Transfer-Encoding': 'chunked',
             },
         });
     } catch (error: any) {
-        if (error.name === 'AbortError') {
-            return new NextResponse(null, { status: 499 }); // Client Closed Request
+        if (error.name === 'AbortError' || error.message?.includes('abort')) {
+            console.log('[CameraProxy] Upstream fetch aborted normally due to client disconnect.');
+            return new Response(null, { status: 499 }); // Client Closed Request
         }
         console.error('[CameraProxy] Unexpected error:', error);
-        return new NextResponse(`Failed to connect to camera streamer at ${upstreamUrl}. Error: ${error.message}`, { status: 502 });
+        return new Response(`Failed to connect to camera streamer at ${upstreamUrl}. Error: ${error.message}`, { status: 502 });
     }
 }

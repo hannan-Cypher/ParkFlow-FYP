@@ -1264,15 +1264,6 @@ function CheckInTab({
           {/* Mode selector */}
           <div className="flex gap-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-1">
             <button
-              onClick={() => { stopCamera(); setAnprImage(null); setScanMode('livefeed'); }}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${scanMode === 'livefeed'
-                ? 'bg-white dark:bg-slate-700 shadow-sm ring-1 ring-slate-200 dark:ring-slate-600 text-slate-900 dark:text-white'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}>
-              <Radio className="h-3.5 w-3.5" /> Phone Cam
-            </button>
-
-            <button
               onClick={() => { stopCamera(); setAnprImage(null); setScanMode('ipcamera'); }}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${scanMode === 'ipcamera'
                 ? 'bg-white dark:bg-rose-900/30 shadow-sm ring-1 ring-rose-200 dark:ring-rose-800/50 text-rose-700 dark:text-rose-300'
@@ -1299,15 +1290,6 @@ function CheckInTab({
           </div>
 
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-
-          {/* ── Phone Cam — WebRTC stream ───── */}
-          {scanMode === 'livefeed' && staffVenue?.id && (
-            <WebRTCViewer
-              compact={true}
-              venueId={staffVenue.id}
-              onPlateDetected={(p) => setPlate(p)}
-            />
-          )}
 
           {/* ── IP Camera Feed ───── */}
           {scanMode === 'ipcamera' && staffVenue?.id && (
