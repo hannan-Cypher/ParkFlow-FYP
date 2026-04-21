@@ -20,14 +20,13 @@ const RTC_CONFIG: RTCConfiguration = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
 }
 
-type Mode = 'mjpeg' | 'webrtc' | 'ip-camera'
+type Mode = 'webrtc' | 'ip-camera'
 
 // ─────────────────────────────────────────────
 // WebRTC Viewer (admin/staff side)
-// venueId scopes the signaling store so only
-// this venue's phone camera connects here.
+// venueId + gateId scope the signaling store
 // ─────────────────────────────────────────────
-export function WebRTCViewer({ compact, venueId, onPlateDetected, hideInstructions }: { compact: boolean; venueId: string; onPlateDetected?: (plate: string) => void; hideInstructions?: boolean }) {
+export function WebRTCViewer({ compact, venueId, gateId, onPlateDetected, hideInstructions }: { compact: boolean; venueId: string; gateId?: string; onPlateDetected?: (plate: string) => void; hideInstructions?: boolean }) {
     const videoRef = React.useRef<HTMLVideoElement>(null)
     const pcRef = React.useRef<RTCPeerConnection | null>(null)
     const pollRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
@@ -40,14 +39,13 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected, hideInstructio
     // ANPR result — received from the phone via the signal store (not re-computed here)
     const [lastPlate, setLastPlate] = React.useState<string | null>(null)
 
-    // Build phone URL with venueId pre-filled so the camera operator's location is auto-selected
+    // Build phone URL with venueId + gateId pre-filled
     React.useEffect(() => {
         if (typeof window !== 'undefined' && venueId) {
-            setCameraUrl(
-                `${window.location.origin}/camera?venueId=${encodeURIComponent(venueId)}`
-            )
+            const baseUrl = `${window.location.origin}/camera?venueId=${encodeURIComponent(venueId)}`
+            setCameraUrl(gateId ? `${baseUrl}&gateId=${encodeURIComponent(gateId)}` : baseUrl)
         }
-    }, [venueId])
+    }, [venueId, gateId])
 
     const handleCopy = () => {
         if (!cameraUrl) return
@@ -83,10 +81,10 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected, hideInstructio
             }
         }
 
-        // Send admin ICE candidates scoped to this venue
+        // Send admin ICE candidates scoped to this venue/gate
         pc.onicecandidate = async ({ candidate }) => {
             if (candidate) {
-                await fetch(`/api/signal?venueId=${encodeURIComponent(venueId)}`, {
+                await fetch(`/api/signal?venueId=${encodeURIComponent(venueId)}${gateId ? `&gateId=${encodeURIComponent(gateId)}` : ''}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ type: 'admin-ice', candidate: candidate.toJSON() }),
@@ -94,7 +92,7 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected, hideInstructio
             }
         }
 
-        // Poll for phone's offer and ICE candidates for this venue
+        // Poll for phone's offer and ICE candidates for this venue/gate
         const appliedIce = new Set<string>()
         setIsListening(true)
         setPollCount(0)
@@ -103,7 +101,7 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected, hideInstructio
             setPollCount(n => n + 1)
             try {
                 const res = await fetch(
-                    `/api/signal?role=admin&venueId=${encodeURIComponent(venueId)}`
+                    `/api/signal?role=admin&venueId=${encodeURIComponent(venueId)}${gateId ? `&gateId=${encodeURIComponent(gateId)}` : ''}`
                 )
                 const data = await res.json()
 
@@ -113,7 +111,7 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected, hideInstructio
                     await pcRef.current.setRemoteDescription(data.offer)
                     const answer = await pcRef.current.createAnswer()
                     await pcRef.current.setLocalDescription(answer)
-                    await fetch(`/api/signal?venueId=${encodeURIComponent(venueId)}`, {
+                    await fetch(`/api/signal?venueId=${encodeURIComponent(venueId)}${gateId ? `&gateId=${encodeURIComponent(gateId)}` : ''}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ type: 'answer', sdp: pcRef.current.localDescription }),
@@ -281,212 +279,26 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected, hideInstructio
 }
 
 // ─────────────────────────────────────────────
-// MJPEG Viewer (original implementation)
-// ─────────────────────────────────────────────
-function MJPEGViewer({ compact }: { compact: boolean }) {
-    const [cameraUrl, setCameraUrl] = React.useState<string>('')
-    const [savedUrl, setSavedUrl] = React.useState<string>('')
-    const [isConnected, setIsConnected] = React.useState(false)
-    const [showSetup, setShowSetup] = React.useState(false)
-    const [isLoading, setIsLoading] = React.useState(false)
-    const imgRef = React.useRef<HTMLImageElement>(null)
-
-    React.useEffect(() => {
-        const stored = localStorage.getItem('parkflow_camera_url')
-        if (stored) {
-            setCameraUrl(stored)
-            let url = stored.trim()
-            if (!url.includes('/video') && !url.includes('/shot') && !url.includes('.mjpg')) {
-                if (url.endsWith('/')) url = url.slice(0, -1)
-                url = url + '/video'
-            }
-            setSavedUrl(url)
-        }
-    }, [])
-
-    const handleConnect = () => {
-        if (!cameraUrl.trim()) return
-        setIsLoading(true)
-        let url = cameraUrl.trim()
-        if (!url.includes('/video') && !url.includes('/shot') && !url.includes('.mjpg')) {
-            if (url.endsWith('/')) url = url.slice(0, -1)
-            url = url + '/video'
-        }
-        localStorage.setItem('parkflow_camera_url', cameraUrl.trim())
-        setSavedUrl(url)
-        setIsConnected(false)
-        setTimeout(() => setIsLoading(false), 2000)
-    }
-
-    const handleDisconnect = () => {
-        setSavedUrl('')
-        setIsConnected(false)
-        localStorage.removeItem('parkflow_camera_url')
-        setCameraUrl('')
-    }
-
-    return (
-        <div className="space-y-3">
-            {/* Setup toggle button */}
-            <div className="flex justify-end">
-                <button
-                    onClick={() => setShowSetup(!showSetup)}
-                    className="flex items-center gap-1.5 p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors text-xs"
-                >
-                    <Settings className="w-3.5 h-3.5" />
-                    {showSetup ? 'Hide setup' : 'Setup camera'}
-                </button>
-            </div>
-
-            {/* Setup panel */}
-            <AnimatePresence>
-                {(showSetup || !savedUrl) && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800 p-4">
-                            <h6 className="text-sm font-semibold text-sky-800 dark:text-sky-300 mb-2">
-                                📱 Connect Phone Camera (MJPEG)
-                            </h6>
-                            <ol className="text-xs text-sky-700 dark:text-sky-400 space-y-1 list-decimal list-inside mb-3">
-                                <li>
-                                    Install <strong>&quot;IP Webcam&quot;</strong> (Android) or{' '}
-                                    <strong>&quot;Camo&quot;</strong> (iPhone)
-                                </li>
-                                <li>Point camera at parking area and start the server</li>
-                                <li>
-                                    Enter the IP shown (e.g.{' '}
-                                    <code className="bg-sky-100 px-1 rounded">http://192.168.1.5:8080</code>)
-                                </li>
-                            </ol>
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={cameraUrl}
-                                    onChange={e => setCameraUrl(e.target.value)}
-                                    placeholder="http://192.168.1.5:8080"
-                                    className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
-                                />
-                                <button
-                                    onClick={handleConnect}
-                                    disabled={!cameraUrl.trim() || isLoading}
-                                    className="px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    {isLoading ? 'Connecting…' : 'Connect'}
-                                </button>
-                                {savedUrl && (
-                                    <button
-                                        onClick={handleDisconnect}
-                                        className="px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
-                                    >
-                                        Disconnect
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Feed viewer */}
-            {savedUrl ? (
-                <div
-                    className={`rounded-2xl border border-slate-200 bg-black overflow-hidden relative ${compact ? 'max-h-[300px]' : 'max-h-[500px]'
-                        }`}
-                >
-                    {/* LIVE badge */}
-                    <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                        <motion.div
-                            animate={{ scale: [1, 1.3, 1] }}
-                            transition={{ duration: 1.5, repeat: Infinity }}
-                            className="w-2 h-2 bg-red-500 rounded-full"
-                        />
-                        <span className="text-xs font-semibold text-white">LIVE</span>
-                    </div>
-
-                    {/* Connection badge */}
-                    <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                        {isConnected ? (
-                            <Wifi className="w-3 h-3 text-emerald-400" />
-                        ) : (
-                            <WifiOff className="w-3 h-3 text-amber-400" />
-                        )}
-                        <span className="text-xs font-medium text-white/80">
-                            {isConnected ? 'Connected' : 'Connecting…'}
-                        </span>
-                    </div>
-
-                    {/* Timestamp */}
-                    <div className="absolute bottom-3 right-3 z-10 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                        <LiveTimestamp />
-                    </div>
-
-                    <img
-                        ref={imgRef}
-                        src={savedUrl}
-                        alt="Live parking camera feed"
-                        className={`w-full h-auto object-contain ${compact ? 'min-h-[200px]' : 'min-h-[300px]'}`}
-                        onLoad={() => { setIsConnected(true); setIsLoading(false) }}
-                        onError={() => { setIsConnected(false); setIsLoading(false) }}
-                    />
-
-                    {!isConnected && !isLoading && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90">
-                            <WifiOff className="w-10 h-10 text-slate-400 mb-3" />
-                            <p className="text-white font-medium text-sm mb-1">Camera Disconnected</p>
-                            <p className="text-slate-400 text-xs text-center max-w-xs">
-                                Ensure the camera app is running and both devices are on the same WiFi.
-                            </p>
-                            <button
-                                onClick={handleConnect}
-                                className="mt-3 px-4 py-1.5 rounded-lg bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 transition-colors"
-                            >
-                                Retry
-                            </button>
-                        </div>
-                    )}
-
-                    {isLoading && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90">
-                            <Loader2 className="w-8 h-8 text-sky-500 animate-spin mb-2" />
-                            <p className="text-white text-sm font-medium">Connecting to camera…</p>
-                        </div>
-                    )}
-                </div>
-            ) : (
-                <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-8 flex flex-col items-center justify-center text-center">
-                    <div className="w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center mb-3">
-                        <Video className="w-6 h-6 text-sky-600" />
-                    </div>
-                    <h5 className="text-base font-semibold text-slate-800 dark:text-white mb-1">
-                        No Camera Connected
-                    </h5>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
-                        Use setup above to connect via IP Webcam or Camo app.
-                    </p>
-                </div>
-            )}
-        </div>
-    )
-}
-
-// ─────────────────────────────────────────────
 // Main widget
 // ─────────────────────────────────────────────
 interface VenueOption { id: string; name: string; city: string }
+interface GateOption { id: string; name: string }
+type WidgetPhase = 'venue-select' | 'gate-select' | 'view'
 
 export default function LiveFeedWidget({ compact = false }: { compact?: boolean }) {
     const [mode, setMode] = React.useState<Mode>('webrtc')
 
-    // Venue resolution: read from /api/auth/me; super-admins pick from list
+    // Selection states
+    const [phase, setPhase] = React.useState<WidgetPhase>('view')
     const [venueId, setVenueId] = React.useState<string>('')
     const [venueName, setVenueName] = React.useState<string>('')
+    const [gateId, setGateId] = React.useState<string>('')
+    const [gateName, setGateName] = React.useState<string>('')
+
     const [venues, setVenues] = React.useState<VenueOption[]>([])
+    const [gates, setGates] = React.useState<GateOption[]>([])
     const [venueLoading, setVenueLoading] = React.useState(true)
-    const [needsPicker, setNeedsPicker] = React.useState(false)
+    const [gatesLoading, setGatesLoading] = React.useState(false)
 
     React.useEffect(() => {
         fetch('/api/auth/me')
@@ -494,27 +306,40 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
             .then(async data => {
                 if (data.user?.venueId) {
                     setVenueId(data.user.venueId)
-                    // Resolve venue name for display
+                    setPhase('view')
+                    // Resolve venue name
                     const loc = await fetch('/api/locations').then(r => r.json())
-                    const match = (loc.locations ?? []).find(
-                        (v: VenueOption) => v.id === data.user.venueId
-                    )
+                    const match = (loc.locations ?? []).find((v: VenueOption) => v.id === data.user.venueId)
                     if (match) setVenueName(match.name)
                 } else {
-                    // Unassigned admin — let them pick a venue to monitor
-                    setNeedsPicker(true)
+                    setPhase('venue-select')
                     const loc = await fetch('/api/locations').then(r => r.json())
                     setVenues(loc.locations ?? [])
                 }
             })
-            .catch(() => setNeedsPicker(true))
+            .catch(() => setPhase('venue-select'))
             .finally(() => setVenueLoading(false))
     }, [])
 
-    const selectVenue = (v: VenueOption) => {
+    const selectVenue = async (v: VenueOption) => {
         setVenueId(v.id)
         setVenueName(v.name)
-        setNeedsPicker(false)
+        setGatesLoading(true)
+        setPhase('gate-select')
+        try {
+            const loc = await fetch(`/api/locations/${v.id}/gates`).then(r => r.json())
+            setGates(loc.gates ?? [])
+        } catch {
+            setGates([])
+        } finally {
+            setGatesLoading(false)
+        }
+    }
+
+    const selectGate = (g: GateOption) => {
+        setGateId(g.id)
+        setGateName(g.name)
+        setPhase('view')
     }
 
     return (
@@ -529,16 +354,22 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                     {/* Venue pill */}
                     {venueName && (
                         <div className="flex items-center gap-2">
-                            <span className="flex items-center gap-1 bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 text-xs font-medium px-2 py-1 rounded-full border border-sky-200 dark:border-sky-700">
+                            <span className="flex items-center gap-1 bg-sky-50 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 text-[10px] font-bold px-2 py-1 rounded-full border border-sky-200 dark:border-sky-700 uppercase tracking-wider">
                                 <MapPin className="w-3 h-3" />
                                 {venueName}
                             </span>
-                            {venues.length > 0 && !needsPicker && (
+                            {gateName && (
+                                <span className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-bold px-2 py-1 rounded-full border border-amber-200 dark:border-amber-700 uppercase tracking-wider">
+                                    <ScanLine className="w-3 h-3" />
+                                    {gateName}
+                                </span>
+                            )}
+                            {venues.length > 0 && phase === 'view' && (
                                 <button
-                                    onClick={() => { setNeedsPicker(true); setVenueId(''); setVenueName(''); }}
-                                    className="text-xs font-semibold text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 transition-colors underline-offset-2 hover:underline"
+                                    onClick={() => { setPhase('venue-select'); setVenueId(''); setVenueName(''); setGateId(''); setGateName(''); }}
+                                    className="text-[10px] font-bold text-slate-500 hover:text-sky-600 dark:hover:text-sky-400 transition-colors underline-offset-2 hover:underline uppercase tracking-tight"
                                 >
-                                    Change Location
+                                    Change
                                 </button>
                             )}
                         </div>
@@ -556,16 +387,6 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                     >
                         <Radio className="w-3 h-3" />
                         WebRTC
-                    </button>
-                    <button
-                        onClick={() => setMode('mjpeg')}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${mode === 'mjpeg'
-                            ? 'bg-white dark:bg-slate-700 text-sky-700 dark:text-sky-400 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                            }`}
-                    >
-                        <Wifi className="w-3 h-3" />
-                        MJPEG
                     </button>
                     <button
                         onClick={() => setMode('ip-camera')}
@@ -589,12 +410,12 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                         : '~500ms–1.5s latency · MJPEG · Requires IP Webcam / Camo'}
             </p>
 
-            {/* Venue picker for unassigned admins (WebRTC mode only) */}
-            {mode === 'webrtc' && needsPicker && (
+            {/* Selection UI */}
+            {phase === 'venue-select' && (
                 <div className="mb-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5 uppercase tracking-tight">
                         <MapPin className="w-4 h-4 text-sky-500" />
-                        Select venue to monitor
+                        Select Venue
                     </p>
                     {venueLoading ? (
                         <div className="flex items-center gap-2 text-slate-400 text-sm">
@@ -602,17 +423,17 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                             Loading venues…
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             {venues.map(v => (
                                 <button
                                     key={v.id}
                                     onClick={() => selectVenue(v)}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-colors text-left"
+                                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-sky-400 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-colors text-left"
                                 >
                                     <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
                                     <div>
-                                        <p className="text-sm font-medium text-slate-800 dark:text-white">{v.name}</p>
-                                        <p className="text-xs text-slate-400">{v.city}</p>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tight">{v.name}</p>
+                                        <p className="text-[10px] text-slate-400 font-medium">{v.city}</p>
                                     </div>
                                 </button>
                             ))}
@@ -621,25 +442,53 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
                 </div>
             )}
 
-            {/* Viewer */}
-            {mode === 'webrtc' ? (
-                venueLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <Loader2 className="w-6 h-6 text-sky-500 animate-spin mr-2" />
-                        <span className="text-slate-400 text-sm">Resolving venue…</span>
-                    </div>
-                ) : venueId ? (
-                    <WebRTCViewer compact={compact} venueId={venueId} />
-                ) : !needsPicker ? (
-                    <p className="text-slate-400 text-sm text-center py-8">
-                        No venue assigned. Contact your administrator.
+            {phase === 'gate-select' && (
+                <div className="mb-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5 uppercase tracking-tight">
+                        <ScanLine className="w-4 h-4 text-amber-500" />
+                        Select Gate at {venueName}
                     </p>
-                ) : null
-            ) : mode === 'ip-camera' ? (
-                <IPCameraViewer compact={compact} />
-            ) : (
-                <MJPEGViewer compact={compact} />
+                    {gatesLoading ? (
+                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Loading gates…
+                        </div>
+                    ) : gates.length === 0 ? (
+                        <div className="text-center py-4">
+                            <p className="text-slate-400 text-xs mb-3">No gates found for this venue.</p>
+                            <button onClick={() => setPhase('venue-select')} className="text-xs text-sky-500 font-bold uppercase">Back to venues</button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {gates.map(g => (
+                                <button
+                                    key={g.id}
+                                    onClick={() => selectGate(g)}
+                                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-slate-200 dark:border-slate-600 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors text-left"
+                                >
+                                    <ScanLine className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                    <p className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tight">{g.name}</p>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
             )}
+
+            {/* Viewer */}
+            {phase === 'view' ? (
+                mode === 'webrtc' ? (
+                    venueId ? (
+                        <WebRTCViewer compact={compact} venueId={venueId} gateId={gateId} />
+                    ) : (
+                        <p className="text-slate-400 text-sm text-center py-8">
+                            No venue assigned. Contact your administrator.
+                        </p>
+                    )
+                ) : (
+                    <IPCameraViewer compact={compact} venueId={venueId} gateId={gateId} />
+                )
+            ) : null}
         </div>
     )
 }
@@ -647,18 +496,47 @@ export default function LiveFeedWidget({ compact = false }: { compact?: boolean 
 // ─────────────────────────────────────────────
 // IP Camera Viewer (AI Processed Feed)
 // ─────────────────────────────────────────────
-function IPCameraViewer({ compact, venueId }: { compact: boolean; venueId?: string }) {
-    const streamUrl = venueId ? `/api/camera/stream?venue_id=${venueId}` : "/api/camera/stream"
+function IPCameraViewer({ compact, venueId, gateId }: { compact: boolean; venueId?: string; gateId?: string }) {
+    const [selectedGateId, setSelectedGateId] = React.useState<string>(gateId || '')
+    const [gates, setGates] = React.useState<any[]>([])
+    const [isRaw, setIsRaw] = React.useState(false)
+    const streamUrl = venueId
+        ? `/api/camera/stream?venue_id=${venueId}${selectedGateId ? `&gate_id=${selectedGateId}` : ''}${isRaw ? '&raw=true' : ''}`
+        : "/api/camera/stream"
     const [isConnected, setIsConnected] = React.useState(false)
     const [isLoading, setIsLoading] = React.useState(true)
     const [lastDetection, setLastDetection] = React.useState<{ text: string; conf: string } | null>(null)
     const [isTriggering, setIsTriggering] = React.useState(false)
     const imgRef = React.useRef<HTMLImageElement>(null)
 
+    // Sync selectedGateId with prop if it changes
+    React.useEffect(() => {
+        if (gateId) setSelectedGateId(gateId)
+    }, [gateId])
+
+    // Load gates for this venue (fallback if gateId not provided or for selection)
+    React.useEffect(() => {
+        if (venueId && !gateId) {
+            fetch(`/api/locations/${venueId}/gates`)
+                .then(r => r.json())
+                .then(data => {
+                    setGates(data.gates ?? [])
+                    if (data.gates?.length > 0 && !selectedGateId) {
+                        setSelectedGateId(data.gates[0].id)
+                    }
+                })
+                .catch(console.error)
+        }
+    }, [venueId, gateId])
+
     const triggerSnapshot = async () => {
         setIsTriggering(true)
         try {
-            const res = await fetch("/api/camera/trigger", { method: 'POST' })
+            const res = await fetch("/api/camera/trigger", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ venue_id: venueId, gate_id: selectedGateId })
+            })
             const data = await res.json()
             if (data.success) {
                 setLastDetection({ text: data.text, conf: data.confidence })
@@ -677,13 +555,40 @@ function IPCameraViewer({ compact, venueId }: { compact: boolean; venueId?: stri
                     }`}
             >
                 {/* LIVE badge */}
-                <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-                    <motion.div
-                        animate={{ scale: [1, 1.3, 1] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                        className="w-2 h-2 bg-rose-500 rounded-full"
-                    />
-                    <span className="text-xs font-semibold text-white">PROCESSED FEED</span>
+                <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+                    <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
+                        <motion.div
+                            animate={{ scale: [1, 1.3, 1] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                            className="w-2 h-2 bg-rose-500 rounded-full"
+                        />
+                        <span className="text-[10px] font-bold text-white tracking-wider uppercase">{isRaw ? 'PRE-PROCESSING FEED' : 'PROCESSED FEED'}</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => { setIsRaw(!isRaw); setIsLoading(true); setIsConnected(false); }}
+                            className={`bg-black/60 backdrop-blur-sm text-[10px] font-bold border border-white/10 rounded-full px-3 py-1 transition-colors ${isRaw ? 'text-sky-400' : 'text-slate-400'}`}
+                        >
+                            {isRaw ? 'SWITCH TO PROCESSED' : 'SWITCH TO RAW'}
+                        </button>
+
+                        {gates.length > 1 && (
+                            <select
+                                value={selectedGateId}
+                                onChange={(e) => {
+                                    setSelectedGateId(e.target.value);
+                                    setIsLoading(true);
+                                    setIsConnected(false);
+                                }}
+                                className="bg-black/60 backdrop-blur-sm text-[10px] font-bold text-white border border-white/10 rounded-full px-2 py-1 outline-none appearance-none cursor-pointer hover:bg-black/80 transition-colors"
+                            >
+                                {gates.map(g => (
+                                    <option key={g.id} value={g.id}>{g.name.toUpperCase()}</option>
+                                ))}
+                            </select>
+                        )}
+                    </div>
                 </div>
 
                 {/* Connection Status */}

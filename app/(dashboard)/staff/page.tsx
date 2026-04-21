@@ -343,7 +343,7 @@ export default function StaffDashboardPage() {
     }
   }, [fetchActiveVehicles, fetchTasks, fetchStaffInfo, staffInfo?.id]), ['parking_sessions', 'service_requests', 'users']);
 
-  const handleLogout = async () => {
+  const handleLogout = React.useCallback(async () => {
     setIsLoggingOut(true);
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
@@ -353,7 +353,31 @@ export default function StaffDashboardPage() {
     } finally {
       setIsLoggingOut(false);
     }
-  };
+  }, [router]);
+
+  // Enforce 14-hour max shift duration
+  React.useEffect(() => {
+    if (!activeShift?.shift_start) return;
+
+    const check14HourLimit = async () => {
+      const startTime = new Date(activeShift.shift_start).getTime();
+      const elapsedHours = (Date.now() - startTime) / (1000 * 60 * 60);
+
+      if (elapsedHours >= 14 && !isLoggingOut) {
+        console.warn("14-hour shift limit reached. Auto-ending shift and logging out.");
+        try {
+          await fetch("/api/staff/shift/end", { method: "POST" });
+        } catch (e) {
+          console.error("Failed to auto-end shift:", e);
+        }
+        handleLogout();
+      }
+    };
+
+    check14HourLimit();
+    const interval = setInterval(check14HourLimit, 60000);
+    return () => clearInterval(interval);
+  }, [activeShift?.shift_start, isLoggingOut, handleLogout]);
 
   if (!mounted) {
     return <main className="mx-auto max-w-6xl px-4 pb-24 pt-10" />;
@@ -631,6 +655,7 @@ export default function StaffDashboardPage() {
             <ActiveVehiclesTab
               vehicles={activeVehicles}
               loading={loadingVehicles}
+              staffId={staffInfo?.id}
               onRefresh={fetchActiveVehicles}
               onRetrievalUpdate={() => {
                 fetchActiveVehicles();
@@ -684,11 +709,13 @@ export default function StaffDashboardPage() {
 function ActiveVehiclesTab({
   vehicles,
   loading,
+  staffId,
   onRefresh,
   onRetrievalUpdate,
 }: {
   vehicles: ActiveSession[];
   loading: boolean;
+  staffId?: string;
   onRefresh: () => void;
   onRetrievalUpdate: () => void;
 }) {
@@ -700,7 +727,7 @@ function ActiveVehiclesTab({
       const res = await fetch(`/api/sessions/${sessionId}/retrieval`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: newStatus, staff_id: staffId }),
       });
       if (res.ok) {
         onRetrievalUpdate();

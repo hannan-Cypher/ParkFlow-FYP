@@ -8,13 +8,19 @@ export const maxDuration = 3600; // Allow long-running streams (1 hour)
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const requestedVenue = searchParams.get('venue_id');
+    const requestedGate = searchParams.get('gate_id');
 
     if (!requestedVenue) {
         return new NextResponse('venue_id is required', { status: 400 });
     }
 
-    const upstreamUrl = process.env.CAMERA_STREAM_URL || 'http://localhost:8081/video_feed';
-    console.log(`[CameraProxy] Connecting to upstream: ${upstreamUrl} for venue: ${requestedVenue}`);
+    const isRaw = searchParams.get('raw') === 'true';
+
+    let upstreamUrl = process.env.CAMERA_STREAM_URL || 'http://localhost:8081/video_feed';
+    if (isRaw) {
+        upstreamUrl = upstreamUrl.replace('/video_feed', '/video_feed_raw');
+    }
+    console.log(`[CameraProxy] Connecting to upstream: ${upstreamUrl} for venue: ${requestedVenue}, gate: ${requestedGate} (Raw: ${isRaw})`);
 
     try {
         // Build venue URL robustly
@@ -36,12 +42,21 @@ export async function GET(request: Request) {
 
         const currentAssignment = await venueResponse.json();
         const activeVenueId = currentAssignment.venue_id;
-        console.log(`[CameraProxy] Streamer is currently assigned to venue: ${activeVenueId}`);
+        const activeGateId = currentAssignment.gate_id;
+        console.log(`[CameraProxy] Streamer is currently assigned to venue: ${activeVenueId}, gate: ${activeGateId}`);
 
         // 2. Authorization logic
-        if (requestedVenue !== 'setup' && requestedVenue !== activeVenueId) {
-            console.warn(`[CameraProxy] Authorization mismatch. Requested: ${requestedVenue}, Active: ${activeVenueId}`);
-            return new NextResponse(`Unauthorized: Camera assigned to ${currentAssignment.venue_name || 'another location'}`, { status: 403 });
+        const isSetup = requestedVenue === 'setup' || requestedGate === 'setup';
+
+        if (!isSetup) {
+            if (requestedVenue !== activeVenueId) {
+                console.warn(`[CameraProxy] Venue mismatch. Requested: ${requestedVenue}, Active: ${activeVenueId}`);
+                return new NextResponse(`Unauthorized: Camera assigned to ${currentAssignment.venue_name || 'another location'}`, { status: 403 });
+            }
+            if (requestedGate && requestedGate !== activeGateId) {
+                console.warn(`[CameraProxy] Gate mismatch. Requested: ${requestedGate}, Active: ${activeGateId}`);
+                return new NextResponse(`Unauthorized: Camera assigned to another gate`, { status: 403 });
+            }
         }
 
         // 3. Connect to MJPEG stream
