@@ -42,8 +42,8 @@ services:
       - NEXTAUTH_URL=http://213.136.67.148:3000
       - NEXT_PUBLIC_APP_URL=http://213.136.67.148:3000
       # Flask AI service (Mac via Tailscale — reachable directly via host network)
-      - FLASK_AI_URL=http://100.90.165.47:8080
-      - CAMERA_STREAM_URL=http://100.90.165.47:8081/video_feed
+      - FLASK_AI_URL=http://100.85.240.92:8080
+      - CAMERA_STREAM_URL=http://100.85.240.92:8081/video_feed
       - CLOUD_URL=http://213.136.67.148:3000
       - ANPR_WEBHOOK_SECRET=parkflow-anpr-secret-2024
       # - NEXTAUTH_SECRET= # Pass via .env
