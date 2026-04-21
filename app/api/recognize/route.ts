@@ -90,7 +90,8 @@ export async function GET(request: NextRequest) {
             ? await pool.query(
                 `SELECT id, plate_number, confidence, ocr_method, detected_at, venue_id, gate_id
                  FROM anpr_logs
-                 WHERE venue_id = $1
+                 WHERE (venue_id = $1 OR venue_id IS NULL)
+                   AND detected_at > NOW() - INTERVAL '5 minutes'
                  ORDER BY detected_at DESC
                  LIMIT $2`,
                 [venueFilter, limit]
