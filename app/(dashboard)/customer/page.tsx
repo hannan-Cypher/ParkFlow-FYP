@@ -37,6 +37,7 @@ import {
 import DarkModeToggle from "@/components/DarkModeToggle";
 import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
 import { useRealtime } from "@/hooks/useRealtime";
+import { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
 
 // ── Animation Presets ───────────────────────────────────────────────────────
 const container = {
@@ -683,7 +684,7 @@ export default function CustomerDashboardPage() {
             />
           )}
 
-          {activeTab === "Live Feed" && <LiveFeedTab />}
+          {activeTab === "Live Feed" && <LiveFeedTab currentSession={currentSession} />}
 
           {activeTab === "Services" && <ServicesTab activeSessions={activeSessions} />}
 
@@ -1118,50 +1119,25 @@ function HistoryCard({ session: s, index }: { session: CompletedSession; index: 
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TAB: Live Feed (Phone as IP Camera)
+// TAB: Live Feed (Active Camera Stream)
 // ══════════════════════════════════════════════════════════════════════════════
 
-function LiveFeedTab() {
-  const [cameraUrl, setCameraUrl] = React.useState<string>("");
-  const [savedUrl, setSavedUrl] = React.useState<string>("");
-  const [isConnected, setIsConnected] = React.useState(false);
-  const [showSetup, setShowSetup] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
-  const imgRef = React.useRef<HTMLImageElement>(null);
-
-  // Load saved camera URL from localStorage
-  React.useEffect(() => {
-    const stored = localStorage.getItem("parkflow_camera_url");
-    if (stored) {
-      setCameraUrl(stored);
-      setSavedUrl(stored);
-    }
-  }, []);
-
-  const handleConnect = () => {
-    if (!cameraUrl.trim()) return;
-    setIsLoading(true);
-    // Normalize URL — make sure it points to the MJPEG video feed
-    let url = cameraUrl.trim();
-    // Common IP Webcam (Android) video URL pattern
-    if (!url.includes("/video") && !url.includes("/shot") && !url.includes(".mjpg")) {
-      // Try the most common MJPEG endpoint
-      if (url.endsWith("/")) url = url.slice(0, -1);
-      url = url + "/video";
-    }
-    localStorage.setItem("parkflow_camera_url", cameraUrl.trim());
-    setSavedUrl(url);
-    setIsConnected(false);
-    // Give time for image to load
-    setTimeout(() => setIsLoading(false), 2000);
-  };
-
-  const handleDisconnect = () => {
-    setSavedUrl("");
-    setIsConnected(false);
-    localStorage.removeItem("parkflow_camera_url");
-    setCameraUrl("");
-  };
+function LiveFeedTab({ currentSession }: { currentSession: ActiveSession | null }) {
+  if (!currentSession) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 p-12 flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 rounded-2xl bg-sky-100 flex items-center justify-center mb-4">
+          <Video className="w-8 h-8 text-sky-600" />
+        </div>
+        <h5 className="text-lg font-semibold text-slate-800 dark:text-white mb-1">
+          No Active Parking Session
+        </h5>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+          A live camera feed will appear here when your vehicle is actively parked.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -1174,198 +1150,15 @@ function LiveFeedTab() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Video className="w-4 h-4 text-sky-600" />
-          <h4 className="text-sm font-semibold text-slate-600">
+          <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
             Live Parking Camera Feed
           </h4>
         </div>
-        <div className="flex items-center gap-2">
-          {savedUrl && (
-            <div
-              className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${isConnected
-                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-                : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
-                }`}
-            >
-              {isConnected ? (
-                <>
-                  <Wifi className="w-3 h-3" />
-                  Connected
-                </>
-              ) : (
-                <>
-                  <WifiOff className="w-3 h-3" />
-                  Connecting...
-                </>
-              )}
-            </div>
-          )}
-          <button
-            onClick={() => setShowSetup(!showSetup)}
-            className="p-1.5 rounded-lg text-slate-400 hover:bg-white hover:text-slate-600 transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
-        </div>
       </div>
 
-      {/* Camera Setup Panel */}
-      <AnimatePresence>
-        {(showSetup || !savedUrl) && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 mb-4">
-              <h5 className="text-base font-semibold text-slate-900 dark:text-white mb-2">
-                📱 Connect Your Phone Camera
-              </h5>
-              <div className="rounded-xl bg-sky-50 border border-sky-100 p-4 mb-4">
-                <h6 className="text-sm font-semibold text-sky-800 mb-2">
-                  Setup Instructions:
-                </h6>
-                <ol className="text-xs text-sky-700 space-y-1.5 list-decimal list-inside">
-                  <li>
-                    Install{" "}
-                    <strong>&quot;IP Webcam&quot;</strong> (Android) or{" "}
-                    <strong>&quot;Camo&quot;</strong> (iPhone) on your phone
-                  </li>
-                  <li>
-                    Open the app and point your phone camera at the parking
-                    area
-                  </li>
-                  <li>
-                    Start the server in the app — it will show an IP
-                    address (e.g.,{" "}
-                    <code className="bg-sky-100 px-1 rounded">
-                      http://192.168.1.5:8080
-                    </code>
-                    )
-                  </li>
-                  <li>
-                    Enter that IP address below and click{" "}
-                    <strong>Connect</strong>
-                  </li>
-                </ol>
-              </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={cameraUrl}
-                  onChange={(e) => setCameraUrl(e.target.value)}
-                  placeholder="http://192.168.1.5:8080"
-                  className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
-                />
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleConnect}
-                  disabled={!cameraUrl.trim() || isLoading}
-                  className="px-5 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-semibold shadow-sm hover:bg-sky-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isLoading ? "Connecting..." : "Connect"}
-                </motion.button>
-                {savedUrl && (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleDisconnect}
-                    className="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
-                  >
-                    Disconnect
-                  </motion.button>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Live Feed Viewer */}
-      {savedUrl ? (
-        <div className="rounded-2xl border border-slate-200 bg-black overflow-hidden relative">
-          {/* Live indicator */}
-          <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-            <motion.div
-              animate={{ scale: [1, 1.3, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="w-2 h-2 bg-red-500 rounded-full"
-            />
-            <span className="text-xs font-semibold text-white">LIVE</span>
-          </div>
-
-          {/* Camera name */}
-          <div className="absolute top-3 right-3 z-10 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-            <span className="text-xs font-medium text-white/80">
-              Parking Camera
-            </span>
-          </div>
-
-          {/* Timestamp overlay */}
-          <div className="absolute bottom-3 right-3 z-10 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-full">
-            <LiveTimestamp />
-          </div>
-
-          {/* MJPEG Stream */}
-          <img
-            ref={imgRef}
-            src={savedUrl}
-            alt="Live parking camera feed"
-            className="w-full h-auto min-h-[300px] max-h-[500px] object-contain"
-            onLoad={() => {
-              setIsConnected(true);
-              setIsLoading(false);
-            }}
-            onError={() => {
-              setIsConnected(false);
-              setIsLoading(false);
-            }}
-            style={{ imageRendering: "auto" }}
-          />
-
-          {/* Connection error overlay */}
-          {!isConnected && !isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90">
-              <WifiOff className="w-12 h-12 text-slate-400 mb-3" />
-              <p className="text-white font-medium mb-1">
-                Unable to Connect
-              </p>
-              <p className="text-slate-400 text-sm text-center max-w-xs">
-                Make sure the camera app is running and both devices
-                are on the same WiFi network
-              </p>
-              <button
-                onClick={handleConnect}
-                className="mt-4 px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-medium hover:bg-sky-700 transition-colors"
-              >
-                Retry Connection
-              </button>
-            </div>
-          )}
-
-          {isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90">
-              <Loader2 className="w-10 h-10 text-sky-500 animate-spin mb-3" />
-              <p className="text-white font-medium">Connecting to camera...</p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-12 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-sky-100 flex items-center justify-center mb-4">
-            <Video className="w-8 h-8 text-sky-600" />
-          </div>
-          <h5 className="text-lg font-semibold text-slate-800 mb-1">
-            No Camera Connected
-          </h5>
-          <p className="text-sm text-slate-500 max-w-sm">
-            Connect your phone camera to view a live feed of the parking
-            area. Click the ⚙️ settings icon to get started.
-          </p>
-        </div>
-      )}
+      <div className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
+        <WebRTCViewer compact={false} venueId={currentSession.venue.id} hideInstructions={true} />
+      </div>
     </motion.div>
   );
 }

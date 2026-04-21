@@ -27,7 +27,7 @@ type Mode = 'mjpeg' | 'webrtc' | 'ip-camera'
 // venueId scopes the signaling store so only
 // this venue's phone camera connects here.
 // ─────────────────────────────────────────────
-export function WebRTCViewer({ compact, venueId, onPlateDetected }: { compact: boolean; venueId: string; onPlateDetected?: (plate: string) => void }) {
+export function WebRTCViewer({ compact, venueId, onPlateDetected, hideInstructions }: { compact: boolean; venueId: string; onPlateDetected?: (plate: string) => void; hideInstructions?: boolean }) {
     const videoRef = React.useRef<HTMLVideoElement>(null)
     const pcRef = React.useRef<RTCPeerConnection | null>(null)
     const pollRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
@@ -164,29 +164,31 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected }: { compact: b
     return (
         <div className="space-y-3">
             {/* Phone URL instruction card */}
-            <div className="rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                    <Smartphone className="w-4 h-4 text-sky-600" />
-                    <span className="text-sm font-semibold text-sky-800 dark:text-sky-300">
-                        Open on your phone
-                    </span>
+            {!hideInstructions && (
+                <div className="rounded-xl bg-sky-50 dark:bg-sky-900/30 border border-sky-100 dark:border-sky-800 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Smartphone className="w-4 h-4 text-sky-600" />
+                        <span className="text-sm font-semibold text-sky-800 dark:text-sky-300">
+                            Open on your phone
+                        </span>
+                    </div>
+                    <p className="text-xs text-sky-700 dark:text-sky-400 mb-3">
+                        Connect to the same WiFi — this URL pre-selects your location:
+                    </p>
+                    <div className="flex gap-2">
+                        <code className="flex-1 rounded-lg bg-sky-100 dark:bg-sky-900 px-3 py-2 text-xs text-sky-900 dark:text-sky-200 font-mono truncate border border-sky-200 dark:border-sky-700">
+                            {cameraUrl || 'Loading…'}
+                        </code>
+                        <button
+                            onClick={handleCopy}
+                            title="Copy URL"
+                            className="px-3 py-2 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition-colors flex-shrink-0"
+                        >
+                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                    </div>
                 </div>
-                <p className="text-xs text-sky-700 dark:text-sky-400 mb-3">
-                    Connect to the same WiFi — this URL pre-selects your location:
-                </p>
-                <div className="flex gap-2">
-                    <code className="flex-1 rounded-lg bg-sky-100 dark:bg-sky-900 px-3 py-2 text-xs text-sky-900 dark:text-sky-200 font-mono truncate border border-sky-200 dark:border-sky-700">
-                        {cameraUrl || 'Loading…'}
-                    </code>
-                    <button
-                        onClick={handleCopy}
-                        title="Copy URL"
-                        className="px-3 py-2 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition-colors flex-shrink-0"
-                    >
-                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                </div>
-            </div>
+            )}
 
             {/* Video + status */}
             <div
@@ -248,10 +250,13 @@ export function WebRTCViewer({ compact, venueId, onPlateDetected }: { compact: b
                         ) : (
                             <>
                                 <Smartphone className="w-10 h-10 text-slate-500 mb-3" />
-                                <p className="text-white font-medium text-sm mb-1">Waiting for phone</p>
+                                <p className="text-white font-medium text-sm mb-1">
+                                    {hideInstructions ? 'Waiting for camera feed' : 'Waiting for phone'}
+                                </p>
                                 <p className="text-slate-400 text-xs text-center max-w-xs px-4">
-                                    Open the URL above on your phone, then tap{' '}
-                                    <strong className="text-slate-300">Start Streaming</strong>.
+                                    {hideInstructions ? 'Waiting for staff to start the camera stream.' : (
+                                        <>Open the URL above on your phone, then tap{' '}<strong className="text-slate-300">Start Streaming</strong>.</>
+                                    )}
                                 </p>
                                 <div className={`mt-3 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full ${isListening
                                     ? 'bg-emerald-900/60 text-emerald-400 border border-emerald-700'
