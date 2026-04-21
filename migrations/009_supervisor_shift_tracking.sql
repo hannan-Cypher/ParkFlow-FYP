@@ -1,4 +1,0 @@
--- Migration: 009 Supervisor Shift Tracking (Audit Trail Reverted)
--- This migration previously added audit tracking columns to staff_shifts and parking_sessions.
--- These columns were removed as per user request to reduce DB complexity.
--- The core shift lifecycle (clock-in/out) remains functional via existing staff_shifts structure.
