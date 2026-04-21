@@ -118,9 +118,10 @@ export async function PATCH(
                  total_amount     = $3,
                  status           = 'completed',
                  payment_status   = 'completed',
-                 retrieval_status = 'ready'
+                 retrieval_status = 'ready',
+                 retrieval_staff_id = COALESCE($5, retrieval_staff_id)
              WHERE id = $4`,
-            [exitTime.toISOString(), totalHours.toFixed(2), parkingAmount.toFixed(2), sessionId]
+            [exitTime.toISOString(), totalHours.toFixed(2), parkingAmount.toFixed(2), sessionId, staff_id || null]
         );
 
         // Notify customer

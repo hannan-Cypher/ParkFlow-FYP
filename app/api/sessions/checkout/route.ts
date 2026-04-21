@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     try {
         const user = await getAuthUser(request);
         const body = await request.json();
-        const { session_id, license_plate } = body;
+        const { session_id, license_plate, staff_id } = body;
 
         if (!session_id && !license_plate) {
             return NextResponse.json(
@@ -111,9 +111,11 @@ export async function POST(request: NextRequest) {
            total_hours = $1,
            total_amount = $2,
            status = 'completed',
-           payment_status = 'completed'
-       WHERE id = $3`,
-            [totalHours.toFixed(2), parkingAmount.toFixed(2), session.id]
+           payment_status = 'completed',
+           retrieval_status = 'ready',
+           retrieval_staff_id = $3
+       WHERE id = $4`,
+            [totalHours.toFixed(2), parkingAmount.toFixed(2), staff_id || (user ? user.id : null), session.id]
         );
 
         // ── 5. Notify customer ───────────────────────────────────────────────
