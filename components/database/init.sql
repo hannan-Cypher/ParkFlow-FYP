@@ -232,6 +232,8 @@ CREATE INDEX IF NOT EXISTS idx_parking_sessions_customer    ON parking_sessions(
 CREATE INDEX IF NOT EXISTS idx_parking_sessions_vehicle     ON parking_sessions(vehicle_id);
 CREATE INDEX IF NOT EXISTS idx_parking_sessions_status      ON parking_sessions(status);
 CREATE INDEX IF NOT EXISTS idx_parking_sessions_venue       ON parking_sessions(venue_id);
+CREATE INDEX IF NOT EXISTS idx_parking_sessions_valet_staff ON parking_sessions(valet_staff_id);
+
 
 -- ── updated_at trigger function ──────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at_column()
