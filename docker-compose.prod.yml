@@ -51,8 +51,8 @@ services:
 
   ai-service:
     build:
-      context: .
-      dockerfile: model/Dockerfile
+      context: ./model
+      dockerfile: Dockerfile
     container_name: parkflow_ai_prod
     ports:
       - "8081:8081"
