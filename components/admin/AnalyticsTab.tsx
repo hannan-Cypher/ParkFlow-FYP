@@ -196,35 +196,30 @@ export default function AnalyticsTab() {
       icon: Banknote,
       label: 'Total Revenue',
       value: `Rs.${Math.round(data.totalRevenue).toLocaleString()}`,
-      sub: `Rs.${Math.round(data.todayRevenue).toLocaleString()} today`,
       color: 'from-violet-500 to-purple-600',
     },
     {
       icon: Car,
       label: 'Total Sessions',
       value: data.totalSessions.toString(),
-      sub: `${data.activeSessions} active, ${data.completedSessions} completed`,
       color: 'from-sky-500 to-blue-600',
     },
     {
       icon: Users,
       label: 'Customers Served',
       value: data.totalCustomers.toString(),
-      sub: `${data.totalStaff} staff members`,
       color: 'from-emerald-500 to-green-600',
     },
     {
       icon: Clock,
       label: 'Avg. Duration',
       value: avgDisplay,
-      sub: `${data.todayCompleted} completed today`,
       color: 'from-amber-500 to-orange-600',
     },
     {
       icon: ParkingCircle,
       label: 'Slot Occupancy',
       value: data.totalSlots > 0 ? `${Math.round((data.occupiedSlots / data.totalSlots) * 100)}%` : '0%',
-      sub: `${data.occupiedSlots}/${data.totalSlots} slots occupied`,
       color: 'from-rose-500 to-red-600',
     },
   ]
@@ -267,7 +262,6 @@ export default function AnalyticsTab() {
                   {metric.label}
                 </p>
                 <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{metric.value}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{metric.sub}</p>
               </div>
               <div
                 className={`w-12 h-12 rounded-xl bg-gradient-to-br ${metric.color} flex items-center justify-center shadow-lg`}

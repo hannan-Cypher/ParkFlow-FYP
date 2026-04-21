@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Generate secure token
-    const token = crypto.randomUUID() + '-' + crypto.randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(48).toString('hex');
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
     // 6. Invalidate previous unused invitations for this email

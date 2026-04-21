@@ -235,14 +235,12 @@ export default function OverviewTab({ hideRevenue = false }: { hideRevenue?: boo
             value: activeSessions,
             icon: Car,
             color: 'from-sky-500 to-blue-600',
-            sub: 'Vehicles currently parked',
           },
           {
             label: 'Completed Today',
             value: completedToday,
             icon: ArrowDownLeft,
             color: 'from-emerald-500 to-green-600',
-            sub: 'Sessions closed today',
           },
           ...(!hideRevenue
             ? [
@@ -251,7 +249,6 @@ export default function OverviewTab({ hideRevenue = false }: { hideRevenue?: boo
                 value: `Rs.${Math.round(todayRevenue).toLocaleString()}`,
                 icon: Banknote,
                 color: 'from-violet-500 to-purple-600',
-                sub: 'Earned today',
               },
             ]
             : []),
@@ -269,7 +266,6 @@ export default function OverviewTab({ hideRevenue = false }: { hideRevenue?: boo
                   {card.label}
                 </p>
                 <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">{card.value}</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{card.sub}</p>
               </div>
               <div
                 className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.color} flex items-center justify-center shadow-lg`}

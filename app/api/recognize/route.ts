@@ -85,24 +85,29 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50);
         const venueFilter = searchParams.get('venue_id');
+        const gateFilter = searchParams.get('gate_id');
 
-        const result = venueFilter
-            ? await pool.query(
-                `SELECT id, plate_number, confidence, ocr_method, detected_at, venue_id, gate_id
-                 FROM anpr_logs
-                 WHERE (venue_id = $1 OR venue_id IS NULL)
-                   AND detected_at > NOW() - INTERVAL '5 minutes'
-                 ORDER BY detected_at DESC
-                 LIMIT $2`,
-                [venueFilter, limit]
-            )
-            : await pool.query(
-                `SELECT id, plate_number, confidence, ocr_method, detected_at, venue_id, gate_id
-                 FROM anpr_logs
-                 ORDER BY detected_at DESC
-                 LIMIT $1`,
-                [limit]
-            );
+        let query = `
+            SELECT id, plate_number, confidence, ocr_method, detected_at, venue_id, gate_id
+            FROM anpr_logs
+            WHERE detected_at > NOW() - INTERVAL '5 minutes'
+        `;
+        const params: any[] = [];
+
+        if (venueFilter) {
+            params.push(venueFilter);
+            query += ` AND (venue_id = $${params.length} OR venue_id IS NULL)`;
+        }
+
+        if (gateFilter) {
+            params.push(gateFilter);
+            query += ` AND (gate_id = $${params.length} OR gate_id IS NULL)`;
+        }
+
+        query += ` ORDER BY detected_at DESC LIMIT $${params.length + 1}`;
+        params.push(limit);
+
+        const result = await pool.query(query, params);
 
         return NextResponse.json({
             success: true,

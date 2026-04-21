@@ -12,6 +12,7 @@ import {
   Shield,
   HardDrive,
   Clock,
+  Download,
 } from 'lucide-react'
 import DynamicPricingCard from './DynamicPricingCard'
 
@@ -35,6 +36,32 @@ export default function SettingsTab() {
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportSales = async () => {
+    try {
+      setExporting(true)
+      const res = await fetch('/api/admin/export-sales')
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `parkflow_sales_export_${new Date().toISOString().split('T')[0]}.csv`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        window.URL.revokeObjectURL(url)
+      } else {
+        alert('Failed to export sales data')
+      }
+    } catch (err) {
+      console.error('Export error:', err)
+      alert('An error occurred while exporting.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const fetchStats = useCallback(async (isRefresh = false) => {
     try {
@@ -82,7 +109,6 @@ export default function SettingsTab() {
     {
       icon: Brain,
       title: 'AI Recognition System',
-      description: `YOLOv8 + Hybrid OCR — ${stats.sessions.total} plates processed`,
       status: stats.system.anpr_service === 'active' ? 'Active' : 'Offline',
       statusColor: stats.system.anpr_service === 'active' ? 'bg-emerald-500' : 'bg-red-500',
       color: 'from-blue-500 to-sky-500',
@@ -90,7 +116,6 @@ export default function SettingsTab() {
     {
       icon: Database,
       title: 'Database (PostgreSQL)',
-      description: `${stats.venues.total} venues, ${stats.slots.total} slots, ${stats.sessions.total} sessions`,
       status: stats.system.database === 'connected' ? 'Connected' : 'Disconnected',
       statusColor: stats.system.database === 'connected' ? 'bg-emerald-500' : 'bg-red-500',
       color: 'from-purple-500 to-pink-500',
@@ -98,7 +123,6 @@ export default function SettingsTab() {
     {
       icon: Server,
       title: 'Application Server',
-      description: `Uptime: ${formatUptime(stats.system.uptime)}`,
       status: 'Running',
       statusColor: 'bg-emerald-500',
       color: 'from-green-500 to-emerald-500',
@@ -110,14 +134,12 @@ export default function SettingsTab() {
       icon: HardDrive,
       label: 'Slot Occupancy',
       value: `${stats.slots.occupancy_rate}%`,
-      detail: `${stats.slots.occupied}/${stats.slots.total} occupied`,
       color: stats.slots.occupancy_rate > 80 ? 'text-red-600' : stats.slots.occupancy_rate > 50 ? 'text-amber-600' : 'text-emerald-600',
     },
     {
       icon: Shield,
       label: 'Staff Coverage',
       value: `${stats.staff.assigned}/${stats.staff.total}`,
-      detail: `${stats.staff.active} active, ${stats.staff.total - stats.staff.assigned} unassigned`,
       color: 'text-sky-600',
     },
     {
@@ -128,14 +150,12 @@ export default function SettingsTab() {
         const m = Math.round((stats.sessions.avg_duration_hours - h) * 60)
         return h > 0 ? `${h}h ${m}m` : `${m}m`
       })(),
-      detail: `${stats.sessions.completed} completed sessions`,
       color: 'text-purple-600',
     },
     {
       icon: CreditCard,
       label: 'Total Revenue',
       value: `Rs.${Math.round(stats.revenue.total).toLocaleString()}`,
-      detail: `Rs.${Math.round(stats.revenue.today).toLocaleString()} today`,
       color: 'text-emerald-600',
     },
   ]
@@ -147,14 +167,24 @@ export default function SettingsTab() {
       animate="visible"
       className="space-y-6"
     >
-      {/* Refresh button */}
-      <div className="flex justify-end">
+      {/* Actions */}
+      <div className="flex justify-end gap-3">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleExportSales}
+          disabled={exporting}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          Export Sales Data
+        </motion.button>
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => fetchStats(true)}
           disabled={refreshing}
-          className="p-2 rounded-lg text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+          className="p-2 rounded-lg bg-white dark:bg-slate-800 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
         </motion.button>
@@ -187,7 +217,6 @@ export default function SettingsTab() {
                 </motion.div>
                 <div>
                   <p className="font-bold text-slate-900 dark:text-white">{service.title}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{service.description}</p>
                 </div>
               </div>
 
@@ -224,7 +253,6 @@ export default function SettingsTab() {
                 <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{metric.label}</span>
               </div>
               <p className={`text-2xl font-extrabold ${metric.color}`}>{metric.value}</p>
-              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{metric.detail}</p>
             </motion.div>
           ))}
         </div>

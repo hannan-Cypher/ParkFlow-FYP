@@ -250,9 +250,37 @@ def generate_frames():
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
         time.sleep(0.06)
 
+def generate_frames_raw():
+    log.info("MJPEG raw stream client connected.")
+    while True:
+        with _latest_raw_lock:
+            frame = _latest_raw_frame
+
+        if frame is None:
+            time.sleep(0.05)
+            continue
+
+        h, w = frame.shape[:2]
+        scale = 1280 / w if w > 1280 else 1.0
+        if scale < 1.0:
+            display = cv2.resize(frame, (int(w * scale), int(h * scale)))
+        else:
+            display = frame
+
+        ret, buffer = cv2.imencode('.jpg', display, [cv2.IMWRITE_JPEG_QUALITY, 75])
+        if not ret:
+            continue
+
+        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        time.sleep(0.06)
+
 @app_streamer.route('/video_feed')
 def video_feed():
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app_streamer.route('/video_feed_raw')
+def video_feed_raw():
+    return Response(generate_frames_raw(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app_streamer.route('/venue', methods=['GET', 'POST'])
 def venue_endpoint():
@@ -279,6 +307,21 @@ def latest_detection():
             'success': True, 'plate': det['text'], 'confidence': round(det['confidence'], 4), 'method': det['method']
         })
     return jsonify({'success': False, 'plate': None})
+
+@app_streamer.route('/trigger_snapshot', methods=['POST'])
+def trigger_snapshot():
+    # Force a fresh look if possible, or return latest
+    with _latest_detection_lock:
+        det = _latest_detection
+    
+    if det and (time.time() - det.get('detected_at', 0) < 10):
+        return jsonify({
+            'success': True, 
+            'text': det['text'], 
+            'confidence': f"{round(det['confidence'] * 100)}%" if det['confidence'] else "N/A"
+        })
+
+    return jsonify({'success': False, 'error': 'No recent detection available. Keep camera active.'}), 404
 
 @app_streamer.route('/health')
 def health():

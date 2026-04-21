@@ -4,11 +4,12 @@
  * /camera — Phone broadcaster page.
  *
  * Step 1: Pick which mall this camera is located at.
- * Step 2: Stream live video via WebRTC to that venue's admin/staff dashboard.
+ * Step 2: Pick which gate this camera is located at.
+ * Step 3: Stream live video via WebRTC to that gate's admin/staff dashboard.
  *         ANPR runs automatically every 2.5 s and displays any detected plate.
  *
  * Open on phone: http://<server-ip>:3000/camera
- * Admin can also share a pre-filled URL: /camera?venueId=<uuid>
+ * Admin can also share a pre-filled URL: /camera?venueId=<uuid>&gateId=<uuid>
  */
 
 import React, { useRef, useState, useEffect, useCallback } from 'react'
@@ -19,12 +20,17 @@ const RTC_CONFIG: RTCConfiguration = {
 }
 
 type Status = 'idle' | 'connecting' | 'streaming' | 'error'
-type Phase = 'venue-select' | 'camera'
+type Phase = 'venue-select' | 'gate-select' | 'camera'
 
 interface Venue {
     id: string
     name: string
     city: string
+}
+
+interface Gate {
+    id: string
+    name: string
 }
 
 export default function CameraPage() {
@@ -33,9 +39,18 @@ export default function CameraPage() {
     const [venuesLoading, setVenuesLoading] = useState(true)
     const [selectedVenueId, setSelectedVenueId] = useState('')
     const [venueName, setVenueName] = useState('')
+
+    // ── Gate selection ───────────────────────────────────────────────────────
+    const [gates, setGates] = useState<Gate[]>([])
+    const [gatesLoading, setGatesLoading] = useState(false)
+    const [selectedGateId, setSelectedGateId] = useState('')
+    const [gateName, setGateName] = useState('')
+
     const [phase, setPhase] = useState<Phase>('venue-select')
-    // Ref keeps the current venueId accessible inside memoized callbacks
+
+    // Refs keep the current IDs accessible inside memoized callbacks
     const venueIdRef = useRef('')
+    const gateIdRef = useRef('')
 
     // ── WebRTC refs ──────────────────────────────────────────────────────────
     const videoRef = useRef<HTMLVideoElement>(null)
@@ -59,7 +74,8 @@ export default function CameraPage() {
     // ── Load venues + handle pre-filled venueId from URL ────────────────────
     useEffect(() => {
         const params = new URLSearchParams(window.location.search)
-        const preId = params.get('venueId')
+        const preVenueId = params.get('venueId')
+        const preGateId = params.get('gateId')
 
         fetch('/api/locations')
             .then(r => r.json())
@@ -73,20 +89,47 @@ export default function CameraPage() {
                 )
                 setVenues(list)
 
-                // If URL already has a venueId, pre-select it and skip to camera
-                if (preId) {
-                    const match = list.find(v => v.id === preId)
-                    if (match) {
-                        setSelectedVenueId(match.id)
-                        setVenueName(match.name)
-                        venueIdRef.current = match.id
-                        setPhase('camera')
+                // If URL already has a venueId, pre-select it
+                if (preVenueId) {
+                    const vMatch = list.find(v => v.id === preVenueId)
+                    if (vMatch) {
+                        setSelectedVenueId(vMatch.id)
+                        setVenueName(vMatch.name)
+                        venueIdRef.current = vMatch.id
+
+                        if (preGateId) {
+                            setSelectedGateId(preGateId)
+                            gateIdRef.current = preGateId
+                            // We don't have the gate name yet but we'll try to find it after fetch
+                            fetch(`/api/locations/${vMatch.id}/gates`)
+                                .then(r => r.json())
+                                .then(gData => {
+                                    const gList = gData.gates ?? []
+                                    setGates(gList)
+                                    const gMatch = gList.find((g: Gate) => g.id === preGateId)
+                                    if (gMatch) setGateName(gMatch.name)
+                                    setPhase('camera')
+                                })
+                        } else {
+                            // Let them select gate
+                            loadGates(vMatch.id)
+                        }
                     }
                 }
             })
             .catch(() => { })
             .finally(() => setVenuesLoading(false))
     }, [])
+
+    const loadGates = (vid: string) => {
+        setGatesLoading(true)
+        setPhase('gate-select')
+        fetch(`/api/locations/${vid}/gates`)
+            .then(r => r.json())
+            .then(data => setGates(data.gates ?? []))
+            .catch(() => setGates([]))
+            .finally(() => setGatesLoading(false))
+    }
 
     // ── Lens switch (works while streaming too) ───────────────────────────────
     const switchZoom = useCallback(async (zoom: number) => {
@@ -133,11 +176,12 @@ export default function CameraPage() {
                 if (data.success && data.plates?.length > 0) {
                     const plate = data.plates[0]
                     setLastPlate(plate.ocr_text)
-                    // Push result to the signal store so the dashboard reads the
-                    // phone-quality detection instead of running its own.
+
                     const vid = venueIdRef.current
+                    const gid = gateIdRef.current
                     if (vid) {
-                        fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, {
+                        const url = `/api/signal?venueId=${encodeURIComponent(vid)}${gid ? `&gateId=${encodeURIComponent(gid)}` : ''}`
+                        fetch(url, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -149,7 +193,7 @@ export default function CameraPage() {
                     }
                 }
             } catch {
-                // Ignore — ANPR may not be running
+                // Ignore
             }
         }, 2500)
     }, [])
@@ -167,22 +211,24 @@ export default function CameraPage() {
             streamRef.current = null
         }
         const vid = venueIdRef.current
+        const gid = gateIdRef.current
         if (vid) {
-            await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, {
-                method: 'DELETE',
-            }).catch(() => { })
+            const url = `/api/signal?venueId=${encodeURIComponent(vid)}${gid ? `&gateId=${encodeURIComponent(gid)}` : ''}`
+            await fetch(url, { method: 'DELETE' }).catch(() => { })
         }
     }, [stopAnpr])
 
     // ── WebRTC connect ────────────────────────────────────────────────────────
     const connectWebRTC = useCallback(async () => {
         const vid = venueIdRef.current
+        const gid = gateIdRef.current
         if (!vid || !streamRef.current) return
 
         if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
         if (pcRef.current) { pcRef.current.close(); pcRef.current = null }
 
-        await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, { method: 'DELETE' }).catch(() => { })
+        const signalUrl = `/api/signal?venueId=${encodeURIComponent(vid)}${gid ? `&gateId=${encodeURIComponent(gid)}` : ''}`
+        await fetch(signalUrl, { method: 'DELETE' }).catch(() => { })
 
         const pc = new RTCPeerConnection(RTC_CONFIG)
         pcRef.current = pc
@@ -190,7 +236,7 @@ export default function CameraPage() {
 
         pc.onicecandidate = async ({ candidate }) => {
             if (candidate) {
-                await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, {
+                await fetch(signalUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ type: 'phone-ice', candidate: candidate.toJSON() }),
@@ -203,7 +249,6 @@ export default function CameraPage() {
             if (s === 'connected') setStatus('streaming')
             if (s === 'disconnected' || s === 'failed' || s === 'closed') {
                 setStatus('connecting')
-                // Reconnect WebRTC automatically in the background
                 setTimeout(connectWebRTC, 2000)
             }
         }
@@ -211,7 +256,7 @@ export default function CameraPage() {
         try {
             const offer = await pc.createOffer()
             await pc.setLocalDescription(offer)
-            await fetch(`/api/signal?venueId=${encodeURIComponent(vid)}`, {
+            await fetch(signalUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type: 'offer', sdp: pc.localDescription }),
@@ -225,7 +270,7 @@ export default function CameraPage() {
             if (!pcRef.current) return
             try {
                 const res = await fetch(
-                    `/api/signal?role=phone&venueId=${encodeURIComponent(vid)}`
+                    `/api/signal?role=phone&venueId=${encodeURIComponent(vid)}${gid ? `&gateId=${encodeURIComponent(gid)}` : ''}`
                 )
                 const data = await res.json()
 
@@ -240,7 +285,7 @@ export default function CameraPage() {
                     }
                 }
             } catch {
-                // Network hiccup — keep polling
+                // Network hiccup
             }
         }, 500)
     }, [])
@@ -266,7 +311,6 @@ export default function CameraPage() {
                 throw new Error(isHttp ? 'HTTPS_REQUIRED' : 'Camera API not supported in this browser.')
             }
 
-            // Access rear camera
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: { ideal: 'environment' },
@@ -279,35 +323,26 @@ export default function CameraPage() {
             streamRef.current = stream
             if (videoRef.current) videoRef.current.srcObject = stream
 
-            // Detect available lenses and apply selected zoom
             try {
                 const videoTrack = stream.getVideoTracks()[0]
-                const caps = videoTrack.getCapabilities() as MediaTrackCapabilities & {
-                    zoom?: { min: number; max: number; step: number }
-                }
+                const caps = videoTrack.getCapabilities() as any
                 if (caps.zoom) {
                     const levels = ([0.5, 1, 2] as number[]).filter(
-                        z => z >= caps.zoom!.min && z <= caps.zoom!.max
+                        z => z >= caps.zoom.min && z <= caps.zoom.max
                     )
                     setAvailableZooms(levels)
                     const z = Math.max(caps.zoom.min, Math.min(selectedZoomRef.current, caps.zoom.max))
                     await videoTrack.applyConstraints({
-                        advanced: [{ zoom: z } as MediaTrackConstraintSet],
+                        advanced: [{ zoom: z } as any],
                     })
                 }
-            } catch {
-                // Zoom constraints not supported on this browser/device — ignore
-            }
+            } catch { }
 
-            // Start ANPR as soon as the camera is live
             startAnpr()
-
-            // Establish the WebRTC connection
             connectWebRTC()
 
-        } catch (err: unknown) {
-            const msg = err instanceof Error ? err.message : 'Failed to access camera'
-            setError(msg)
+        } catch (err: any) {
+            setError(err.message || 'Failed to access camera')
             setStatus('error')
         }
     }, [startAnpr, connectWebRTC])
@@ -321,13 +356,22 @@ export default function CameraPage() {
         return () => { cleanup() }
     }, [cleanup])
 
-    // ── Venue selection confirm ───────────────────────────────────────────────
+    // ── Selection actions ────────────────────────────────────────────────────
     const confirmVenue = () => {
         if (!selectedVenueId) return
-        const venue = venues.find(v => v.id === selectedVenueId)
-        if (!venue) return
+        const v = venues.find(v => v.id === selectedVenueId)
+        if (!v) return
         venueIdRef.current = selectedVenueId
-        setVenueName(venue.name)
+        setVenueName(v.name)
+        loadGates(v.id)
+    }
+
+    const confirmGate = () => {
+        if (!selectedGateId) return
+        const g = gates.find(g => g.id === selectedGateId)
+        if (!g) return
+        gateIdRef.current = selectedGateId
+        setGateName(g.name)
         setPhase('camera')
     }
 
@@ -353,86 +397,117 @@ export default function CameraPage() {
         return (
             <div className="min-h-screen bg-black flex flex-col items-center justify-center p-5">
                 <div className="w-full max-w-sm space-y-5">
-                    {/* Logo / title */}
                     <div className="text-center">
                         <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sky-600 mb-4">
-                            <svg viewBox="0 0 24 24" fill="none" className="w-8 h-8 text-white" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                            </svg>
+                            <MapPin className="w-8 h-8 text-white" />
                         </div>
                         <h1 className="text-white text-xl font-bold">ParkFlow Camera</h1>
                         <p className="text-slate-400 text-sm mt-1">Select your parking location</p>
                     </div>
 
-                    {/* Venue picker */}
-                    <div className="rounded-2xl bg-slate-900 border border-slate-700 overflow-hidden">
+                    <div className="rounded-2xl bg-slate-900 border border-slate-700 overflow-hidden max-h-[60vh] overflow-y-auto">
                         {venuesLoading ? (
-                            <div className="flex items-center justify-center py-10">
+                            <div className="flex items-center justify-center py-10 gap-3 text-slate-400">
                                 <Loader2 className="w-6 h-6 text-sky-500 animate-spin" />
-                                <span className="text-slate-400 text-sm ml-2">Loading locations…</span>
+                                <span>Loading locations…</span>
                             </div>
-                        ) : venues.length === 0 ? (
-                            <p className="text-slate-400 text-sm text-center py-8 px-4">
-                                No locations found. Check your connection.
-                            </p>
-                        ) : (
-                            venues.map((venue, i) => (
-                                <button
-                                    key={venue.id}
-                                    onClick={() => setSelectedVenueId(venue.id)}
-                                    className={`w-full flex items-center gap-3 px-4 py-4 text-left transition-colors ${i < venues.length - 1 ? 'border-b border-slate-800' : ''
-                                        } ${selectedVenueId === venue.id
-                                            ? 'bg-sky-900/50'
-                                            : 'hover:bg-slate-800'
-                                        }`}
-                                >
-                                    <div
-                                        className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${selectedVenueId === venue.id
-                                            ? 'border-sky-500 bg-sky-500'
-                                            : 'border-slate-600'
-                                            }`}
-                                    >
-                                        {selectedVenueId === venue.id && (
-                                            <div className="w-2 h-2 rounded-full bg-white" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-white font-medium text-sm truncate">{venue.name}</p>
-                                        <p className="text-slate-400 text-xs flex items-center gap-1 mt-0.5">
-                                            <MapPin className="w-3 h-3 flex-shrink-0" />
-                                            {venue.city}
-                                        </p>
-                                    </div>
-                                    {selectedVenueId === venue.id && (
-                                        <div className="w-2 h-2 rounded-full bg-sky-400 flex-shrink-0" />
-                                    )}
-                                </button>
-                            ))
-                        )}
+                        ) : venues.map((venue) => (
+                            <button
+                                key={venue.id}
+                                onClick={() => setSelectedVenueId(venue.id)}
+                                className={`w-full flex items-center gap-3 px-4 py-4 text-left transition-all border-b border-slate-800 last:border-0 ${selectedVenueId === venue.id ? 'bg-sky-900/40 text-white' : 'text-slate-400 hover:bg-slate-800/50'
+                                    }`}
+                            >
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedVenueId === venue.id ? 'border-sky-500 bg-sky-500' : 'border-slate-600'
+                                    }`}>
+                                    {selectedVenueId === venue.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                </div>
+                                <div>
+                                    <p className="font-bold text-sm uppercase tracking-tight">{venue.name}</p>
+                                    <p className="text-[10px] opacity-60 font-medium">{venue.city}</p>
+                                </div>
+                            </button>
+                        ))}
                     </div>
 
                     <button
                         onClick={confirmVenue}
                         disabled={!selectedVenueId}
-                        className="w-full py-3.5 rounded-xl bg-sky-600 text-white font-bold text-base active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full py-4 rounded-xl bg-sky-600 text-white font-bold text-sm uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
                     >
-                        Continue
-                        <ChevronRight className="w-5 h-5" />
+                        Pick Gate
+                        <ChevronRight className="w-4 h-4" />
                     </button>
                 </div>
             </div>
         )
     }
 
-    // ── Camera phase ──────────────────────────────────────────────────────────
+    if (phase === 'gate-select') {
+        return (
+            <div className="min-h-screen bg-black flex flex-col items-center justify-center p-5">
+                <div className="w-full max-w-sm space-y-5">
+                    <div className="text-center">
+                        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-600 mb-4">
+                            <ScanLine className="w-8 h-8 text-white" />
+                        </div>
+                        <h1 className="text-white text-xl font-bold">Pick Gate</h1>
+                        <p className="text-slate-400 text-sm mt-1">Station at {venueName}</p>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-900 border border-slate-700 overflow-hidden">
+                        {gatesLoading ? (
+                            <div className="flex items-center justify-center py-10 gap-3 text-slate-400">
+                                <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
+                                <span>Loading gates…</span>
+                            </div>
+                        ) : gates.length === 0 ? (
+                            <div className="py-10 text-center">
+                                <p className="text-slate-500 text-sm mb-4 uppercase tracking-tighter font-bold">No gates identified</p>
+                                <button onClick={() => setPhase('venue-select')} className="text-sky-500 text-xs font-bold uppercase underline underline-offset-4">Change Location</button>
+                            </div>
+                        ) : gates.map((gate) => (
+                            <button
+                                key={gate.id}
+                                onClick={() => setSelectedGateId(gate.id)}
+                                className={`w-full flex items-center gap-3 px-4 py-4 text-left transition-all border-b border-slate-800 last:border-0 ${selectedGateId === gate.id ? 'bg-amber-900/40 text-white' : 'text-slate-400 hover:bg-slate-800/50'
+                                    }`}
+                            >
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedGateId === gate.id ? 'border-amber-500 bg-amber-500' : 'border-slate-600'
+                                    }`}>
+                                    {selectedGateId === gate.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                </div>
+                                <p className="font-bold text-sm uppercase tracking-tight">{gate.name}</p>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={confirmGate}
+                            disabled={!selectedGateId}
+                            className="w-full py-4 rounded-xl bg-amber-600 text-white font-bold text-sm uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                        >
+                            Start Camera
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setPhase('venue-select')}
+                            className="w-full py-3 text-slate-500 text-xs font-bold uppercase tracking-widest hover:text-slate-300 transition-colors"
+                        >
+                            Back
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
-            {/* Hidden canvas for ANPR frame capture */}
             <canvas ref={canvasRef} className="hidden" />
 
             <div className="w-full max-w-sm space-y-4">
-                {/* Status header */}
                 <div className="flex items-center justify-center gap-2">
                     <div className={`w-2.5 h-2.5 rounded-full ${statusDot}`} />
                     <span className="text-white font-bold text-sm uppercase tracking-widest">
@@ -440,26 +515,34 @@ export default function CameraPage() {
                     </span>
                 </div>
 
-                {/* Venue badge */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 bg-slate-800 rounded-full px-3 py-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-sky-400" />
-                        <span className="text-sky-300 text-xs font-medium">{venueName}</span>
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5 bg-slate-800 rounded-full px-3 py-1 self-start">
+                            <MapPin className="w-3 h-3 text-sky-400" />
+                            <span className="text-sky-300 text-[10px] font-bold uppercase">{venueName}</span>
+                        </div>
+                        {gateName && (
+                            <div className="flex items-center gap-1.5 bg-amber-900/30 rounded-full px-3 py-1 self-start border border-amber-500/20">
+                                <ScanLine className="w-3 h-3 text-amber-400" />
+                                <span className="text-amber-300 text-[10px] font-bold uppercase">{gateName}</span>
+                            </div>
+                        )}
                     </div>
                     {status === 'idle' || status === 'error' ? (
                         <button
                             onClick={() => {
                                 stopStreaming()
                                 setPhase('venue-select')
+                                setSelectedGateId('')
+                                setGateName('')
                             }}
-                            className="text-slate-500 text-xs hover:text-slate-300 transition-colors"
+                            className="text-slate-500 text-[10px] hover:text-slate-300 transition-colors uppercase font-bold tracking-tighter underline underline-offset-2"
                         >
-                            Change location
+                            Change
                         </button>
                     ) : null}
                 </div>
 
-                {/* Camera preview — portrait 9:16 */}
                 <div className="rounded-2xl overflow-hidden bg-slate-900 aspect-[9/16] border border-slate-700 relative">
                     <video
                         ref={videoRef}
@@ -468,24 +551,20 @@ export default function CameraPage() {
                         playsInline
                         className="w-full h-full object-cover"
                     />
-                    {/* ANPR scanning indicator */}
                     {anprScanning && (
                         <div className="absolute top-2 right-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full">
                             <ScanLine className="w-3 h-3 text-emerald-400" />
-                            <span className="text-xs text-emerald-400 font-medium">ANPR</span>
+                            <span className="text-[10px] text-emerald-400 font-bold">ANPR</span>
                         </div>
                     )}
 
-                    {/* Lens selector — overlaid at bottom of preview */}
                     {availableZooms.length > 1 && (
                         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
                             {availableZooms.map(z => (
                                 <button
                                     key={z}
                                     onClick={() => switchZoom(z)}
-                                    className={`w-11 h-11 rounded-full font-bold text-sm transition-all active:scale-90 ${selectedZoom === z
-                                            ? 'bg-white text-black shadow-lg'
-                                            : 'bg-black/60 text-white border border-white/30 backdrop-blur-sm'
+                                    className={`w-11 h-11 rounded-full font-bold text-sm transition-all active:scale-90 ${selectedZoom === z ? 'bg-white text-black shadow-lg' : 'bg-black/60 text-white border border-white/30 backdrop-blur-sm'
                                         }`}
                                 >
                                     {z}x
@@ -495,74 +574,50 @@ export default function CameraPage() {
                     )}
                 </div>
 
-                {/* Detected plate display */}
                 {lastPlate && (
                     <div className="rounded-xl bg-emerald-950/60 border border-emerald-700 px-4 py-3 flex items-center gap-3">
                         <ScanLine className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                         <div>
-                            <p className="text-emerald-400 text-xs font-medium mb-0.5">Plate Detected</p>
-                            <p className="text-white font-mono font-bold text-lg tracking-widest">
+                            <p className="text-emerald-400 text-[10px] font-bold uppercase mb-0.5">Plate Detected</p>
+                            <p className="text-white font-mono font-bold text-xl tracking-widest">
                                 {lastPlate}
                             </p>
                         </div>
                     </div>
                 )}
 
-                {/* Error message */}
                 {error && (
-                    error === 'HTTPS_REQUIRED' ? (
-                        <div className="bg-red-950/60 border border-red-800 rounded-xl px-4 py-3 space-y-2">
-                            <p className="text-red-400 text-sm font-semibold text-center">
-                                HTTPS required for camera access
-                            </p>
-                            <ol className="text-slate-300 text-xs space-y-1 list-decimal list-inside">
-                                <li>
-                                    Restart with{' '}
-                                    <code className="bg-slate-800 px-1 rounded text-sky-400">
-                                        npm run dev -- --experimental-https
-                                    </code>
-                                </li>
-                                <li>
-                                    Or flag{' '}
-                                    <code className="bg-slate-800 px-1 rounded text-sky-400">
-                                        chrome://flags/#unsafely-treat-insecure-origin-as-secure
-                                    </code>
-                                </li>
-                            </ol>
-                        </div>
-                    ) : (
-                        <p className="text-red-400 text-sm text-center bg-red-950/50 rounded-lg px-4 py-2 border border-red-900">
-                            {error}
-                        </p>
-                    )
+                    <p className="text-red-400 text-xs text-center bg-red-950/50 rounded-lg px-4 py-2 border border-red-900 font-medium">
+                        {error}
+                    </p>
                 )}
 
-                {/* Action button */}
                 {status === 'idle' || status === 'error' ? (
                     <button
                         onClick={startStreaming}
-                        className="w-full py-3.5 rounded-xl bg-sky-600 text-white font-bold text-base active:scale-95 transition-transform"
+                        className="w-full py-4 rounded-xl bg-sky-600 text-white font-bold text-sm uppercase tracking-widest active:scale-95 transition-transform"
                     >
                         Start Streaming
                     </button>
                 ) : status === 'streaming' ? (
                     <button
                         onClick={stopStreaming}
-                        className="w-full py-3.5 rounded-xl bg-red-600 text-white font-bold text-base active:scale-95 transition-transform"
+                        className="w-full py-4 rounded-xl bg-red-600 text-white font-bold text-sm uppercase tracking-widest active:scale-95 transition-transform"
                     >
-                        Stop Streaming
+                        Stop Broadcaster
                     </button>
                 ) : (
                     <button
                         disabled
-                        className="w-full py-3.5 rounded-xl bg-slate-700 text-slate-400 font-bold text-base cursor-not-allowed"
+                        className="w-full py-4 rounded-xl bg-slate-700 text-slate-400 font-bold text-sm uppercase cursor-not-allowed flex items-center justify-center gap-2"
                     >
+                        <Loader2 className="w-4 h-4 animate-spin" />
                         Connecting…
                     </button>
                 )}
 
-                <p className="text-slate-600 text-xs text-center">
-                    Keep this page open while streaming · Dashboard → Live Feed to view
+                <p className="text-slate-600 text-[10px] text-center uppercase font-bold tracking-tighter">
+                    Keep this page open · View in Dashboard → Live Feed
                 </p>
             </div>
         </div>

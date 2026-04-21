@@ -5,21 +5,134 @@ export const dynamic = 'force-dynamic';
 
 
 /**
- * GET /api/admin/stats
- *
- * Returns real-time system-level statistics for the admin dashboard:
- *   - Total & active venues
- *   - Total & occupied slots (with occupancy %)
- *   - Total & active sessions
- *   - Today's completed sessions & revenue
- *   - Total revenue (all time)
- *   - Staff counts (total, on-duty, busy)
- *   - Customer count
- *   - System health indicators
+ * Helper to ping the AI microservice health endpoint
  */
-export async function GET(_request: NextRequest) {
+async function getAIStatus(): Promise<string> {
+    const aiUrl = process.env.FLASK_AI_URL || 'http://127.0.0.1:8081';
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+
     try {
-        // Run all queries in parallel for speed
+        const response = await fetch(`${aiUrl}/health`, {
+            signal: controller.signal,
+            cache: 'no-store'
+        });
+        clearTimeout(timeoutId);
+        return response.ok ? 'active' : 'offline';
+    } catch (error) {
+        clearTimeout(timeoutId);
+        return 'offline';
+    }
+}
+
+export async function GET(_request: NextRequest) {
+    let dbStatus = 'connected';
+    let anprStatus = 'offline';
+
+    try {
+        // Run AI health check and DB queries in parallel
+        const aiStatusPromise = getAIStatus();
+
+        let dbResults;
+        try {
+            dbResults = await Promise.all([
+                // Venue stats
+                pool.query(`
+                    SELECT 
+                        COUNT(*) as total_venues,
+                        COUNT(*) FILTER (WHERE status = 'active') as active_venues
+                    FROM venues
+                `),
+
+                // Slot stats
+                pool.query(`
+                    SELECT 
+                        COUNT(*) as total_slots,
+                        COUNT(*) FILTER (WHERE status = 'occupied') as occupied_slots,
+                        COUNT(*) FILTER (WHERE status = 'available') as available_slots
+                    FROM parking_slots
+                `),
+
+                // Session stats (all time)
+                pool.query(`
+                    SELECT 
+                        COUNT(*) as total_sessions,
+                        COUNT(*) FILTER (WHERE status = 'active') as active_sessions,
+                        COUNT(*) FILTER (WHERE status = 'completed') as completed_sessions,
+                        COALESCE(SUM(total_amount) FILTER (WHERE status = 'completed'), 0) as total_revenue,
+                        COALESCE(AVG(total_hours) FILTER (WHERE status = 'completed'), 0) as avg_duration_hours
+                    FROM parking_sessions
+                `),
+
+                // Today's stats
+                pool.query(`
+                    SELECT 
+                        COUNT(*) FILTER (WHERE status = 'completed' AND exit_time::date = CURRENT_DATE) as completed_today,
+                        COALESCE(SUM(total_amount) FILTER (WHERE status = 'completed' AND exit_time::date = CURRENT_DATE), 0) as today_revenue,
+                        COUNT(*) FILTER (WHERE entry_time::date = CURRENT_DATE) as checkins_today
+                    FROM parking_sessions
+                `),
+
+                // Staff stats
+                pool.query(`
+                    SELECT 
+                        COUNT(*) as total_staff,
+                        COUNT(*) FILTER (WHERE is_active = true) as active_staff,
+                        COUNT(*) FILTER (WHERE venue_id IS NOT NULL) as assigned_staff
+                    FROM users
+                    WHERE role IN ('driver', 'washer', 'supervisor')
+                `),
+
+                // Customer count
+                pool.query(`
+                    SELECT COUNT(*) as total FROM users WHERE role = 'customer'
+                `),
+
+                // Last 5 session events
+                pool.query(`
+                    SELECT 
+                        ps.id,
+                        ps.status,
+                        ps.entry_time,
+                        ps.exit_time,
+                        v.license_plate,
+                        ve.name as venue_name,
+                        sl.slot_number,
+                        staff.full_name as staff_name
+                    FROM parking_sessions ps
+                    JOIN vehicles v ON v.id = ps.vehicle_id
+                    LEFT JOIN venues ve ON ve.id = ps.venue_id
+                    LEFT JOIN parking_slots sl ON sl.id = ps.slot_id
+                    LEFT JOIN users staff ON staff.id = ps.valet_staff_id
+                    ORDER BY ps.created_at DESC
+                    LIMIT 5
+                `),
+            ]);
+            anprStatus = await aiStatusPromise;
+        } catch (dbError) {
+            console.error('Database connection error in stats:', dbError);
+            dbStatus = 'disconnected';
+            anprStatus = await aiStatusPromise;
+
+            // Return fallback data with disconnected status
+            return NextResponse.json({
+                venues: { total: 0, active: 0 },
+                slots: { total: 0, occupied: 0, available: 0, occupancy_rate: 0 },
+                sessions: { total: 0, active: 0, completed: 0, avg_duration_hours: 0 },
+                today: { completed: 0, revenue: 0, checkins: 0 },
+                revenue: { total: 0, today: 0 },
+                staff: { total: 0, active: 0, assigned: 0 },
+                customers: { total: 0 },
+                recent_activity: [],
+                system: {
+                    database: 'disconnected',
+                    anpr_service: anprStatus,
+                    uptime: process.uptime(),
+                },
+            }, { status: 200 });
+        }
+
         const [
             venueStats,
             slotStats,
@@ -28,79 +141,7 @@ export async function GET(_request: NextRequest) {
             staffStats,
             customerCount,
             recentActivity,
-        ] = await Promise.all([
-            // Venue stats
-            pool.query(`
-                SELECT 
-                    COUNT(*) as total_venues,
-                    COUNT(*) FILTER (WHERE status = 'active') as active_venues
-                FROM venues
-            `),
-
-            // Slot stats
-            pool.query(`
-                SELECT 
-                    COUNT(*) as total_slots,
-                    COUNT(*) FILTER (WHERE status = 'occupied') as occupied_slots,
-                    COUNT(*) FILTER (WHERE status = 'available') as available_slots
-                FROM parking_slots
-            `),
-
-            // Session stats (all time)
-            pool.query(`
-                SELECT 
-                    COUNT(*) as total_sessions,
-                    COUNT(*) FILTER (WHERE status = 'active') as active_sessions,
-                    COUNT(*) FILTER (WHERE status = 'completed') as completed_sessions,
-                    COALESCE(SUM(total_amount) FILTER (WHERE status = 'completed'), 0) as total_revenue,
-                    COALESCE(AVG(total_hours) FILTER (WHERE status = 'completed'), 0) as avg_duration_hours
-                FROM parking_sessions
-            `),
-
-            // Today's stats
-            pool.query(`
-                SELECT 
-                    COUNT(*) FILTER (WHERE status = 'completed' AND exit_time::date = CURRENT_DATE) as completed_today,
-                    COALESCE(SUM(total_amount) FILTER (WHERE status = 'completed' AND exit_time::date = CURRENT_DATE), 0) as today_revenue,
-                    COUNT(*) FILTER (WHERE entry_time::date = CURRENT_DATE) as checkins_today
-                FROM parking_sessions
-            `),
-
-            // Staff stats
-            pool.query(`
-                SELECT 
-                    COUNT(*) as total_staff,
-                    COUNT(*) FILTER (WHERE is_active = true) as active_staff,
-                    COUNT(*) FILTER (WHERE venue_id IS NOT NULL) as assigned_staff
-                FROM users
-                WHERE role IN ('driver', 'washer', 'supervisor')
-            `),
-
-            // Customer count
-            pool.query(`
-                SELECT COUNT(*) as total FROM users WHERE role = 'customer'
-            `),
-
-            // Last 5 session events
-            pool.query(`
-                SELECT 
-                    ps.id,
-                    ps.status,
-                    ps.entry_time,
-                    ps.exit_time,
-                    v.license_plate,
-                    ve.name as venue_name,
-                    sl.slot_number,
-                    staff.full_name as staff_name
-                FROM parking_sessions ps
-                JOIN vehicles v ON v.id = ps.vehicle_id
-                LEFT JOIN venues ve ON ve.id = ps.venue_id
-                LEFT JOIN parking_slots sl ON sl.id = ps.slot_id
-                LEFT JOIN users staff ON staff.id = ps.valet_staff_id
-                ORDER BY ps.created_at DESC
-                LIMIT 5
-            `),
-        ]);
+        ] = dbResults;
 
         const venue = venueStats.rows[0];
         const slot = slotStats.rows[0];
@@ -161,15 +202,16 @@ export async function GET(_request: NextRequest) {
             })),
             system: {
                 database: 'connected',
-                anpr_service: 'active',
+                anpr_service: anprStatus,
                 uptime: process.uptime(),
             },
         }, { status: 200 });
     } catch (error) {
-        console.error('Admin stats error:', error);
+        console.error('Admin stats global error:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }
         );
     }
 }
+

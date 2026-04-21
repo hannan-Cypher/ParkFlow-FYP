@@ -24,7 +24,7 @@ export async function PATCH(
     try {
         const { id: sessionId } = await params;
         const body = await request.json();
-        const { status } = body;
+        const { status, staff_id } = body;
 
         if (!status || !['in_progress', 'ready'].includes(status)) {
             return NextResponse.json(
@@ -66,13 +66,14 @@ export async function PATCH(
         // ── in_progress: staff started driving the car ───────────────────────
         if (status === 'in_progress') {
             await client.query(
-                `UPDATE parking_sessions SET retrieval_status = 'in_progress' WHERE id = $1`,
-                [sessionId]
+                `UPDATE parking_sessions SET retrieval_status = 'in_progress', retrieval_staff_id = $2 WHERE id = $1`,
+                [sessionId, staff_id || null]
             );
             await client.query('COMMIT');
             return NextResponse.json({
                 message: 'Retrieval started — staff is bringing the car',
                 retrieval_status: 'in_progress',
+                retrieval_staff_id: staff_id || null,
             });
         }
 

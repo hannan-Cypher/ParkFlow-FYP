@@ -55,6 +55,7 @@ export default function IPLocationPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [lastPlate, setLastPlate] = useState<string | null>(null)
     const [lastConf, setLastConf] = useState<string | null>(null)
+    const [isUpdating, setIsUpdating] = useState(false)
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const imgRef = useRef<HTMLImageElement>(null)
 
@@ -106,6 +107,9 @@ export default function IPLocationPage() {
         if (!gate) return
 
         setGateName(gate.name)
+        setIsUpdating(true)
+        setIsLoading(true)
+        setIsConnected(false)
 
         // Tell camera_streamer.py which venue AND gate we're at
         try {
@@ -120,16 +124,17 @@ export default function IPLocationPage() {
             })
         } catch (e) {
             console.error('Failed to set venue+gate on streamer:', e)
+        } finally {
+            setIsUpdating(false)
         }
 
         setPhase('stream')
-        setIsLoading(true)
 
         // Start polling for latest detections
         if (pollRef.current) clearInterval(pollRef.current)
         pollRef.current = setInterval(async () => {
             try {
-                const res = await fetch(`/api/recognize?venue_id=${encodeURIComponent(selectedVenueId)}&limit=1`)
+                const res = await fetch(`/api/recognize?venue_id=${encodeURIComponent(selectedVenueId)}&gate_id=${encodeURIComponent(selectedGateId)}&limit=1`)
                 const data = await res.json()
                 if (data.success && data.detections && data.detections.length > 0) {
                     const det = data.detections[0]
@@ -397,14 +402,24 @@ export default function IPLocationPage() {
                     )}
 
                     {/* Raw MJPEG stream */}
-                    <img
-                        ref={imgRef}
-                        src={`/api/camera/stream?venue_id=setup`}
-                        alt="IP Camera live feed"
-                        className="w-full h-full object-cover"
-                        onLoad={() => { setIsConnected(true); setIsLoading(false) }}
-                        onError={() => { setIsConnected(false); setIsLoading(false) }}
-                    />
+                    {!isUpdating && (
+                        <img
+                            key={`${selectedVenueId}-${selectedGateId}`}
+                            ref={imgRef}
+                            src={`/api/camera/stream?venue_id=${selectedVenueId}&gate_id=${selectedGateId}`}
+                            alt="IP Camera live feed"
+                            className="w-full h-full object-cover"
+                            onLoad={() => { setIsConnected(true); setIsLoading(false) }}
+                            onError={() => { setIsConnected(false); setIsLoading(false) }}
+                        />
+                    )}
+
+                    {isUpdating && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90">
+                            <Loader2 className="w-8 h-8 text-sky-500 animate-spin mb-2" />
+                            <p className="text-white text-sm font-medium">Synchronizing Gate…</p>
+                        </div>
+                    )}
 
                     {/* Offline overlay */}
                     {!isConnected && !isLoading && (
