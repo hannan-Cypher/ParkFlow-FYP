@@ -49,22 +49,7 @@ services:
       - parkflow-network-prod
     restart: unless-stopped
 
-  ai-service:
-    build:
-      context: ./model
-      dockerfile: Dockerfile
-    container_name: parkflow_ai_prod
-    ports:
-      - "8081:8081"
-    environment:
-      - STREAMER_PORT=8081
-      - CAM_IP=192.168.137.50
-      - CAM_USER=admin
-      - CAM_PASS=Admin123
-      - CLOUD_URL=http://app:3000
-    networks:
-      - parkflow-network-prod
-    restart: unless-stopped
+# ai-service removed - runs on edge device (Mac)
 
 networks:
   parkflow-network-prod:
