@@ -1,0 +1,18 @@
+s, created_at, updated_at, pricing_metadata, rating, rating_comment, damage_photos, damage_notes, retrieval_status, retrieval_requested_at, requested_class) VALUES ('7014b5f3-1923-4c0a-aadc-a09559e85dea', '95378ea7-3744-4e36-823e-26ca0f66f38c', NULL, '7260e49e-df79-4332-bb74-528566dbf0e0', NULL, NULL, '2026-04-10 00:19:35.788596', '2026-04-10 12:39:33.376829', NULL, NULL, NULL, NULL, 'completed', NULL, NULL, 300.00, 12.33, 3900.00, 'completed', NULL, NULL, '2026-04-10 00:19:35.788596', '2026-04-16 12:00:04.690299', NULL, NULL, NULL, '[]', NULL, 'in_progress', NULL, 'vip');
+INSERT INTO public.parking_sessions (id, vehicle_id, customer_id, venue_id, slot_id, valet_staff_id, entry_time, exit_time, entry_image_url, exit_image_url, entry_plate_confidence, exit_plate_confidence, status, qr_code, sms_code, rate_per_hour, total_hours, total_amount, payment_status, customer_notes, staff_notes, created_at, updated_at, pricing_metadata, rating, rating_comment, damage_photos, damage_notes, retrieval_status, retrieval_requested_at, requested_class) VALUES ('355f5bab-9e49-48ec-ba80-5ea7ac2cd4c2', '95378ea7-3744-4e36-823e-26ca0f66f38c', NULL, '7260e49e-df79-4332-bb74-528566dbf0e0', NULL, NULL, '2026-04-10 00:19:35.788596', '2026-04-10 12:39:36.65754', NULL, NULL, NULL, NULL, 'completed', NULL, NULL, 100.00, 12.33, 1300.00, 'completed', NULL, NULL, '2026-04-10 00:19:35.788596', '2026-04-16 12:00:04.690299', NULL, NULL, NULL, '[]', NULL, 'in_progress', NULL, 'standard');
+INSERT INTO public.parking_sessions (id, vehicle_id, customer_id, venue_id, slot_id, valet_staff_id, entry_time, exit_time, entry_image_url, exit_image_url, entry_plate_confidence, exit_plate_confidence, status, qr_code, sms_code, rate_per_hour, total_hours, total_amount, payment_status, customer_notes, staff_notes, created_at, updated_at, pricing_metadata, rating, rating_comment, damage_photos, damage_notes, retrieval_status, retrieval_requested_at, requested_class) VALUES ('375812b1-137f-4335-a964-2a8697eb2b78', '4388d180-48ce-41d3-a149-addefa8b41eb', 'a64eeede-3fd2-42b3-bde3-6aee47eb258f', '7260e49e-df79-4332-bb74-528566dbf0e0', '62771519-4032-4d69-b780-f62d16fc3d09', 'adb6ef5f-8cc5-4fb0-aad4-26e2b03a530f', '2026-04-16 19:02:15.837333', '2026-04-16 19:09:46.080414', NULL, NULL, NULL, NULL, 'completed', '375812b1-137f-4335-a964-2a8697eb2b78', 'TC2K', 150.00, 0.13, 150.00, 'completed', NULL, NULL, '2026-04-16 19:02:15.837333', '2026-04-16 19:09:46.080414', '{"base_rate": 100, "peak_label": "Evening Rush", "applied_rate": 150, "is_peak_hour": true, "requested_class": "standard", "occupancy_percent": 0, "is_dynamic_enabled": true, "peak_surcharge_applied": 50, "occupancy_multiplier_used": 1}', NULL, NULL, '[{"url": "/uploads/damage/375812b1-137f-4335-a964-2a8697eb2b78_1776348199412_0.jpg", "label": "Photo 1", "timestamp": "2026-04-16T14:03:19.414Z"}]', NULL, 'in_progress', NULL, 'standard');
+
+
+--
+-- Name: anpr_logs_id_seq; Type: SEQUENCE SET; Schema: public; Owner: Owner
+--
+
+SELECT pg_catalog.setval('public.anpr_logs_id_seq', 1, false);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict HHirGwk4oSzIedKUgmPplObWfiVXXI4jaZSx0rsXpdb45ZMg3Tvpoq2RXecGkV8
+

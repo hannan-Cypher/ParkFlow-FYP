@@ -242,3 +242,23 @@ export function buildWhatsAppReturningLink(
   const message = lines.join('\n');
   return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * Determine the correct base URL for WhatsApp deep links.
+ * Prioritizes NEXT_PUBLIC_APP_URL but falls back to window.location.origin.
+ * Removes dangerous hardcoded ngrok fallbacks.
+ */
+export function getWhatsAppBaseUrl(envUrl: string = '', windowOrigin: string = ''): string {
+  // 1. If we have a valid environment URL that isn't localhost, use it
+  if (envUrl && !envUrl.includes('localhost')) {
+    return envUrl;
+  }
+
+  // 2. Fallback to the current window origin (what the user actually loaded)
+  if (windowOrigin) {
+    return windowOrigin;
+  }
+
+  // 3. Last resort fallback
+  return envUrl || 'http://localhost:3000';
+}

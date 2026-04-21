@@ -39,11 +39,29 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://Owner:1512147296110@Hm@postgres:5432/valet_parking
-      - NEXTAUTH_URL=http://localhost:3000 # Note: Must be updated to public IP/Domain in production
+      - NEXTAUTH_URL=http://213.136.67.148:3000
+      - NEXT_PUBLIC_APP_URL=http://213.136.67.148:3000
       # - NEXTAUTH_SECRET= # Pass via .env
       # FLASK_AI_URL is not needed here as UI will not hit AI directly in this flow, or if it does, point to local Mac IP (often via ngrok/tailscale or public IP)
     depends_on:
       - postgres
+    networks:
+      - parkflow-network-prod
+    restart: unless-stopped
+
+  ai-service:
+    build:
+      context: .
+      dockerfile: model/Dockerfile
+    container_name: parkflow_ai_prod
+    ports:
+      - "8081:8081"
+    environment:
+      - STREAMER_PORT=8081
+      - CAM_IP=192.168.137.50
+      - CAM_USER=admin
+      - CAM_PASS=Admin123
+      - CLOUD_URL=http://app:3000
     networks:
       - parkflow-network-prod
     restart: unless-stopped
