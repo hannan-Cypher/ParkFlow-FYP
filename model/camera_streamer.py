@@ -41,8 +41,12 @@ CAM_PASS = os.environ.get('CAM_PASS', 'Admin123')
 RTSP_URL = f'rtsp://{CAM_USER}:{CAM_PASS}@{CAM_IP}:554/Streaming/Channels/101'
 SNAPSHOT_URL = f'http://{CAM_IP}/ISAPI/Streaming/channels/101/picture'
 
-CLOUD_URL = os.environ.get('CLOUD_URL', 'https://parkflow-fyp-production.up.railway.app')
+CLOUD_URL = os.environ.get('CLOUD_URL', 'http://213.136.67.148:3000')
 ANPR_WEBHOOK_SECRET = os.environ.get('ANPR_WEBHOOK_SECRET', 'parkflow-anpr-secret-2024')
+
+log.info(f"CONFIG  CAM_IP={CAM_IP}")
+log.info(f"CONFIG  CLOUD_URL={CLOUD_URL}")
+log.info(f"CONFIG  ANPR_SECRET={'set' if ANPR_WEBHOOK_SECRET else 'NOT SET'}")
 
 TRIGGER_COOLDOWN = 2
 
@@ -273,6 +277,19 @@ def latest_detection():
             'success': True, 'plate': det['text'], 'confidence': round(det['confidence'], 4), 'method': det['method']
         })
     return jsonify({'success': False, 'plate': None})
+
+@app_streamer.route('/health')
+def health():
+    with _venue_lock:
+        vid = _active_venue_id
+        gid = _active_gate_id
+    return jsonify({
+        'status': 'ok',
+        'cloud_url': CLOUD_URL,
+        'cam_ip': CAM_IP,
+        'active_venue_id': vid,
+        'active_gate_id': gid,
+    })
 
 # ============================================================================
 # ENTRY POINT

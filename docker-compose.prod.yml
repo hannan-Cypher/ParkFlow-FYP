@@ -34,14 +34,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: parkflow_app_prod
-    ports:
-      - "3000:3000"
+    network_mode: host
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://Owner:1512147296110@Hm@postgres:5432/valet_parking
+      # Use localhost:5432 because host networking bypasses Docker DNS
+      - DATABASE_URL=postgresql://Owner:1512147296110@Hm@localhost:5432/valet_parking
       - NEXTAUTH_URL=http://213.136.67.148:3000
       - NEXT_PUBLIC_APP_URL=http://213.136.67.148:3000
-      # Flask AI service (Mac via Tailscale)
+      # Flask AI service (Mac via Tailscale — reachable directly via host network)
       - FLASK_AI_URL=http://100.90.165.47:8080
       - CAMERA_STREAM_URL=http://100.90.165.47:8081/video_feed
       - CLOUD_URL=http://213.136.67.148:3000
@@ -49,8 +49,6 @@ services:
       # - NEXTAUTH_SECRET= # Pass via .env
     depends_on:
       - postgres
-    networks:
-      - parkflow-network-prod
     restart: unless-stopped
 
 # ai-service removed - runs on edge device (Mac)
