@@ -1258,23 +1258,13 @@ function CheckInTab({
     setUploadingDamage(true);
 
     try {
-      const { dataURLtoFile } = await import("@/lib/imageUtils");
-      const formData = new FormData();
-
-      damagePhotos.forEach((photo, i) => {
-        const file = dataURLtoFile(photo.data, `damage_${i}.jpg`);
-        formData.append("files", file);
-        formData.append("labels", photo.label);
-      });
-
-      if (damageNotes) {
-        formData.append("damage_notes", damageNotes);
-      }
-
       const res = await fetch(`/api/sessions/${sessionId}/damage-photos`, {
         method: "POST",
-        body: formData,
-        // FormData handles Content-Type automatically with boundary
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          photos: damagePhotos, // Already { data: string, label: string }
+          damage_notes: damageNotes || undefined
+        }),
       });
 
       if (!res.ok) throw new Error("Upload failed");
@@ -1282,6 +1272,7 @@ function CheckInTab({
       setDamageUploaded(true);
       setStep("done");
     } catch (err) {
+
       console.error("Damage upload failed:", err);
       alert("Failed to upload photos. Please try again.");
     } finally {

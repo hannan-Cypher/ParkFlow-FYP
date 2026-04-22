@@ -23,18 +23,20 @@ export async function POST(
     try {
         const { id: sessionId } = await params
 
-        // Handle multipart/form-data
-        const formData = await request.formData()
-        const files = formData.getAll('files') as File[]
-        const labels = formData.getAll('labels') as string[]
-        const damage_notes = formData.get('damage_notes') as string | null
+        // SWITCHED TO JSON: multipart/form-data parsing was failing through VPS proxy in Next.js 15
+        const body = await request.json()
+        const { photos, damage_notes } = body as {
+            photos: Array<{ data: string; label?: string }>,
+            damage_notes?: string
+        }
 
-        if (!files || files.length === 0) {
+        if (!photos || !Array.isArray(photos) || photos.length === 0) {
             return NextResponse.json(
                 { error: 'At least one photo is required' },
                 { status: 400 }
             )
         }
+
 
         // Verify session exists
         const sessionCheck = await pool.query(
@@ -45,30 +47,35 @@ export async function POST(
             return NextResponse.json({ error: 'Session not found' }, { status: 404 })
         }
 
+        const timestamp = Date.now()
         const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'damage')
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true })
         }
 
-        const timestamp = Date.now()
+        // Process photos in parallel
+        const savePromises = photos.map(async (photo, i) => {
+            const { data, label } = photo
+            // Expecting data: "data:image/jpeg;base64,..." or just base64 string
+            const base64Data = data.includes('base64,') ? data.split('base64,')[1] : data
+            const mimeMatch = data.match(/:(.*?);/)
+            const ext = mimeMatch ? mimeMatch[1].split('/')[1] : 'jpg'
 
-        // Process files in parallel
-        const savePromises = files.map(async (file, i) => {
-            const ext = file.type.split('/')[1] || 'jpg'
             const filename = `${sessionId}_${timestamp}_${i}.${ext === 'jpeg' ? 'jpg' : ext}`
             const filepath = path.join(uploadDir, filename)
 
-            const buffer = Buffer.from(await file.arrayBuffer())
+            const buffer = Buffer.from(base64Data, 'base64')
             await fs.promises.writeFile(filepath, buffer)
 
             return {
                 url: `/uploads/damage/${filename}`,
-                label: labels[i] || `Photo ${i + 1}`,
+                label: label || `Photo ${i + 1}`,
                 timestamp: new Date().toISOString(),
             }
         })
 
         const savedPhotos = await Promise.all(savePromises)
+
 
         // Get existing photos and append
         const existing = await pool.query(
