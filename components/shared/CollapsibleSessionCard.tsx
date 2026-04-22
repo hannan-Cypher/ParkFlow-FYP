@@ -9,11 +9,15 @@ import {
   Clock,
   User,
   Camera,
+  Search,
   ArrowDownLeft,
   ArrowUpRight,
 } from 'lucide-react'
+
 import { ImagePreviewModal } from './ImagePreviewModal'
 import { formatSessionDateTime, getArrowConfig } from '@/lib/dateTimeUtils'
+import { getHeaderPhotos, getPhotoLabel, type DamagePhoto } from '@/lib/photoUtils'
+
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -117,29 +121,51 @@ export function CollapsibleSessionCard({
           </div>
         </div>
 
-        <div className="flex flex-col items-end shrink-0">
-          {/* Only supervisor / admin see billing */}
-          {canSeeBilling && session.total_amount != null && (
-            <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-              Rs.{Math.round((Number(session.total_amount ?? 0) + Number(session.wash_amount ?? 0))).toLocaleString()}
-              {(session.wash_amount ?? 0) > 0 && (
-                <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 ml-1">
-                  (incl. wash)
-                </span>
+        <div className="flex items-center gap-3">
+          {/* Header Photo Preview (Collapsed) */}
+          {!isExpanded && canSeePhotos && session.damage_photos && session.damage_photos.length > 0 && (
+            <div className="hidden sm:flex -space-x-2 overflow-hidden items-center mr-2">
+              {getHeaderPhotos(session.damage_photos as DamagePhoto[]).map((photo, i) => (
+                <div
+                  key={i}
+                  className="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-slate-800 overflow-hidden bg-slate-100 dark:bg-slate-700"
+                >
+                  <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                </div>
+              ))}
+              {session.damage_photos.length > 3 && (
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 ring-2 ring-white dark:ring-slate-800">
+                  +{session.damage_photos.length - 3}
+                </div>
               )}
             </div>
           )}
-          <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
-            {session.duration || timeStr}
-            <motion.div
-              animate={{ rotate: isExpanded ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-              className="text-slate-400 dark:text-slate-500 ml-0.5"
-            >
-              <ChevronDown className="w-3.5 h-3.5" />
-            </motion.div>
+
+          <div className="flex flex-col items-end shrink-0">
+            {/* Only supervisor / admin see billing */}
+            {canSeeBilling && session.total_amount != null && (
+              <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                Rs.{Math.round((Number(session.total_amount ?? 0) + Number(session.wash_amount ?? 0))).toLocaleString()}
+                {(session.wash_amount ?? 0) > 0 && (
+                  <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 ml-1">
+                    (incl. wash)
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+              {session.duration || timeStr}
+              <motion.div
+                animate={{ rotate: isExpanded ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-slate-400 dark:text-slate-500 ml-0.5"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+              </motion.div>
+            </div>
           </div>
         </div>
+
       </div>
 
       {/* ── Always-visible strip ────────────────────────────────────────── */}
@@ -309,33 +335,40 @@ export function CollapsibleSessionCard({
 
                 {/* ── Damage photos — admin / supervisor only ──────────── */}
                 {canSeePhotos && session.damage_photos && session.damage_photos.length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                      <Camera className="w-3.5 h-3.5" /> Damage Photos ({session.damage_photos.length})
+                  <div className="pt-2">
+                    <p className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5 px-1">
+                      <Camera className="w-3.5 h-3.5" /> Damage Assessment ({session.damage_photos.length} Photos)
                     </p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       {session.damage_photos.map((photo, i) => (
-                        <button
-                          key={i}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPreviewPhoto(photo);
-                          }}
-                          className="w-16 h-16 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 flex items-center justify-center hover:opacity-80 transition-opacity"
-                        >
+                        <div key={i} className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 group bg-slate-100 dark:bg-slate-900">
                           <img
                             src={photo.url}
-                            alt={photo.label || `Damage photo ${i + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
+                            alt={getPhotoLabel(photo as DamagePhoto, i)}
+                            className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewPhoto(photo);
                             }}
                           />
-                        </button>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm text-white text-[10px] px-2 py-1.5 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                            {getPhotoLabel(photo as DamagePhoto, i)}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewPhoto(photo);
+                            }}
+                            className="absolute top-2 right-2 p-1.5 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur-md text-white opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Search className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </div>
                 )}
+
               </div>
             </motion.div>
           )}
