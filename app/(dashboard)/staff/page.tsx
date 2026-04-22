@@ -1219,16 +1219,36 @@ function CheckInTab({
   }, [plate, selectedVenue, vehicleType, make, model, color, customerPhone, customerLookup, staffId, ipCamGateId]);
 
   // ── Damage photo upload ──────────────────────────────────────────────────
-  const handleDamageFile = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files; if (!files) return;
-    Array.from(files).forEach((file) => {
+  const handleDamageFile = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const { compressImage } = await import("@/lib/imageUtils");
+
+    for (const file of Array.from(files)) {
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataUrl = ev.target?.result as string;
-        setDamagePhotos((prev) => [...prev, { data: dataUrl, label: `Photo ${prev.length + 1}` }]);
-      };
+      const loadPromise = new Promise<string>((resolve) => {
+        reader.onload = (ev) => resolve(ev.target?.result as string);
+      });
       reader.readAsDataURL(file);
-    });
+      const dataUrl = await loadPromise;
+
+      try {
+        const compressedDataUrl = await compressImage(dataUrl, 1280, 1280, 0.7);
+        setDamagePhotos((prev) => [
+          ...prev,
+          { data: compressedDataUrl, label: `Photo ${prev.length + 1}` },
+        ]);
+      } catch (err) {
+        console.error("Compression failed:", err);
+        // Fallback to original if compression fails
+        setDamagePhotos((prev) => [
+          ...prev,
+          { data: dataUrl, label: `Photo ${prev.length + 1}` },
+        ]);
+      }
+    }
+
     if (damageFileRef.current) damageFileRef.current.value = "";
   }, []);
 
@@ -1236,16 +1256,37 @@ function CheckInTab({
     const sessionId = checkinResult?.session?.id;
     if (!sessionId) return;
     setUploadingDamage(true);
+
     try {
-      await fetch(`/api/sessions/${sessionId}/damage-photos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photos: damagePhotos, damage_notes: damageNotes || undefined }),
+      const { dataURLtoFile } = await import("@/lib/imageUtils");
+      const formData = new FormData();
+
+      damagePhotos.forEach((photo, i) => {
+        const file = dataURLtoFile(photo.data, `damage_${i}.jpg`);
+        formData.append("files", file);
+        formData.append("labels", photo.label);
       });
+
+      if (damageNotes) {
+        formData.append("damage_notes", damageNotes);
+      }
+
+      const res = await fetch(`/api/sessions/${sessionId}/damage-photos`, {
+        method: "POST",
+        body: formData,
+        // FormData handles Content-Type automatically with boundary
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
       setDamageUploaded(true);
       setStep("done");
-    } catch (err) { console.error("Damage upload failed:", err); }
-    finally { setUploadingDamage(false); }
+    } catch (err) {
+      console.error("Damage upload failed:", err);
+      alert("Failed to upload photos. Please try again.");
+    } finally {
+      setUploadingDamage(false);
+    }
   }, [checkinResult, damagePhotos, damageNotes]);
 
   // ── Reset ────────────────────────────────────────────────────────────────

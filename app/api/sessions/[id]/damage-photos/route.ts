@@ -22,10 +22,14 @@ export async function POST(
 ) {
     try {
         const { id: sessionId } = await params
-        const body = await request.json()
-        const { photos, damage_notes } = body
 
-        if (!photos || !Array.isArray(photos) || photos.length === 0) {
+        // Handle multipart/form-data
+        const formData = await request.formData()
+        const files = formData.getAll('files') as File[]
+        const labels = formData.getAll('labels') as string[]
+        const damage_notes = formData.get('damage_notes') as string | null
+
+        if (!files || files.length === 0) {
             return NextResponse.json(
                 { error: 'At least one photo is required' },
                 { status: 400 }
@@ -46,40 +50,25 @@ export async function POST(
             fs.mkdirSync(uploadDir, { recursive: true })
         }
 
-        const savedPhotos: Array<{
-            url: string
-            label: string
-            timestamp: string
-        }> = []
+        const timestamp = Date.now()
 
-        for (let i = 0; i < photos.length; i++) {
-            const photo = photos[i]
-            if (!photo.data) continue
-
-            // Extract base64 data from data URL
-            const matches = photo.data.match(/^data:image\/([\w+]+);base64,(.+)$/)
-            if (!matches) continue
-
-            const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1]
-            const buffer = Buffer.from(matches[2], 'base64')
-            const filename = `${sessionId}_${Date.now()}_${i}.${ext}`
+        // Process files in parallel
+        const savePromises = files.map(async (file, i) => {
+            const ext = file.type.split('/')[1] || 'jpg'
+            const filename = `${sessionId}_${timestamp}_${i}.${ext === 'jpeg' ? 'jpg' : ext}`
             const filepath = path.join(uploadDir, filename)
 
-            fs.writeFileSync(filepath, buffer)
+            const buffer = Buffer.from(await file.arrayBuffer())
+            await fs.promises.writeFile(filepath, buffer)
 
-            savedPhotos.push({
+            return {
                 url: `/uploads/damage/${filename}`,
-                label: photo.label || `Photo ${i + 1}`,
+                label: labels[i] || `Photo ${i + 1}`,
                 timestamp: new Date().toISOString(),
-            })
-        }
+            }
+        })
 
-        if (savedPhotos.length === 0) {
-            return NextResponse.json(
-                { error: 'No valid photos could be processed' },
-                { status: 400 }
-            )
-        }
+        const savedPhotos = await Promise.all(savePromises)
 
         // Get existing photos and append
         const existing = await pool.query(
