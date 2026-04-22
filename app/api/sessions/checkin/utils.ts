@@ -23,10 +23,11 @@ export interface Staff {
 }
 
 /**
- * Normalizes license plate to uppercase and strips spaces/hyphens.
+ * Normalizes license plate to uppercase and strips spaces.
+ * Retains hyphens as requested.
  */
 export function normalizePlate(plate: string): string {
-    return plate.trim().toUpperCase().replace(/[\s\-]+/g, '');
+    return plate.trim().toUpperCase().replace(/\s+/g, '');
 }
 
 /**

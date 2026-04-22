@@ -249,11 +249,20 @@ export async function POST(request: NextRequest) {
             },
             { status: 201 }
         );
-    } catch (error) {
+    } catch (error: any) {
         await client.query('ROLLBACK');
-        console.error('Check-in error:', error);
+        console.error('Check-in error structure:', {
+            message: error.message,
+            stack: error.stack,
+            code: error.code, // Postgres error code
+            detail: error.detail
+        });
+
+        // Return more specific error message if available
+        const errorMessage = error.message || 'Internal server error';
+
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: errorMessage },
             { status: 500 }
         );
     } finally {
