@@ -39,12 +39,12 @@ services:
       - NODE_ENV=production
       # Use localhost:5432 because host networking bypasses Docker DNS
       - DATABASE_URL=postgresql://Owner:1512147296110@Hm@localhost:5432/valet_parking
-      - NEXTAUTH_URL=http://213.136.67.148:3000
-      - NEXT_PUBLIC_APP_URL=http://213.136.67.148:3000
+      - NEXTAUTH_URL=https://parkflow.freedynamicdns.net
+      - NEXT_PUBLIC_APP_URL=https://parkflow.freedynamicdns.net
       # Flask AI service (Mac via Tailscale — reachable directly via host network)
       - FLASK_AI_URL=http://100.85.240.92:8080
       - CAMERA_STREAM_URL=http://100.85.240.92:8081/video_feed
-      - CLOUD_URL=http://213.136.67.148:3000
+      - CLOUD_URL=https://parkflow.freedynamicdns.net
       - ANPR_WEBHOOK_SECRET=parkflow-anpr-secret-2024
       # - NEXTAUTH_SECRET= # Pass via .env
     depends_on:
