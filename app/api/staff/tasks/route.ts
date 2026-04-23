@@ -71,6 +71,8 @@ export async function GET(request: NextRequest) {
         sl.slot_type,
         cu.full_name as customer_name,
         cu.phone as customer_phone,
+        valet.full_name as parked_by_name,
+        retriever.full_name as retrieved_by_name,
         CASE 
           WHEN ps.status = 'active' THEN
             EXTRACT(EPOCH FROM (NOW() - ps.entry_time)) / 3600
@@ -81,6 +83,8 @@ export async function GET(request: NextRequest) {
       LEFT JOIN venues ve ON ve.id = ps.venue_id
       LEFT JOIN parking_slots sl ON sl.id = ps.slot_id
       LEFT JOIN users cu ON cu.id = ps.customer_id
+      LEFT JOIN users valet ON valet.id = ps.valet_staff_id
+      LEFT JOIN users retriever ON retriever.id = ps.retrieval_staff_id
       WHERE ps.valet_staff_id = $1 ${statusFilter}
       ORDER BY 
         CASE WHEN ps.status = 'active' THEN 0 ELSE 1 END,
@@ -127,6 +131,8 @@ export async function GET(request: NextRequest) {
                     name: row.customer_name,
                     phone: row.customer_phone,
                 },
+                parked_by_name: row.parked_by_name,
+                retrieved_by_name: row.retrieved_by_name,
                 billing: {
                     rate_per_hour: Number(row.rate_per_hour),
                     total_amount: row.total_amount ? Number(row.total_amount) : null,

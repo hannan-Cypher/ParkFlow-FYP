@@ -39,7 +39,8 @@ export interface CollapsibleSessionData {
   customer_name: string | null;
   customer_phone: string | null;
   damage_photos: Array<{ url: string; label?: string }> | null;
-  staff_name?: string | null;
+  parked_by_name?: string | null;
+  retrieved_by_name?: string | null;
 }
 
 /**
@@ -321,16 +322,30 @@ export function CollapsibleSessionCard({
                   </div>
                 )}
 
-                {/* ── Staff handled — admin / supervisor only ──────────── */}
-                {canSeeStaff && session.staff_name && (
-                  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 flex items-center justify-between text-xs">
-                    <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5" /> Handled by
-                    </span>
-                    <span className="font-medium text-slate-700 dark:text-slate-200">
-                      {session.staff_name}
-                    </span>
-                  </div>
+                {/* ── Staff info — admin / supervisor only ──────────── */}
+                {canSeeStaff && (
+                  <>
+                    {session.parked_by_name && (
+                      <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 flex items-center justify-between text-xs">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5" /> Parked by
+                        </span>
+                        <span className="font-medium text-slate-700 dark:text-slate-200">
+                          {session.parked_by_name}
+                        </span>
+                      </div>
+                    )}
+                    {session.retrieved_by_name && (
+                      <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-3 flex items-center justify-between text-xs mt-2">
+                        <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5" /> Delivered by
+                        </span>
+                        <span className="font-medium text-slate-700 dark:text-slate-200">
+                          {session.retrieved_by_name}
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* ── Damage photos — admin / supervisor only ──────────── */}

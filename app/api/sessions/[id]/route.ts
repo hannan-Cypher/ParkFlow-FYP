@@ -50,9 +50,8 @@ export async function GET(
          ve.name          AS venue_name,
          ve.address       AS venue_address,
          ve.city          AS venue_city,
-         staff.id         AS staff_id,
-         staff.full_name  AS staff_name,
-         staff.phone      AS staff_phone,
+         valet.full_name  AS parked_by_name,
+         retriever.full_name AS retrieved_by_name,
          cust.id          AS customer_id,
          cust.full_name   AS customer_name,
          cust.phone       AS customer_phone,
@@ -61,7 +60,8 @@ export async function GET(
        JOIN vehicles v       ON v.id  = ps.vehicle_id
        LEFT JOIN parking_slots sl ON sl.id = ps.slot_id
        LEFT JOIN venues ve   ON ve.id = ps.venue_id
-       LEFT JOIN users staff ON staff.id = ps.valet_staff_id
+       LEFT JOIN users valet ON valet.id = ps.valet_staff_id
+       LEFT JOIN users retriever ON retriever.id = ps.retrieval_staff_id
        LEFT JOIN users cust  ON cust.id  = ps.customer_id
        WHERE ps.id = $1`,
             [id]
@@ -134,13 +134,8 @@ export async function GET(
                         address: row.venue_address,
                         city: row.venue_city,
                     },
-                    staff: row.staff_id
-                        ? {
-                            id: row.staff_id,
-                            name: row.staff_name,
-                            phone: row.staff_phone,
-                        }
-                        : null,
+                    parked_by_name: row.parked_by_name,
+                    retrieved_by_name: row.retrieved_by_name,
                     customer: row.customer_id
                         ? {
                             id: row.customer_id,

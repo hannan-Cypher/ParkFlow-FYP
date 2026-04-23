@@ -119,6 +119,8 @@ interface TaskItem {
   customer: { name: string | null; phone: string | null };
   billing: { rate_per_hour: number; total_amount: number | null };
   damage_photos: Array<{ url: string; label: string }>;
+  parked_by_name: string | null;
+  retrieved_by_name: string | null;
 }
 
 interface ActiveSession {
@@ -2089,6 +2091,8 @@ function TasksTab({
                     customer_name: task.customer.name,
                     customer_phone: task.customer.phone,
                     damage_photos: task.damage_photos?.map(p => ({ url: p.url, label: p.label })),
+                    parked_by_name: task.parked_by_name,
+                    retrieved_by_name: task.retrieved_by_name,
                   };
                   return (
                     <CollapsibleSessionCard

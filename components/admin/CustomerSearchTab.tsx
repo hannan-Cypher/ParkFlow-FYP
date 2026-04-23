@@ -88,7 +88,8 @@ interface Session {
     venue_city: string | null
     slot_number: string | null
     floor_level: string | null
-    staff_name: string | null
+    parked_by_name: string | null
+    retrieved_by_name: string | null
     damage_photos: Array<{ url: string; label?: string }> | null
 }
 
@@ -439,7 +440,8 @@ export default function CustomerSearchTab() {
                                             customer_name: detail?.full_name || null,
                                             customer_phone: detail?.phone || null,
                                             damage_photos: s.damage_photos,
-                                            staff_name: s.staff_name
+                                            parked_by_name: s.parked_by_name,
+                                            retrieved_by_name: s.retrieved_by_name
                                         };
                                         return (
                                             <CollapsibleSessionCard

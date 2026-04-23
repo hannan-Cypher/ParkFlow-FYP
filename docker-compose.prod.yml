@@ -47,6 +47,8 @@ services:
       - CLOUD_URL=https://parkflow.freedynamicdns.net
       - ANPR_WEBHOOK_SECRET=parkflow-anpr-secret-2024
       # - NEXTAUTH_SECRET= # Pass via .env
+    volumes:
+      - parkflow_uploads:/app/public/uploads
     depends_on:
       - postgres
     restart: unless-stopped
@@ -59,4 +61,6 @@ networks:
 
 volumes:
   postgres_data_prod:
+    driver: local
+  parkflow_uploads:
     driver: local

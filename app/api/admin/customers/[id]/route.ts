@@ -91,12 +91,14 @@ export async function GET(
         ve.city AS venue_city,
         sl.slot_number,
         sl.floor_level,
-        staff.full_name AS staff_name
+        valet.full_name AS parked_by_name,
+        retriever.full_name AS retrieved_by_name
        FROM parking_sessions ps
        JOIN vehicles v ON v.id = ps.vehicle_id
        LEFT JOIN venues ve ON ve.id = ps.venue_id
        LEFT JOIN parking_slots sl ON sl.id = ps.slot_id
-       LEFT JOIN users staff ON staff.id = ps.valet_staff_id
+       LEFT JOIN users valet ON valet.id = ps.valet_staff_id
+       LEFT JOIN users retriever ON retriever.id = ps.retrieval_staff_id
        WHERE ps.customer_id = $1
        ORDER BY ps.entry_time DESC
        LIMIT 50`,
@@ -186,7 +188,8 @@ export async function GET(
                     venue_city: s.venue_city,
                     slot_number: s.slot_number,
                     floor_level: s.floor_level,
-                    staff_name: s.staff_name,
+                    parked_by_name: s.parked_by_name,
+                    retrieved_by_name: s.retrieved_by_name,
                 };
             }),
             wash_requests: washRes.rows.map((w) => ({
