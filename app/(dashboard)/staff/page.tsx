@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { formatSessionDateTime, getArrowConfig } from "@/lib/dateTimeUtils";
+import { processDamagePhotos } from "@/lib/photoUtils";
 import { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
 import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
 import PhoneInput from "@/components/staff/PhoneInput";
@@ -987,6 +988,7 @@ function CheckInTab({
   const [damagePhotos, setDamagePhotos] = React.useState<Array<{ data: string; label: string }>>([]);
   const [damageNotes, setDamageNotes] = React.useState("");
   const [uploadingDamage, setUploadingDamage] = React.useState(false);
+  const [processingPhotos, setProcessingPhotos] = React.useState(false);
   const [damageUploaded, setDamageUploaded] = React.useState(false);
   const damageFileRef = React.useRef<HTMLInputElement>(null);
 
@@ -1223,36 +1225,20 @@ function CheckInTab({
   // ── Damage photo upload ──────────────────────────────────────────────────
   const handleDamageFile = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
-    const { compressImage } = await import("@/lib/imageUtils");
-
-    for (const file of Array.from(files)) {
-      const reader = new FileReader();
-      const loadPromise = new Promise<string>((resolve) => {
-        reader.onload = (ev) => resolve(ev.target?.result as string);
-      });
-      reader.readAsDataURL(file);
-      const dataUrl = await loadPromise;
-
-      try {
-        const compressedDataUrl = await compressImage(dataUrl, 1280, 1280, 0.7);
-        setDamagePhotos((prev) => [
-          ...prev,
-          { data: compressedDataUrl, label: `Photo ${prev.length + 1}` },
-        ]);
-      } catch (err) {
-        console.error("Compression failed:", err);
-        // Fallback to original if compression fails
-        setDamagePhotos((prev) => [
-          ...prev,
-          { data: dataUrl, label: `Photo ${prev.length + 1}` },
-        ]);
-      }
+    setProcessingPhotos(true);
+    try {
+      const processed = await processDamagePhotos(Array.from(files), damagePhotos.length);
+      setDamagePhotos((prev) => [...prev, ...processed]);
+    } catch (err) {
+      console.error("Failed to process photos", err);
+      alert("Error processing photos. Some might be too large or invalid.");
+    } finally {
+      setProcessingPhotos(false);
+      if (damageFileRef.current) damageFileRef.current.value = "";
     }
-
-    if (damageFileRef.current) damageFileRef.current.value = "";
-  }, []);
+  }, [damagePhotos.length]);
 
   const handleDamageUpload = React.useCallback(async () => {
     const sessionId = checkinResult?.session?.id;
@@ -1896,6 +1882,13 @@ function CheckInTab({
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-2 py-1">{photo.label}</div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {processingPhotos && (
+            <div className="flex items-center justify-center gap-2 p-6 rounded-2xl bg-sky-50 dark:bg-sky-900/20 border border-sky-200 dark:border-sky-800">
+              <Loader2 className="h-5 w-5 animate-spin text-sky-500" />
+              <span className="text-sm font-medium text-sky-600">Processing photos...</span>
             </div>
           )}
 
