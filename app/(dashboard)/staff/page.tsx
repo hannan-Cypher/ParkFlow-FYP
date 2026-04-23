@@ -60,6 +60,7 @@ import {
 } from "@/components/shared/shift";
 import { useShift } from "@/components/shared/shift/useShift";
 import { useRealtime } from "@/hooks/useRealtime";
+import { checkShiftThresholds } from "@/lib/shiftLogic";
 
 // ── Animation Presets ────────────────────────────────────────────────────
 const container = {
@@ -177,6 +178,8 @@ export default function StaffDashboardPage() {
   const [activeTab, setActiveTab] = React.useState<TabKey>("Active Vehicles");
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
+  const [shiftDurationExceeded, setShiftDurationExceeded] = React.useState(false);
+  const [elapsedHours, setElapsedHours] = React.useState(0);
 
   // Staff info
   const [staffInfo, setStaffInfo] = React.useState<StaffInfo | null>(null);
@@ -358,29 +361,23 @@ export default function StaffDashboardPage() {
     }
   }, [router]);
 
-  // Enforce 14-hour max shift duration
+  // Notify when approach/reach 14-hour shift duration
   React.useEffect(() => {
-    if (!activeShift?.shift_start) return;
+    if (!activeShift?.shift_start) {
+      setShiftDurationExceeded(false);
+      return;
+    }
 
-    const check14HourLimit = async () => {
-      const startTime = new Date(activeShift.shift_start).getTime();
-      const elapsedHours = (Date.now() - startTime) / (1000 * 60 * 60);
-
-      if (elapsedHours >= 14 && !isLoggingOut) {
-        console.warn("14-hour shift limit reached. Auto-ending shift and logging out.");
-        try {
-          await fetch("/api/staff/shift/end", { method: "POST" });
-        } catch (e) {
-          console.error("Failed to auto-end shift:", e);
-        }
-        handleLogout();
-      }
+    const updateShiftLimitStatus = () => {
+      const { isExceeded, elapsedHours: hours } = checkShiftThresholds(activeShift.shift_start);
+      setElapsedHours(hours);
+      setShiftDurationExceeded(isExceeded);
     };
 
-    check14HourLimit();
-    const interval = setInterval(check14HourLimit, 60000);
+    updateShiftLimitStatus();
+    const interval = setInterval(updateShiftLimitStatus, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [activeShift?.shift_start, isLoggingOut, handleLogout]);
+  }, [activeShift?.shift_start]);
 
   if (!mounted) {
     return <main className="mx-auto max-w-6xl px-4 pb-24 pt-10" />;
@@ -395,6 +392,34 @@ export default function StaffDashboardPage() {
     >
       {/* Dark Mode Background */}
       <div className="fixed inset-0 -z-10 bg-slate-50 dark:bg-slate-900 transition-colors duration-300" />
+
+      {/* Extreme Shift Warning Alert */}
+      <AnimatePresence>
+        {shiftDurationExceeded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="mb-6 overflow-hidden"
+          >
+            <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 flex items-start gap-3 shadow-sm transition-colors duration-300">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-800/40 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                  Extended Shift Detected ({elapsedHours.toFixed(1)} hrs)
+                </h3>
+                <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 leading-relaxed">
+                  Your shift has exceeded the standard 14-hour threshold. Please ensure you are taking
+                  appropriate breaks and consider ending your shift if your duties are complete.
+                  Contact your manager if you need help with handovers.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Shift Start Gate — blocks dashboard until shift started */}
       <AnimatePresence>

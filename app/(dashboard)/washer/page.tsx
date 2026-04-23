@@ -34,6 +34,7 @@ import {
 import DarkModeToggle from "@/components/DarkModeToggle";
 import { ImagePreviewModal } from "@/components/shared/ImagePreviewModal";
 import { useRealtime } from "@/hooks/useRealtime";
+import { checkShiftThresholds } from "@/lib/shiftLogic";
 
 // ── Animation Presets ────────────────────────────────────────────────────
 const container = {
@@ -1115,6 +1116,8 @@ export default function WasherDashboard() {
   const [loading, setLoading] = React.useState(true);
   const [actionLoading, setActionLoading] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [shiftDurationExceeded, setShiftDurationExceeded] = React.useState(false);
+  const [elapsedHours, setElapsedHours] = React.useState(0);
 
   // Shift state
   const [shiftStatus, setShiftStatus] = React.useState<ShiftStatus>("loading");
@@ -1234,16 +1237,29 @@ export default function WasherDashboard() {
     load();
   }, [fetchWasherInfo, fetchStats, fetchTasks, fetchShift]);
 
-  // Real-time updates via SSE
+  // Real-time updates
   useRealtime(React.useCallback((event) => {
-    if (event.table === 'service_requests') {
-      fetchTasks();
-      fetchStats();
+    if (event.table === 'wash_tasks') fetchTasks();
+    if (event.table === 'staff_shifts') fetchShift();
+  }, [fetchTasks, fetchShift]), ['wash_tasks', 'staff_shifts']);
+
+  // Monitor shift duration for 14-hour limit
+  React.useEffect(() => {
+    if (!activeShift?.shift_start) {
+      setShiftDurationExceeded(false);
+      return;
     }
-    if (event.table === 'users') {
-      fetchShift();
-    }
-  }, [fetchTasks, fetchStats, fetchShift]), ['service_requests', 'users']);
+
+    const updateShiftLimitStatus = () => {
+      const { isExceeded, elapsedHours: hours } = checkShiftThresholds(activeShift.shift_start);
+      setElapsedHours(hours);
+      setShiftDurationExceeded(isExceeded);
+    };
+
+    updateShiftLimitStatus();
+    const interval = setInterval(updateShiftLimitStatus, 60000);
+    return () => clearInterval(interval);
+  }, [activeShift?.shift_start]);
 
   // ── Task Actions ───────────────────────────────────────────────────────
 
@@ -1633,6 +1649,33 @@ export default function WasherDashboard() {
             ))}
           </motion.div>
         )}
+
+        {/* Extreme Shift Warning Alert */}
+        <AnimatePresence>
+          {shiftDurationExceeded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="mt-6 overflow-hidden"
+            >
+              <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 flex items-start gap-3 shadow-sm transition-colors duration-300">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-800/40 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                    Extended Shift Detected ({elapsedHours.toFixed(1)} hrs)
+                  </h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 leading-relaxed">
+                    Your shift has exceeded the standard 14-hour threshold. Please ensure you are taking
+                    appropriate breaks and consider ending your shift if your duties are complete.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Tabs */}
         <motion.nav variants={item} className="mt-6 mb-6">
