@@ -1,0 +1,103 @@
+/**
+ * Production Server Wrapper for ParkFlow
+ * 
+ * Next.js standalone mode does not serve the 'public' folder by default.
+ * This wrapper ensures that user uploads in /public/uploads are served
+ * correctly while delegating everything else to the Next.js handler.
+ */
+
+const http = require('http');
+const path = require('path');
+const fs = require('fs');
+const url = require('url');
+
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOSTNAME || '0.0.0.0';
+
+// Minimal MIME mapping
+const mimeTypes = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+};
+
+// Check if we are running in standalone mode (server.js should exist in the same dir)
+const nextServerPath = path.join(__dirname, 'server.js');
+
+if (!fs.existsSync(nextServerPath)) {
+  console.error('Error: server.js (Next.js standalone) not found!');
+  process.exit(1);
+}
+
+// In Next.js standalone, the server.js is a script that starts the server.
+// We need to require it or emulate its behavior.
+// However, the cleanest way in Docker is to have this wrapper BE the entrypoint.
+
+const server = http.createServer((req, res) => {
+  const parsedUrl = url.parse(req.url, true);
+  const { pathname } = parsedUrl;
+
+  // 1. Check if requesting an upload
+  if (pathname.startsWith('/uploads/')) {
+    const filePath = path.join(__dirname, 'public', pathname);
+    
+    // Safety check: ensure file is inside public/uploads
+    const normalizedPath = path.normalize(filePath);
+    if (normalizedPath.startsWith(path.join(__dirname, 'public', 'uploads'))) {
+      if (fs.existsSync(normalizedPath) && fs.statSync(normalizedPath).isFile()) {
+        const ext = path.extname(normalizedPath).toLowerCase();
+        res.writeHead(200, { 
+          'Content-Type': mimeTypes[ext] || 'application/octet-stream',
+          'Cache-Control': 'public, max-age=31536000, immutable'
+        });
+        fs.createReadStream(normalizedPath).pipe(res);
+        return;
+      }
+    }
+  }
+
+  // 2. Fallback to Next.js
+  // We require the handler from the generated server.js
+  // NOTE: Next.js standalone server.js usually requires its own dependencies.
+  // We can just proxy to it if we run it on a different port, 
+  // OR we can try to require it if it's structured that way.
+  
+  // Since modifying the port is easier in Docker, we'll assume this wrapper
+  // is called directly and we have to handle the handoff.
+  // Actually, standard Next server.js is NOT a reusable module.
+  
+  // ALTERNATIVE: Use the internal 'next' server logic if available,
+  // but standalone is designed to be minimal.
+});
+
+// For simplicity and reliability in the user's environment, we will actually
+// use a slightly different approach: we will start the Next server on 3001
+// and proxy to it, OR we will just use this wrapper to serve static and 
+// use Next's own server for everything else by requiring its internal logic.
+
+// Actually, let's keep it very simple for the user.
+// I will provide a server.js that combines both.
+
+const { createServer } = require('http')
+const { parse } = require('url')
+const next = require('next')
+
+// We don't want to use 'next' dev or start, we want to use the standalone output.
+// The standalone output has a server.js that looks like:
+// const NextServer = require('next/dist/server/next-server').default
+// ... etc.
+
+// I'll provide a more standard wrapper that just works with standalone.
+console.log('Starting custom server wrapper...');
+require('./server.js'); 
+// Wait, requiring server.js starts it. We can't easily intercept it without changing its code.
+
+/**
+ * REVISED APPROACH:
+ * Instead of a wrapper, I will modify the Dockerfile to COPY the public folder
+ * into the location where the standalone server expects it, AND I will
+ * use Nginx if possible, OR I will just provide the simple instruction.
+ */
