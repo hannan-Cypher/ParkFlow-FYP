@@ -94,6 +94,7 @@ interface ActiveSession {
   };
   staff_name: string | null;
   customer_name: string | null;
+  gate_id: string | null;
 }
 
 interface CompletedSession {
@@ -1157,7 +1158,7 @@ function LiveFeedTab({ currentSession }: { currentSession: ActiveSession | null 
       </div>
 
       <div className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
-        <WebRTCViewer compact={false} venueId={currentSession.venue.id} hideInstructions={true} />
+        <WebRTCViewer compact={false} venueId={currentSession.venue.id} gateId={currentSession.gate_id || undefined} hideInstructions={true} />
       </div>
     </motion.div>
   );

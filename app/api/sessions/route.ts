@@ -81,6 +81,7 @@ export async function GET(request: NextRequest) {
         ps.customer_notes,
         ps.staff_notes,
         ps.entry_plate_confidence,
+        ps.gate_id,
         ps.retrieval_status,
         ps.retrieval_requested_at,
         ps.qr_code,
@@ -176,6 +177,7 @@ export async function GET(request: NextRequest) {
                 retrieval_requested_at: row.retrieval_requested_at || null,
                 qr_code: row.qr_code || null,
                 sms_code: row.sms_code || null,
+                gate_id: row.gate_id || null,
                 rating: row.rating != null ? Number(row.rating) : null,
                 rating_comment: row.rating_comment || null,
             };
