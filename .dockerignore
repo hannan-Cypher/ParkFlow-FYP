@@ -30,3 +30,12 @@ docker-compose.yml
 *.log
 .DS_Store
 README.md
+
+# Old backups/laptop files
+Old_laptop/
+OLD_BACKUP/
+Old_laptop_v2/
+graphify-out/
+mnt/
+Old*
+OLD*
