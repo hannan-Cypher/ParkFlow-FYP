@@ -43,7 +43,6 @@ import DarkModeToggle from "@/components/DarkModeToggle";
 import { formatSessionDateTime, getArrowConfig } from "@/lib/dateTimeUtils";
 import { processDamagePhotos } from "@/lib/photoUtils";
 import { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
-import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
 import PhoneInput from "@/components/staff/PhoneInput";
 import CustomerLookupResult from "@/components/staff/CustomerLookupResult";
 import CheckInStepIndicator from "@/components/staff/CheckInStepIndicator";
@@ -89,6 +88,8 @@ interface StaffInfo {
   full_name: string;
   role?: string;
   venue: { id: string; name: string; city: string } | null;
+  zone_id?: string;
+  gate_id?: string;
 }
 
 interface StaffStats {
@@ -227,7 +228,12 @@ export default function StaffDashboardPage() {
       const res = await fetch("/api/staff/me");
       if (res.ok) {
         const data = await res.json();
-        setStaffInfo(data.staff);
+        setStaffInfo({
+          ...data.staff,
+          venue: data.staff.venue,
+          zone_id: data.staff.zone_id,
+          gate_id: data.staff.gate_id
+        });
         setStaffStats(data.stats);
         return;
       }
@@ -696,6 +702,7 @@ export default function StaffDashboardPage() {
             <CheckInTab
               staffVenue={staffInfo?.venue || null}
               staffId={staffInfo?.id || null}
+              staffGateId={staffInfo?.gate_id || null}
               onSuccess={() => {
                 fetchActiveVehicles();
                 fetchTasks();
@@ -952,10 +959,12 @@ interface CustomerLookup {
 function CheckInTab({
   staffVenue,
   staffId,
+  staffGateId,
   onSuccess,
 }: {
   staffVenue: { id: string; name: string; city: string } | null;
   staffId: string | null;
+  staffGateId: string | null;
   onSuccess: () => void;
 }) {
   // ── Step state ─────────────────────────────────────────────────────────
@@ -1220,7 +1229,7 @@ function CheckInTab({
         body: JSON.stringify({
           license_plate: plate,
           venue_id: selectedVenue,
-          gate_id: ipCamGateId || undefined,
+          gate_id: ipCamGateId || staffGateId || undefined,
           vehicle_type: vehicleType,
           make: make || undefined,
           model: model || undefined,
@@ -1776,29 +1785,6 @@ function CheckInTab({
             <p className="mt-1 text-xs text-sky-500">{checkinResult.session.venue?.name ?? checkinResult.session.venue_name}</p>
           </div>
 
-          {/* QR Ticket */}
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 180, damping: 18, delay: 0.1 }}
-            >
-              <QRCodeDisplay
-                sessionId={checkinResult.session.id}
-                licensePlate={plate}
-                venueName={checkinResult.session.venue?.name ?? checkinResult.session.venue_name}
-                entryTime={checkinResult.session.entry_time}
-                slotNumber={checkinResult.session.slot?.slot_number ?? checkinResult.session.slot_number}
-                size="lg"
-                variant="ticket"
-                showActions={true}
-              />
-              <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-2">
-                Show this QR code to the customer or download and send via SMS
-              </p>
-            </motion.div>
-          </AnimatePresence>
-
           {/* SMS Code card */}
           {checkinResult.session.sms_code && (
             <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 text-center">
@@ -1863,7 +1849,7 @@ function CheckInTab({
           ) : (
             <div className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 text-sm text-slate-500 dark:text-slate-400">
               <MessageSquare className="h-4 w-4 shrink-0" />
-              No phone number — hand the QR ticket to the customer directly
+              No phone number provided
             </div>
           )}
 

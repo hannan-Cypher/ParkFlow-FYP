@@ -29,11 +29,14 @@ export async function GET(request: NextRequest) {
         u.phone,
         u.role,
         u.venue_id,
+        u.zone_id,
+        z.gate_id,
         u.is_active,
         v.name as venue_name,
         v.city as venue_city
       FROM users u
       LEFT JOIN venues v ON v.id = u.venue_id
+      LEFT JOIN zones z ON z.id = u.zone_id
       WHERE u.id = $1`,
             [user.id]
         )
@@ -72,6 +75,8 @@ export async function GET(request: NextRequest) {
                         city: staff.venue_city,
                     }
                     : null,
+                zone_id: staff.zone_id,
+                gate_id: staff.gate_id,
             },
             stats: {
                 active_tasks: Number(stats.active_tasks),

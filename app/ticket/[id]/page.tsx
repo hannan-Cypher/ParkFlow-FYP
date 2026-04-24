@@ -8,7 +8,6 @@ import {
   MapPin, Clock, Car, CheckCircle2, Loader2, AlertCircle,
   ParkingCircle, UserPlus, LogIn, LayoutDashboard,
 } from "lucide-react";
-import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
 
 interface TicketSession {
   id: string;
@@ -195,7 +194,7 @@ function TicketContent({ sessionId }: { sessionId: string }) {
           </div>
           <h1 className="text-xl font-bold text-zinc-900 dark:text-white">Ticket not found</h1>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            This QR code may be invalid or expired.
+            This ticket link may be invalid or expired.
           </p>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">
             Contact the venue staff for assistance.
@@ -266,23 +265,6 @@ function TicketContent({ sessionId }: { sessionId: string }) {
             </div>
           </motion.div>
         )}
-
-        {/* QR code */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.05 }}
-          className="flex justify-center"
-        >
-          <QRCodeDisplay
-            sessionId={session.id}
-            licensePlate={session.license_plate}
-            venueName={session.venue_name}
-            size="md"
-            variant="compact"
-            showActions={false}
-          />
-        </motion.div>
 
         {/* Session details */}
         <motion.div

@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
-import { 
+import {
   Scan, Brain, Shield, Smartphone, Camera, Zap,
   Building2, Hotel, Plane, ShoppingBag, PartyPopper,
   Check, ArrowRight
@@ -54,7 +54,7 @@ export default function ServicesPage() {
       title: 'Mobile App Platform',
       description: 'User-friendly apps for both customers and valet staff with seamless experience.',
       features: [
-        'QR code check-in/out',
+        'Digital check-in/out',
         'Real-time tracking',
         'Service requests',
         'Digital receipts',
@@ -74,12 +74,12 @@ export default function ServicesPage() {
     {
       icon: Zap,
       title: 'Frictionless Access',
-      description: 'Multiple access options including QR codes, SMS, and WhatsApp for all users.',
+      description: 'Multiple access options including SMS and WhatsApp for all users.',
       features: [
         'App-based access',
         'SMS notifications',
         'WhatsApp integration',
-        'QR code system',
+        'Digital ticket system',
       ],
     },
   ]

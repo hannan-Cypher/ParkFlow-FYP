@@ -223,3 +223,24 @@ export async function assignStaff(
         full_name: res.rows[0]?.full_name || null
     };
 }
+/**
+ * Derives the gate_id from the staff member's assigned zone.
+ * This is used for signaling when gate_id is not explicitly provided.
+ */
+export async function deriveGateIdFromStaff(
+    client: PoolClient,
+    staffId?: string,
+    venueId?: string
+): Promise<string | null> {
+    if (!staffId || !venueId) return null;
+
+    const res = await client.query(
+        `SELECT z.gate_id 
+         FROM users u
+         JOIN zones z ON z.id = u.zone_id
+         WHERE u.id = $1 AND u.venue_id = $2`,
+        [staffId, venueId]
+    );
+
+    return res.rows[0]?.gate_id || null;
+}

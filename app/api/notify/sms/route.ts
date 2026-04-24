@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 /**
  * POST /api/notify/sms
  *
- * Dispatch an SMS to the customer after check-in with QR code + session link.
+ * Dispatch an SMS to the customer after check-in with session link.
  * Currently a STUB — logs to console and records in notifications table.
  * Replace the "SEND SMS" section below with a real provider (Twilio, Nexmo, etc.)
  *

@@ -29,13 +29,11 @@ import {
   Wifi,
   WifiOff,
   Star,
-  QrCode,
   Receipt,
   X,
   PartyPopper,
 } from "lucide-react";
 import DarkModeToggle from "@/components/DarkModeToggle";
-import QRCodeDisplay from "@/components/shared/QRCodeDisplay";
 import { useRealtime } from "@/hooks/useRealtime";
 import { WebRTCViewer } from "@/components/admin/LiveFeedWidget";
 
@@ -176,7 +174,6 @@ export default function CustomerDashboardPage() {
   const [receiptSession, setReceiptSession] = React.useState<CompletedSession | null>(null);
   const [showRating, setShowRating] = React.useState(false);
   const [carArrivedAlert, setCarArrivedAlert] = React.useState(false);
-  const [showQR, setShowQR] = React.useState<string | null>(null);
 
   React.useEffect(() => setMounted(true), []);
 
@@ -464,43 +461,8 @@ export default function CustomerDashboardPage() {
                       </div>
                     )}
                   </div>
-                  {/* QR Code toggle */}
-                  {currentSession.qr_code && (
-                    <button
-                      onClick={() =>
-                        setShowQR(showQR === currentSession.id ? null : currentSession.id)
-                      }
-                      className="flex flex-col items-center gap-1 shrink-0 text-xs text-slate-500 hover:text-blue-600 transition-colors"
-                    >
-                      <QrCode className="w-6 h-6" />
-                      <span>{showQR === currentSession.id ? "Hide QR" : "Show QR"}</span>
-                    </button>
-                  )}
                 </div>
 
-                {/* Expandable QR ticket */}
-                <AnimatePresence>
-                  {showQR === currentSession.id && currentSession.qr_code && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.25 }}
-                      className="overflow-hidden pt-4"
-                    >
-                      <QRCodeDisplay
-                        sessionId={currentSession.qr_code}
-                        licensePlate={currentSession.vehicle.license_plate}
-                        venueName={currentSession.venue.name}
-                        entryTime={currentSession.entry_time}
-                        slotNumber={currentSession.slot?.slot_number}
-                        size="md"
-                        variant="ticket"
-                        showActions={true}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             </motion.div>
 

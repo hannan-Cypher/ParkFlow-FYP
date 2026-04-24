@@ -18,10 +18,10 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
+
     // Simulate form submission
     await new Promise(resolve => setTimeout(resolve, 2000))
-    
+
     alert('Thank you for your message! We will get back to you soon.')
     setFormData({ name: '', email: '', phone: '', company: '', message: '' })
     setIsSubmitting(false)
@@ -176,9 +176,8 @@ export default function ContactPage() {
                     whileTap={{ scale: 0.98 }}
                     type="submit"
                     disabled={isSubmitting}
-                    className={`w-full btn-primary flex items-center justify-center space-x-2 ${
-                      isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
-                    }`}
+                    className={`w-full btn-primary flex items-center justify-center space-x-2 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                      }`}
                   >
                     {isSubmitting ? (
                       <>
@@ -275,7 +274,7 @@ export default function ContactPage() {
               },
               {
                 q: 'Do customers need to download an app?',
-                a: 'No! While we offer a feature-rich mobile app, customers can also use WhatsApp, SMS, or QR codes for a completely frictionless experience.',
+                a: 'No! While we offer a feature-rich mobile app, customers can also use WhatsApp or SMS for a completely frictionless experience.',
               },
               {
                 q: 'How long does implementation take?',

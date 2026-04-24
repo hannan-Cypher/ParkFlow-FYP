@@ -32,7 +32,7 @@ export default function HowItWorks() {
     {
       icon: Smartphone,
       title: 'Track & Retrieve',
-      description: 'Monitor your car via live feed and request retrieval through app, SMS, or QR code.',
+      description: 'Monitor your car via live feed and request retrieval through app or SMS.',
       color: 'from-green-500 to-teal-500',
     },
   ]
@@ -61,7 +61,7 @@ export default function HowItWorks() {
               <ArrowRight className="w-4 h-4" />
               <span className="text-sm font-semibold">Process</span>
             </motion.div>
-            
+
             <h2 className="text-4xl md:text-5xl font-display font-bold text-dark-900 mb-4">
               How It <span className="gradient-text">Works</span>
             </h2>
@@ -103,7 +103,7 @@ export default function HowItWorks() {
                   >
                     {/* Gradient Background on Hover */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${step.color} opacity-0 group-hover:opacity-5 rounded-2xl transition-opacity duration-300`} />
-                    
+
                     {/* Icon */}
                     <motion.div
                       whileHover={{ rotate: 360 }}

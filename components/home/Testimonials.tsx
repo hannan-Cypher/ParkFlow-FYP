@@ -43,7 +43,7 @@ export default function Testimonials() {
       company: 'Customer',
       image: '👨',
       rating: 5,
-      text: 'As a customer, I love being able to track my car in real-time. The QR code pickup is so convenient, and I even got my car cleaned while shopping!',
+      text: 'As a customer, I love being able to track my car in real-time. The digital ticket pickup is so convenient, and I even got my car cleaned while shopping!',
     },
   ]
 
@@ -75,7 +75,7 @@ export default function Testimonials() {
               <Star className="w-4 h-4" />
               <span className="text-sm font-semibold">Testimonials</span>
             </motion.div>
-            
+
             <h2 className="text-4xl md:text-5xl font-display font-bold text-dark-900 mb-4">
               What Our <span className="gradient-text">Clients Say</span>
             </h2>
@@ -165,11 +165,10 @@ export default function Testimonials() {
                   <button
                     key={index}
                     onClick={() => setCurrentIndex(index)}
-                    className={`transition-all duration-300 rounded-full ${
-                      index === currentIndex
+                    className={`transition-all duration-300 rounded-full ${index === currentIndex
                         ? 'w-8 h-3 bg-primary-500'
                         : 'w-3 h-3 bg-gray-300 hover:bg-gray-400'
-                    }`}
+                      }`}
                   />
                 ))}
               </div>

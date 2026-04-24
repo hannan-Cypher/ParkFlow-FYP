@@ -7,7 +7,8 @@ import {
     resolveCustomerId,
     findOrCreateVehicle,
     allocateSlot,
-    assignStaff
+    assignStaff,
+    deriveGateIdFromStaff
 } from './utils';
 
 export const dynamic = 'force-dynamic';
@@ -98,10 +99,15 @@ export async function POST(request: NextRequest) {
             resolvedCustomerId
         );
 
-        // ── 5. Slot Allocation (gate-aware cascade) ────────────────────────────
+        // ── 5. Gate & Slot Allocation ─────────────────────────────────────────
+        let effectiveGateId = gate_id;
+        if (!effectiveGateId && staff_id) {
+            effectiveGateId = await deriveGateIdFromStaff(client, staff_id, venue_id) || undefined;
+        }
+
         let slot;
         try {
-            slot = await allocateSlot(client, venue_id, requested_class, gate_id);
+            slot = await allocateSlot(client, venue_id, requested_class, effectiveGateId);
         } catch (err: any) {
             await client.query('ROLLBACK');
             return NextResponse.json(
@@ -146,7 +152,7 @@ export async function POST(request: NextRequest) {
                 JSON.stringify(pricingMeta),
                 smsCode,
                 requested_class,
-                gate_id || null,
+                effectiveGateId || null,
             ]
         );
 

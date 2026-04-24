@@ -1,0 +1,382 @@
+(node:60089) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL lib/duty-assignment.test.ts (5.343 s)
+  ● validateAssignment › allows supervisor to assign washer to a zone
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      159 |         };
+      160 |         const result = validateAssignment(input);
+    > 161 |         expect(result.valid).toBe(true);
+          |                              ^
+      162 |         expect(result.resolved_venue_id).toBe('venue-1');
+      163 |         expect(result.resolved_zone_id).toBe('zone-1');
+      164 |     });
+
+      at Object.<anonymous> (lib/duty-assignment.test.ts:161:30)
+
+  ● validateAssignment › allows assigning driver to venue without zone (partial assignment)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      200 |         };
+      201 |         const result = validateAssignment(input);
+    > 202 |         expect(result.valid).toBe(true);
+          |                              ^
+      203 |         expect(result.resolved_venue_id).toBe('venue-1');
+      204 |         expect(result.resolved_zone_id).toBeNull();
+      205 |     });
+
+      at Object.<anonymous> (lib/duty-assignment.test.ts:202:30)
+
+(node:60088) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL __tests__/lib/duty-assignment.test.ts (5.363 s)
+  ● validateAssignment - Location Based Filtering › should NOT allow supervisor to assign staff to a different venue
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "different venue"
+    Received string:    "You can only change duties for staff at your assigned venue."
+
+      35 |
+      36 |         expect(result.valid).toBe(false);
+    > 37 |         expect(result.error).toContain('different venue');
+         |                              ^
+      38 |     });
+      39 |
+      40 |     it('should NOT allow supervisor to assign staff currently at a different venue', () => {
+
+      at Object.<anonymous> (__tests__/lib/duty-assignment.test.ts:37:30)
+
+  ● validateAssignment - Location Based Filtering › should NOT allow supervisor to assign staff currently at a different venue
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "different venue"
+    Received string:    "You can only change duties for staff at your assigned venue."
+
+      50 |
+      51 |         expect(result.valid).toBe(false);
+    > 52 |         expect(result.error).toContain('different venue');
+         |                              ^
+      53 |     });
+      54 |
+      55 |     it('should allow admin to assign staff across venues', () => {
+
+      at Object.<anonymous> (__tests__/lib/duty-assignment.test.ts:52:30)
+
+(node:60087) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL __tests__/api/sessions/checkout.test.ts (5.377 s)
+  ● Console
+
+    console.error
+      Checkout error: TypeError: Cannot read properties of undefined (reading '0')
+          at POST (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/app/api/sessions/checkout/route.ts:96:50)
+          at processTicksAndRejections (node:internal/process/task_queues:103:5)
+          at Object.<anonymous> (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/__tests__/api/sessions/checkout.test.ts:53:26)
+
+      181 |     } catch (error) {
+      182 |         await client.query('ROLLBACK');
+    > 183 |         console.error('Checkout error:', error);
+          |                 ^
+      184 |         return NextResponse.json(
+      185 |             { error: 'Internal server error' },
+      186 |             { status: 500 }
+
+      at POST (app/api/sessions/checkout/route.ts:183:17)
+      at Object.<anonymous> (__tests__/api/sessions/checkout.test.ts:53:26)
+
+  ● POST /api/sessions/checkout › should update retrieval_staff_id when staff_id is provided in body
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      54 |         const data = await response.json();
+      55 |
+    > 56 |         expect(response.status).toBe(200);
+         |                                 ^
+      57 |
+      58 |         // Check if the update query includes retrieval_staff_id
+      59 |         // The current implementation (line 109-117 in route.ts) only has:
+
+      at Object.<anonymous> (__tests__/api/sessions/checkout.test.ts:56:33)
+
+PASS __tests__/api/sessions/checkin/repro_checkin_bugs.test.ts (5.365 s)
+(node:60090) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL __tests__/api/sessions/checkin/utils.test.ts (5.37 s)
+  ● Check-In Utils › normalizePlate › should uppercase and strip spaces and hyphens
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "LEA1234"
+    Received: "LEA-1234"
+
+       5 |     describe('normalizePlate', () => {
+       6 |         it('should uppercase and strip spaces and hyphens', () => {
+    >  7 |             expect(normalizePlate('lea-1234')).toBe('LEA1234');
+         |                                                ^
+       8 |             expect(normalizePlate('  ABC 123  ')).toBe('ABC123');
+       9 |             expect(normalizePlate('XYZ-789-ABC')).toBe('XYZ789ABC');
+      10 |         });
+
+      at Object.<anonymous> (__tests__/api/sessions/checkin/utils.test.ts:7:48)
+
+(node:60100) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/lib/photoUtils.test.ts
+PASS lib/whatsapp.test.ts
+PASS __tests__/lib/shiftLogic.test.ts
+(node:60095) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/api/export-sales.test.ts (5.483 s)
+(node:60101) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/api/sessions/checkin/gate_derivation.test.ts (5.489 s)
+(node:60091) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/api/sessions/list.test.ts
+PASS __tests__/api/camera-stream.test.ts (5.518 s)
+  ● Console
+
+    console.log
+      [CameraProxy] Connecting to upstream: http://streamer:8081/video_feed for venue: venue-1, gate: gate-B (Raw: false)
+
+      at GET (app/api/camera/stream/route.ts:23:13)
+
+    console.log
+      [CameraProxy] Verifying venue at: http://streamer:8081/venue
+
+      at GET (app/api/camera/stream/route.ts:31:17)
+
+    console.log
+      [CameraProxy] Streamer is currently assigned to venue: venue-1, gate: gate-A
+
+      at GET (app/api/camera/stream/route.ts:46:17)
+
+    console.warn
+      [CameraProxy] Gate mismatch. Requested: gate-B, Active: gate-A
+
+      55 |             }
+      56 |             if (requestedGate && requestedGate !== activeGateId) {
+    > 57 |                 console.warn(`[CameraProxy] Gate mismatch. Requested: ${requestedGate}, Active: ${activeGateId}`);
+         |                         ^
+      58 |                 return new NextResponse(`Unauthorized: Camera assigned to another gate`, { status: 403 });
+      59 |             }
+      60 |         }
+
+      at GET (app/api/camera/stream/route.ts:57:25)
+      at Object.<anonymous> (__tests__/api/camera-stream.test.ts:35:21)
+
+    console.log
+      [CameraProxy] Connecting to upstream: http://streamer:8081/video_feed for venue: venue-B, gate: null (Raw: false)
+
+      at GET (app/api/camera/stream/route.ts:23:13)
+
+    console.log
+      [CameraProxy] Verifying venue at: http://streamer:8081/venue
+
+      at GET (app/api/camera/stream/route.ts:31:17)
+
+    console.log
+      [CameraProxy] Streamer is currently assigned to venue: venue-A, gate: gate-1
+
+      at GET (app/api/camera/stream/route.ts:46:17)
+
+    console.warn
+      [CameraProxy] Venue mismatch. Requested: venue-B, Active: venue-A
+
+      51 |         if (!isSetup) {
+      52 |             if (requestedVenue !== activeVenueId) {
+    > 53 |                 console.warn(`[CameraProxy] Venue mismatch. Requested: ${requestedVenue}, Active: ${activeVenueId}`);
+         |                         ^
+      54 |                 return new NextResponse(`Unauthorized: Camera assigned to ${currentAssignment.venue_name || 'another location'}`, { status: 403 });
+      55 |             }
+      56 |             if (requestedGate && requestedGate !== activeGateId) {
+
+      at GET (app/api/camera/stream/route.ts:53:25)
+      at Object.<anonymous> (__tests__/api/camera-stream.test.ts:49:21)
+
+    console.log
+      [CameraProxy] Connecting to upstream: http://streamer:8081/video_feed_raw for venue: venue-1, gate: gate-1 (Raw: true)
+
+      at GET (app/api/camera/stream/route.ts:23:13)
+
+    console.log
+      [CameraProxy] Verifying venue at: http://streamer:8081/venue
+
+      at GET (app/api/camera/stream/route.ts:31:17)
+
+    console.log
+      [CameraProxy] Streamer is currently assigned to venue: venue-1, gate: gate-1
+
+      at GET (app/api/camera/stream/route.ts:46:17)
+
+    console.log
+      [CameraProxy] Proxying stream from: http://streamer:8081/video_feed_raw
+
+      at GET (app/api/camera/stream/route.ts:72:17)
+
+    console.log
+      [CameraProxy] Connecting to upstream: http://streamer:8081/video_feed for venue: venue-1, gate: null (Raw: false)
+
+      at GET (app/api/camera/stream/route.ts:23:13)
+
+    console.log
+      [CameraProxy] Verifying venue at: http://streamer:8081/venue
+
+      at GET (app/api/camera/stream/route.ts:31:17)
+
+    console.error
+      [CameraProxy] Unexpected error: Error: Connection refused
+          at Object.<anonymous> (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/__tests__/api/camera-stream.test.ts:81:59)
+          at Promise.finally.completed (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+          at _callCircusTest (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+          at processTicksAndRejections (node:internal/process/task_queues:103:5)
+          at _runTest (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+          at /Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+          at _runTestsForDescribeBlock (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+          at _runTestsForDescribeBlock (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at run (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+          at runAndTransformResultsToJestFormat (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+          at jestAdapter (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/runner.js:101:19)
+          at runTestInternal (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-runner/build/testWorker.js:275:16)
+          at runTest (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-runner/build/testWorker.js:343:7)
+          at Object.worker (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-runner/build/testWorker.js:497:12)
+
+      106 |             return new Response(null, { status: 499 }); // Client Closed Request
+      107 |         }
+    > 108 |         console.error('[CameraProxy] Unexpected error:', error);
+          |                 ^
+      109 |         return new Response(`Failed to connect to camera streamer at ${upstreamUrl}. Error: ${error.message}`, { status: 502 });
+      110 |     }
+      111 | }
+
+      at GET (app/api/camera/stream/route.ts:108:17)
+      at Object.<anonymous> (__tests__/api/camera-stream.test.ts:84:21)
+
+(node:60093) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:60096) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/api/events.test.ts (5.521 s)
+  ● Console
+
+    console.error
+      [Realtime] Failed to connect shared listener: TypeError: Cannot read properties of undefined (reading 'on')
+          at RealtimeManager.ensureConnected (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/lib/realtime.ts:44:25)
+          at processTicksAndRejections (node:internal/process/task_queues:103:5)
+
+      62 |             console.log('[Realtime] Shared listener connected and LISTENING');
+      63 |         } catch (err) {
+    > 64 |             console.error('[Realtime] Failed to connect shared listener:', err);
+         |                     ^
+      65 |             this.cleanup();
+      66 |             this.scheduleReconnect();
+      67 |         } finally {
+
+      at RealtimeManager.ensureConnected (lib/realtime.ts:64:21)
+
+PASS __tests__/lib/washValidation.test.ts (5.505 s)
+(node:60098) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/lib/roles.test.ts (5.516 s)
+(node:60097) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/lib/dateTimeUtils.test.ts (5.523 s)
+(node:60099) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/api/auth_security.test.ts (5.563 s)
+(node:60094) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/api/break.test.ts (5.581 s)
+  ● Console
+
+    console.error
+      break/start error: TypeError: Cannot read properties of undefined (reading 'rows')
+          at POST (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/app/api/staff/shift/break/start/route.ts:53:47)
+          at processTicksAndRejections (node:internal/process/task_queues:103:5)
+          at Object.<anonymous> (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/__tests__/api/break.test.ts:35:13)
+
+      53 |     return NextResponse.json({ shift: updated.rows[0] });
+      54 |   } catch (err) {
+    > 55 |     console.error('break/start error:', err);
+         |             ^
+      56 |     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      57 |   }
+      58 | }
+
+      at POST (app/api/staff/shift/break/start/route.ts:55:13)
+      at Object.<anonymous> (__tests__/api/break.test.ts:35:13)
+
+    console.error
+      break/end error: TypeError: Cannot read properties of undefined (reading 'rows')
+          at POST (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/app/api/staff/shift/break/end/route.ts:57:47)
+          at processTicksAndRejections (node:internal/process/task_queues:103:5)
+          at Object.<anonymous> (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/__tests__/api/break.test.ts:59:13)
+
+      57 |     return NextResponse.json({ shift: updated.rows[0], minutesUsed: toAdd });
+      58 |   } catch (err) {
+    > 59 |     console.error('break/end error:', err);
+         |             ^
+      60 |     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      61 |   }
+      62 | }
+
+      at POST (app/api/staff/shift/break/end/route.ts:59:13)
+      at Object.<anonymous> (__tests__/api/break.test.ts:59:13)
+
+(node:60092) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS __tests__/api/admin-stats.test.ts (5.583 s)
+  ● Console
+
+    console.error
+      Database connection error in stats: Error: Database connection lost
+          at Object.<anonymous> (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/__tests__/api/admin-stats.test.ts:56:53)
+          at Promise.finally.completed (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:1557:28)
+          at new Promise (<anonymous>)
+          at callAsyncCircusFn (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:1497:10)
+          at _callCircusTest (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:1007:40)
+          at processTicksAndRejections (node:internal/process/task_queues:103:5)
+          at _runTest (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:947:3)
+          at /Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:849:7
+          at _runTestsForDescribeBlock (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:862:11)
+          at _runTestsForDescribeBlock (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:857:11)
+          at run (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:761:3)
+          at runAndTransformResultsToJestFormat (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/jestAdapterInit.js:1918:21)
+          at jestAdapter (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-circus/build/runner.js:101:19)
+          at runTestInternal (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-runner/build/testWorker.js:275:16)
+          at runTest (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-runner/build/testWorker.js:343:7)
+          at Object.worker (/Users/hannanmohsin/Documents/FYP/ParkFlow/ParkFlow-FYP-main/node_modules/jest-runner/build/testWorker.js:497:12)
+
+      112 |             anprStatus = await aiStatusPromise;
+      113 |         } catch (dbError) {
+    > 114 |             console.error('Database connection error in stats:', dbError);
+          |                     ^
+      115 |             dbStatus = 'disconnected';
+      116 |             anprStatus = await aiStatusPromise;
+      117 |
+
+      at GET (app/api/admin/stats/route.ts:114:21)
+      at Object.<anonymous> (__tests__/api/admin-stats.test.ts:59:21)
+
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Test Suites: 4 failed, 15 passed, 19 total
+Tests:       6 failed, 137 passed, 143 total
+Snapshots:   0 total
+Time:        7.305 s
+Ran all test suites.

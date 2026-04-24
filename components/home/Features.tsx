@@ -44,7 +44,7 @@ export default function Features() {
     {
       icon: Zap,
       title: 'Instant Access',
-      description: 'Frictionless entry with QR codes or WhatsApp SMS for non-app users.',
+      description: 'Frictionless entry with WhatsApp SMS for non-app users.',
       color: 'from-yellow-500 to-orange-500',
     },
   ]
@@ -90,7 +90,7 @@ export default function Features() {
               <Zap className="w-4 h-4" />
               <span className="text-sm font-semibold">Features</span>
             </motion.div>
-            
+
             <h2 className="text-4xl md:text-5xl font-display font-bold text-dark-900 mb-4">
               Powered by <span className="gradient-text">AI Innovation</span>
             </h2>
@@ -114,7 +114,7 @@ export default function Features() {
                 <div className="relative p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 h-full border border-gray-100">
                   {/* Gradient Background on Hover */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 rounded-2xl transition-opacity duration-300`} />
-                  
+
                   {/* Icon */}
                   <div className={`relative w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
                     <feature.icon className="w-7 h-7 text-white" />
