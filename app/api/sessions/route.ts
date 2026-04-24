@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         ps.customer_notes,
         ps.staff_notes,
         ps.entry_plate_confidence,
-        ps.gate_id,
+        COALESCE(ps.gate_id, sl.gate_id) AS gate_id,
         ps.retrieval_status,
         ps.retrieval_requested_at,
         ps.qr_code,
