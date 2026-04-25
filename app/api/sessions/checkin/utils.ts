@@ -1,4 +1,5 @@
 import { PoolClient } from 'pg';
+import { findAvailableStaff } from '@/lib/staffAssignment';
 
 export interface VehicleDetails {
     vehicle_type?: string;
@@ -149,11 +150,18 @@ export async function allocateSlot(
 }
 
 /**
- * Assigns a staff member with zone-aware load balancing:
+ * Assigns a staff member with zone-aware load balancing.
+ *
+ * Thin wrapper around the unified `findAvailableStaff()` in lib/staffAssignment.ts.
+ * Kept for backward compatibility — checkin route imports { assignStaff }.
+ *
+ * Priority:
  *   1. If staffId provided explicitly, use that staff
  *   2. If zoneId provided, pick least-busy on-shift driver assigned to that zone
  *      (via users.zone_id OR staff_duty_assignments.zone_id)
  *   3. Fall back to least-busy driver at the venue if no zone staff found
+ *
+ * Only staff with active shifts (`staff_shifts.status = 'active'`) are eligible.
  */
 export async function assignStaff(
     client: PoolClient,
@@ -161,67 +169,13 @@ export async function assignStaff(
     staffId?: string,
     zoneId?: string
 ): Promise<Staff> {
-    if (staffId) {
-        const res = await client.query(
-            "SELECT id, full_name FROM users WHERE id = $1 LIMIT 1",
-            [staffId]
-        );
-        return {
-            id: res.rows[0]?.id || null,
-            full_name: res.rows[0]?.full_name || null
-        };
-    }
-
-    // Try zone-specific staff first (if zone known)
-    if (zoneId) {
-        const zoneRes = await client.query(
-            `SELECT u.id, u.full_name,
-                    COUNT(ps.id) FILTER (WHERE ps.status = 'active') AS active_tasks
-             FROM users u
-             LEFT JOIN parking_sessions ps ON ps.valet_staff_id = u.id AND ps.status = 'active'
-             WHERE u.role = 'driver'
-               AND u.venue_id = $1
-               AND u.is_active = true
-               AND (
-                 u.zone_id = $2
-                 OR EXISTS (
-                   SELECT 1 FROM staff_duty_assignments sda
-                   WHERE sda.staff_id = u.id AND sda.zone_id = $2
-                 )
-               )
-             GROUP BY u.id, u.full_name
-             ORDER BY active_tasks ASC, u.full_name ASC
-             LIMIT 1`,
-            [venueId, zoneId]
-        );
-
-        if (zoneRes.rows.length > 0) {
-            return {
-                id: zoneRes.rows[0].id,
-                full_name: zoneRes.rows[0].full_name
-            };
-        }
-    }
-
-    // Fallback: least-busy driver at the venue (any zone)
-    const res = await client.query(
-        `SELECT u.id, u.full_name,
-                COUNT(ps.id) FILTER (WHERE ps.status = 'active') AS active_tasks
-         FROM users u
-         LEFT JOIN parking_sessions ps ON ps.valet_staff_id = u.id AND ps.status = 'active'
-         WHERE u.role = 'driver'
-           AND u.venue_id = $1
-           AND u.is_active = true
-         GROUP BY u.id, u.full_name
-         ORDER BY active_tasks ASC, u.full_name ASC
-         LIMIT 1`,
-        [venueId]
-    );
-
-    return {
-        id: res.rows[0]?.id || null,
-        full_name: res.rows[0]?.full_name || null
-    };
+    const result = await findAvailableStaff(client, {
+        venueId,
+        zoneId,
+        requiredRole: 'driver',
+        staffId,
+    });
+    return { id: result.id, full_name: result.full_name };
 }
 /**
  * Derives the gate_id from the staff member's assigned zone.

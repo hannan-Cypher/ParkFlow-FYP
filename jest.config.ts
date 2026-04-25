@@ -10,6 +10,7 @@ const config: Config = {
   collectCoverageFrom: [
     'lib/roles.ts',
     'lib/duty-assignment.ts',
+    'lib/staffAssignment.ts',
     'app/api/wash/**/*.ts',
   ],
   coverageThreshold: {

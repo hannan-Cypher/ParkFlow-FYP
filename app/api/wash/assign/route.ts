@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getAuthUser } from '@/lib/getUser';
 import { isAdminLike, isStaffRole, WASH_PRICING } from '@/lib/roles';
+import { findAvailableStaff } from '@/lib/staffAssignment';
 import type { WashType } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
@@ -34,8 +35,10 @@ export async function POST(request: NextRequest) {
 
     // Verify session exists and is active
     const sessionRes = await pool.query(
-      `SELECT ps.id, ps.vehicle_id, ps.customer_id, ps.venue_id, ps.slot_id
+      `SELECT ps.id, ps.vehicle_id, ps.customer_id, ps.venue_id, ps.slot_id,
+              sl.zone_id AS slot_zone_id
        FROM parking_sessions ps
+       LEFT JOIN parking_slots sl ON sl.id = ps.slot_id
        WHERE ps.id = $1 AND ps.status = 'active'`,
       [session_id]
     );
@@ -54,22 +57,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A wash is already pending or in progress for this session' }, { status: 409 });
     }
 
-    // Auto-assign to least-busy washer at the venue
-    const washerRes = await pool.query(
-      `SELECT u.id, u.full_name,
-              COUNT(sr.id) FILTER (WHERE sr.service_status IN ('pending', 'in_progress')) AS active_tasks
-       FROM users u
-       LEFT JOIN service_requests sr ON sr.assigned_to = u.id AND sr.service_status IN ('pending', 'in_progress')
-       WHERE u.role = 'washer'
-         AND u.venue_id = $1
-         AND u.is_active = true
-       GROUP BY u.id, u.full_name
-       ORDER BY active_tasks ASC, u.full_name ASC
-       LIMIT 1`,
-      [session.venue_id]
-    );
-
-    const assignedWasher = washerRes.rows[0] || null;
+    // Auto-assign to least-busy washer (zone-pinned, venue fallback)
+    const assignedStaff = await findAvailableStaff(pool, {
+      venueId: session.venue_id,
+      zoneId: session.slot_zone_id || undefined,
+      requiredRole: 'washer',
+    });
+    const assignedWasher = assignedStaff.id
+      ? { id: assignedStaff.id, full_name: assignedStaff.full_name }
+      : null;
     const pricing = WASH_PRICING[wash_type as WashType];
 
     const result = await pool.query(

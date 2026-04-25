@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { findAvailableStaff } from '@/lib/staffAssignment';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
         // ── 1. Find the active session ──────────────────────────────────────────
         const sessionResult = await client.query(
             `SELECT ps.*, v.license_plate, v.make, v.model, v.color, v.vehicle_type,
-                    sl.slot_number, sl.floor_level, sl.zone,
+                    sl.slot_number, sl.floor_level, sl.zone, sl.zone_id as slot_zone_id,
                     ve.name as venue_name, ve.id as v_venue_id,
                     staff.full_name as staff_name
              FROM parking_sessions ps
@@ -63,31 +64,30 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── 3. Find available staff at this venue (least-busy) ──────────────────
-        const staffResult = await client.query(
-            `SELECT u.id, u.full_name,
-                    COUNT(ps.id) FILTER (WHERE ps.status = 'active') AS active_tasks
-             FROM users u
-             LEFT JOIN parking_sessions ps ON ps.valet_staff_id = u.id AND ps.status = 'active'
-             WHERE u.role = 'driver'
-               AND u.venue_id = $1
-               AND u.is_active = true
-             GROUP BY u.id, u.full_name
-             ORDER BY active_tasks ASC, u.full_name ASC
-             LIMIT 1`,
-            [session.venue_id]
-        );
-
-        const assignedStaff = staffResult.rows[0] || null;
+        // ── 3. Find available staff (zone-pinned, venue fallback) ──────────────
+        const assignedStaffResult = await findAvailableStaff(client, {
+            venueId: session.v_venue_id,
+            zoneId: session.slot_zone_id || undefined,
+            requiredRole: 'driver',
+        });
+        const assignedStaff = assignedStaffResult.id
+            ? { id: assignedStaffResult.id, full_name: assignedStaffResult.full_name }
+            : null;
 
         // ── 4. Update session with retrieval status ─────────────────────────────
+        const updateFields = assignedStaff
+            ? `retrieval_status = 'requested',
+                 retrieval_requested_at = NOW(),
+                 valet_staff_id = $2`
+            : `retrieval_status = 'requested',
+                 retrieval_requested_at = NOW()`;
+        const updateParams = assignedStaff ? [session_id, assignedStaff.id] : [session_id];
+
         await client.query(
             `UPDATE parking_sessions
-             SET retrieval_status = 'requested',
-                 retrieval_requested_at = NOW()
-                 ${assignedStaff ? `, valet_staff_id = '${assignedStaff.id}'` : ''}
+             SET ${updateFields}
              WHERE id = $1`,
-            [session_id]
+            updateParams
         );
 
         await client.query('COMMIT');

@@ -55,11 +55,24 @@ interface DutyStaff {
   role: string
 }
 
+interface DutySlot {
+  id: string
+  slot_number: string
+  status: string
+  slot_type: string
+  floor_level: string | null
+}
+
 interface DutyZone {
   id: string
   name: string
   total_slots: number
   staff: DutyStaff[]
+  slots: DutySlot[]
+  slot_count: number
+  slot_range: string | null
+  occupied_slots: number
+  available_slots: number
 }
 
 interface DutyGate {
@@ -994,6 +1007,37 @@ export default function StaffTab({
                                       )}
                                     </div>
                                   </div>
+
+                                  {/* Slot occupancy bar */}
+                                  {(() => {
+                                    const total = zone.slot_count || zone.total_slots || 0
+                                    const occupied = zone.occupied_slots || 0
+                                    const pct = total > 0 ? Math.round((occupied / total) * 100) : 0
+                                    const barColor =
+                                      pct >= 90 ? 'bg-red-500' :
+                                        pct >= 75 ? 'bg-amber-500' :
+                                          pct >= 50 ? 'bg-yellow-500' :
+                                            'bg-emerald-500'
+                                    const textColor =
+                                      pct >= 90 ? 'text-red-600 dark:text-red-400' :
+                                        pct >= 75 ? 'text-amber-600 dark:text-amber-400' :
+                                          pct >= 50 ? 'text-yellow-600 dark:text-yellow-400' :
+                                            'text-emerald-600 dark:text-emerald-400'
+                                    return (
+                                      <div className="mb-3">
+                                        <div className="flex items-center justify-between text-xs mb-1">
+                                          <span className={`font-semibold ${textColor}`}>{pct}%</span>
+                                          <span className="text-slate-400 dark:text-slate-500">{occupied}/{total} occupied</span>
+                                        </div>
+                                        <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                          <div
+                                            className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                                            style={{ width: `${pct}%` }}
+                                          />
+                                        </div>
+                                      </div>
+                                    )
+                                  })()}
 
                                   {/* Assigned staff */}
                                   {zone.staff.length === 0 ? (

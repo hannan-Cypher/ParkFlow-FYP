@@ -79,11 +79,38 @@ export async function GET(request: NextRequest) {
                         [zone.id]
                     );
 
+                    // Fetch slot data for this zone
+                    const slotsResult = await pool.query(
+                        `SELECT id, slot_number, status, slot_type, floor_level
+             FROM parking_slots
+             WHERE zone_id = $1
+             ORDER BY slot_number`,
+                        [zone.id]
+                    );
+
+                    const slots = slotsResult.rows;
+                    const slotCount = slots.length;
+                    const occupiedSlots = slots.filter(s => s.status === 'occupied').length;
+                    const availableSlots = slots.filter(s => s.status === 'available').length;
+
+                    // Compute slot range (e.g., "FC1-001 — FC1-050")
+                    let slotRange: string | null = null;
+                    if (slotCount > 0) {
+                        const first = slots[0].slot_number;
+                        const last = slots[slotCount - 1].slot_number;
+                        slotRange = first !== last ? `${first} — ${last}` : first;
+                    }
+
                     zones.push({
                         id: zone.id,
                         name: zone.name,
                         total_slots: zone.total_slots,
                         staff: staffResult.rows,
+                        slots,
+                        slot_count: slotCount,
+                        slot_range: slotRange,
+                        occupied_slots: occupiedSlots,
+                        available_slots: availableSlots,
                     });
                 }
 
