@@ -1,0 +1,19 @@
+# Lightweight test runner image for API-only Playwright tests.
+# No Chromium or system browsers needed — tests use APIRequestContext only.
+
+FROM node:20-alpine
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+# Install ALL dependencies (including devDeps like @playwright/test)
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copy the rest of the project
+COPY . .
+
+# Playwright in API-only mode needs no browsers; skip the install
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+ENTRYPOINT ["npx", "playwright", "test", "tests/e2e/slot-allocation.spec.ts"]

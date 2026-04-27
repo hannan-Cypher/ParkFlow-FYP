@@ -8,7 +8,8 @@ import {
     findOrCreateVehicle,
     allocateSlot,
     assignStaff,
-    deriveGateIdFromStaff
+    deriveGateIdFromStaff,
+    deriveStaffZone
 } from './utils';
 
 export const dynamic = 'force-dynamic';
@@ -99,15 +100,22 @@ export async function POST(request: NextRequest) {
             resolvedCustomerId
         );
 
-        // ── 5. Gate & Slot Allocation ─────────────────────────────────────────
+        // ── 5. Gate & Slot Allocation (zone-pinned to staff) ──────────────────
         let effectiveGateId = gate_id;
-        if (!effectiveGateId && staff_id) {
-            effectiveGateId = await deriveGateIdFromStaff(client, staff_id, venue_id) || undefined;
+        let staffZoneId: string | undefined;
+
+        if (staff_id) {
+            const gateFromStaff = await deriveGateIdFromStaff(client, staff_id, venue_id);
+            if (!effectiveGateId && gateFromStaff) {
+                effectiveGateId = gateFromStaff;
+            }
+            // Derive zone_id so allocateSlot pins to the staff's zone first
+            staffZoneId = await deriveStaffZone(client, staff_id, venue_id) || undefined;
         }
 
         let slot;
         try {
-            slot = await allocateSlot(client, venue_id, requested_class, effectiveGateId);
+            slot = await allocateSlot(client, venue_id, requested_class, effectiveGateId, staffZoneId);
         } catch (err: any) {
             await client.query('ROLLBACK');
             return NextResponse.json(

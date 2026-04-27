@@ -88,10 +88,11 @@ export async function findOrCreateVehicle(
 }
 
 /**
- * Allocates an available slot using gate-aware cascade logic:
- *   1. Prefer zones linked to the specified gate (nearest zones)
- *   2. Fall back to zones of other gates at the same venue (by display_order)
- *   3. Throw 'parking_full' if all slots are taken
+ * Allocates an available slot using zone-aware cascade logic:
+ *   1. Prefer slots in the staff's assigned zone (zone-pinned)
+ *   2. Fall back to zones linked to the same gate
+ *   3. Fall back to zones of other gates at the same venue (by display_order)
+ *   4. Throw 'parking_full' if all slots are taken
  *
  * When gateId is not provided, falls back to venue-wide allocation (backward compat).
  */
@@ -99,12 +100,20 @@ export async function allocateSlot(
     client: PoolClient,
     venueId: string,
     requestedClass: string,
-    gateId?: string
+    gateId?: string,
+    staffZoneId?: string
 ): Promise<Slot> {
     let res;
 
     if (gateId) {
-        // Gate-aware cascade: same gate first → other gates by display_order
+        // Zone-aware cascade: staff's zone → same gate → other gates by display_order
+        const params: unknown[] = [venueId, gateId, requestedClass];
+        let zonePinnedClause = '';
+        if (staffZoneId) {
+            zonePinnedClause = `CASE WHEN ps.zone_id = $4 THEN 0 ELSE 1 END ASC,`;
+            params.push(staffZoneId);
+        }
+
         res = await client.query(
             `SELECT ps.id, ps.slot_number, ps.floor_level, ps.zone, ps.slot_type,
                     ps.zone_id, z.gate_id
@@ -115,13 +124,14 @@ export async function allocateSlot(
                AND ps.status = 'available'
                AND ps.slot_type = $3
              ORDER BY
+               ${zonePinnedClause}
                CASE WHEN z.gate_id = $2 THEN 0 ELSE 1 END ASC,
                g.display_order ASC,
                z.name ASC,
                ps.slot_number ASC
              LIMIT 1
              FOR UPDATE OF ps SKIP LOCKED`,
-            [venueId, gateId, requestedClass]
+            params
         );
     } else {
         // Legacy venue-wide allocation (no gate specified)
@@ -179,7 +189,7 @@ export async function assignStaff(
 }
 /**
  * Derives the gate_id from the staff member's assigned zone.
- * This is used for signaling when gate_id is not explicitly provided.
+ * Used for signaling when gate_id is not explicitly provided.
  */
 export async function deriveGateIdFromStaff(
     client: PoolClient,
@@ -189,7 +199,7 @@ export async function deriveGateIdFromStaff(
     if (!staffId || !venueId) return null;
 
     const res = await client.query(
-        `SELECT z.gate_id 
+        `SELECT z.gate_id
          FROM users u
          JOIN zones z ON z.id = u.zone_id
          WHERE u.id = $1 AND u.venue_id = $2`,
@@ -197,4 +207,23 @@ export async function deriveGateIdFromStaff(
     );
 
     return res.rows[0]?.gate_id || null;
+}
+
+/**
+ * Derives the zone_id from the staff member's assigned zone.
+ * Used by allocateSlot to pin slot selection to the staff's zone first.
+ */
+export async function deriveStaffZone(
+    client: PoolClient,
+    staffId?: string,
+    venueId?: string
+): Promise<string | null> {
+    if (!staffId || !venueId) return null;
+
+    const res = await client.query(
+        'SELECT zone_id FROM users WHERE id = $1 AND venue_id = $2',
+        [staffId, venueId]
+    );
+
+    return res.rows[0]?.zone_id || null;
 }

@@ -83,10 +83,10 @@ def start_camera_capture():
     global _latest_raw_frame
     
     # Force OpenCV to use TCP to prevent smearing and corruption
-    os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
+    os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
     
     while True:
-        log.info(f"OpenCV connecting to {CAM_IP} via TCP...")
+        log.info(f"OpenCV connecting to {CAM_IP} via UDP...")
         cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
         
         # Tiny buffer: Forces OpenCV to drop old frames if Python is busy!

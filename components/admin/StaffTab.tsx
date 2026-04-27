@@ -1027,7 +1027,6 @@ export default function StaffTab({
                                       <div className="mb-3">
                                         <div className="flex items-center justify-between text-xs mb-1">
                                           <span className={`font-semibold ${textColor}`}>{pct}%</span>
-                                          <span className="text-slate-400 dark:text-slate-500">{occupied}/{total} occupied</span>
                                         </div>
                                         <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                           <div
